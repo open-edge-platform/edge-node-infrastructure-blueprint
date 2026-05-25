@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+version: 1
+capabilityMatrix:
+  osSupport:
+    ubuntu:
+      "24.04":
+        supported: true
+      "26.04":
+        supported: true
+
+  platforms:
+    core-ultra:
+      arch:
+        - x86_64
+      hardwareCapabilities:
+        igpu_present: true
+        npu_present: true
+        vpro_present: true
+        sriov_capable: true
+        tpm2_present: true
+        uefi: true
+      supportedFeatures:
+        - hardware.igpu
+        - hardware.npu
+        - deployment.k3s
+        - runtime.containerd
+        - security.secureboot
+        - security.dm-verity
+        - connectivity.air-gapped
+
+    core:
+      arch:
+        - x86_64
+      hardwareCapabilities:
+        igpu_present: true
+        npu_present: false
+        vpro_present: true
+        sriov_capable: true
+        tpm2_present: true
+        uefi: true
+      supportedFeatures:
+        - hardware.igpu
+        - deployment.k3s
+        - runtime.containerd
+        - security.secureboot
+        - security.dm-verity
+        - connectivity.air-gapped
+
+    xeon:
+      arch:
+        - x86_64
+      hardwareCapabilities:
+        igpu_present: false
+        npu_present: false
+        vpro_present: false
+        sriov_capable: true
+        tpm2_present: true
+        uefi: true
+      supportedFeatures:
+        - deployment.k3s
+        - runtime.containerd
+        - security.secureboot
+        - security.dm-verity
+        - connectivity.air-gapped
+
+  validationRules:
+    - id: require-platform-support
+      description: Requested feature must be in supportedFeatures for target platform
+    - id: require-hardware-capability
+      description: Feature requires all hardware capability predicates to be true
+    - id: require-baseline-security
+      description: baseline-security posture requires secureboot and dm-verity
+    - id: require-airgapped-offline
+      description: air-gapped mode requires offline bundle generation

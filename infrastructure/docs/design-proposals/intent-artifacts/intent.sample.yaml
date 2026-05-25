@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+version: 1
+metadata:
+  name: core-ultra-ai-airgapped
+  description: Sample intent for Core Ultra handheld AI inference deployment
+  owner: edge-infra-team
+  createdOn: 2026-04-10
+
+intent:
+  hardwareProfile:
+    platform: core-ultra
+    arch: x86_64
+    accelerators:
+      igpu: required
+      npu: required
+      vpro: optional
+      sriov: optional
+
+  missionProfile:
+    workloadType: ai-inference
+    realtime: false
+    deploymentMode: k3s
+
+  securityPosture:
+    profile: baseline
+    secureBoot: required
+    immutability:
+      dmVerity: required
+
+  connectivity:
+    mode: air-gapped
+    offlineBundle: required
+
+  swapcMode:
+    profile: balanced
+    maxImageSizeMB: 16384
+    maxIdlePowerMilliWatt: 10000
+
+  output:
+    imageType: raw
+    os:
+      name: ubuntu
+      version: "24.04"
+    artifacts:
+      includeCloudInit: true
+      includeBuildLock: true
+      includeSwapcReport: true

@@ -1,0 +1,172 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+version: 1
+catalog:
+  defaults:
+    baselineSecurity:
+      secureBoot: true
+      dmVerity: true
+
+  features:
+    hardware.igpu:
+      description: Enable Intel iGPU user-space/runtime stack
+      category: hardware
+      requires:
+        hardwareCapabilities:
+          - igpu_present
+      conflicts: []
+      implies: []
+      sets:
+        imageConfig:
+          drivers:
+            igpu: true
+          packages:
+            - intel-gpu-tools
+            - level-zero
+      cost:
+        imageSizeMB: 180
+        idlePowerMilliWatt: 120
+
+    hardware.npu:
+      description: Enable Intel NPU runtime and driver stack
+      category: hardware
+      requires:
+        hardwareCapabilities:
+          - npu_present
+        features:
+          - hardware.igpu
+      conflicts: []
+      implies: []
+      sets:
+        imageConfig:
+          drivers:
+            npu: true
+          packages:
+            - openvino
+            - intel-npu-driver
+      cost:
+        imageSizeMB: 260
+        idlePowerMilliWatt: 90
+
+    deployment.k3s:
+      description: Enable K3s runtime and prefetch required images
+      category: deployment
+      requires:
+        hardwareCapabilities: []
+      conflicts:
+        - deployment.vm
+      implies:
+        - runtime.containerd
+      sets:
+        imageConfig:
+          runtime:
+            type: k3s
+          prefetch:
+            k3sImages: true
+      cost:
+        imageSizeMB: 700
+        idlePowerMilliWatt: 320
+
+    runtime.containerd:
+      description: Container runtime required by K3s
+      category: runtime
+      requires:
+        hardwareCapabilities: []
+      conflicts: []
+      implies: []
+      sets:
+        imageConfig:
+          runtime:
+            containerd: true
+      cost:
+        imageSizeMB: 110
+        idlePowerMilliWatt: 80
+
+    mission.ai-inference:
+      description: AI inference mission profile with OpenVINO runtime and model-serving prerequisites
+      category: mission
+      requires:
+        hardwareCapabilities: []
+      conflicts: []
+      implies:
+        - hardware.igpu
+        - hardware.npu
+      sets:
+        imageConfig:
+          workload:
+            type: ai-inference
+          packages:
+            - openvino-runtime
+            - python3-openvino
+      cost:
+        imageSizeMB: 420
+        idlePowerMilliWatt: 180
+
+    security.secureboot:
+      description: UEFI Secure Boot enforcement with enrolled keys
+      category: security
+      requires:
+        hardwareCapabilities:
+          - uefi
+      conflicts:
+        - security.unsigned-kernel-modules
+      implies: []
+      sets:
+        imageConfig:
+          biosConfig:
+            secureBoot:
+              enabled: true
+      cost:
+        imageSizeMB: 6
+        idlePowerMilliWatt: 0
+
+    security.dm-verity:
+      description: Immutable root filesystem backed by dm-verity
+      category: security
+      requires:
+        hardwareCapabilities: []
+      conflicts:
+        - runtime.mutable-rootfs-required
+      implies: []
+      sets:
+        imageConfig:
+          systemConfig:
+            immutability:
+              enabled: true
+      cost:
+        imageSizeMB: 14
+        idlePowerMilliWatt: 0
+
+    connectivity.air-gapped:
+      description: Build and package all dependencies for disconnected install
+      category: connectivity
+      requires:
+        hardwareCapabilities: []
+      conflicts: []
+      implies: []
+      sets:
+        imageConfig:
+          offline:
+            enabled: true
+            includeMirrors: true
+            includeChecksums: true
+      cost:
+        imageSizeMB: 1200
+        idlePowerMilliWatt: 0
+
+  # Postures are named, pre-declared groups of features enforced as a unit by the resolver.
+  # The customer selects a posture name in their intent (e.g. securityPosture.profile: baseline);
+  # the resolver expands it into all requiredFeatures below — none of which can be opted out.
+  # This keeps the customer-facing intent small and stable while allowing infrastructure teams
+  # to evolve posture definitions (e.g. add apparmor to baseline-security) without the customer
+  # changing their intent file.
+  postures:
+    baseline-security:
+      requiredFeatures:
+        - security.secureboot
+        - security.dm-verity
+
+    air-gapped-deploy:
+      requiredFeatures:
+        - connectivity.air-gapped

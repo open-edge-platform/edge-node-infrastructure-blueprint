@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+metadata: # AI-searchable metadata for template discovery
+  description: "Core Ultra edge AI inference node with K3s" # Short description of the image template
+  use_cases: ["ai-inference", "air-gapped-deployment", "k3s-edge-cluster"] # List of intended use cases
+  keywords: ["core-ultra", "k3s", "openvino", "igpu", "npu", "edge"] # Searchable keywords for discovery
+
+image: # Output image identity
+  name: "edge-core-ultra-k3s" # Name of the image
+  version: "1.0.0" # Version of the image
+  imageType: "raw.gz" # Output image format
+
+target: # Target OS and build parameters
+  os: "ubuntu" # OS provider name
+  dist: "24.04" # OS distribution identifier
+  arch: "x86_64" # CPU architecture
+
+packageRepositories: # Additional APT/RPM package repositories
+  - codename: "noble" # Repository codename or ID
+    url: "http://archive.ubuntu.com/ubuntu" # Repository base URL
+    pkey: "https://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg" # Public key URL for repo verification
+    component: "main restricted universe multiverse" # Repository component (e.g. main/restricted)
+
+biosConfig: # BIOS and firmware-level platform configuration
+  secureBoot: # UEFI Secure Boot configuration
+    enabled: true # Enable Secure Boot enforcement
+    dbKey: "keys/db.key" # Path to Secure Boot DB private key
+    dbCrt: "keys/db.crt" # Path to Secure Boot DB certificate
+    dbCer: "keys/db.cer" # Path to Secure Boot DB CER file
+  measuredBoot: # TPM-based Measured Boot (integrity measurement chain)
+    enabled: true # Enable Measured Boot via TPM
+    pcrPolicy: "0+2+7" # PCR bank policy to seal against (e.g. 0+2+7)
+  vPro: # Intel vPro platform enablement
+    enabled: true # Enable Intel vPro platform feature set
+
+systemConfig: # System-level OS image configuration
+  immutability: # Immutable rootfs settings
+    enabled: true # Enable immutable rootfs (dm-verity backed)
+  services: # Systemd service overrides
+    enable: ["k3s", "containerd", "ssh"] # Services to enable at image build time
+    disable: ["bluetooth", "cups", "avahi-daemon"] # Services to disable at image build time
+  proxy: # System-wide proxy configuration
+    httpProxy: "" # HTTP proxy URL (e.g. http://proxy.example.com:3128)
+    httpsProxy: "" # HTTPS proxy URL
+    noProxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16" # Comma-separated list of no-proxy hosts/CIDRs
+  vProActivation: # vPro AMT activation settings
+    enabled: true # Enable Intel AMT / vPro remote management activation
+    mode: "enterprise" # Activation mode (e.g. client/enterprise/none)
+  disk: # Disk and partition layout
+    partitionSchema: "gpt" # User defined partition scheme
+    partitionSize: "80G" # Root partition size (e.g. 8G or percentage)
+    fde: # Full Disk Encryption configuration
+      enabled: true # Enable Full Disk Encryption (LUKS2)
+      keyManagement: "tpm2" # Key management method (tpm2 / static / network)
+  perf-tools: # Performance tooling configuration
+    enabled: true # Enable performance diagnostics and benchmarking tools
+  packages: ["curl", "jq", "vim", "htop", "intel-gpu-tools", "clinfo", "openvino", "linux-tools-common"] # List of OS packages to install
+  kernel: # Kernel configuration
+    version: "6.6" # Kernel version to use (e.g. 6.14)
+    realtimeMode: "nrt" # Kernel scheduling mode (standard / nrt / rt)
+    cmdline: "quiet splash intel_iommu=on iommu=pt isolcpus=4-7 nohz_full=4-7 rcu_nocbs=4-7" # Full kernel command-line parameters
+    coreIsolation: "4-7" # CPU cores to isolate from general scheduling (isolcpus value)
+    gpuVFs: # Intel/AMD GPU SR-IOV Virtual Function configuration
+      enabled: true # Enable GPU VF creation at boot
+      count: 4 # Number of GPU VFs to create per physical GPU
+      driver: "i915" # VF driver to bind (e.g. i915 / xe)
+    npu: # Intel NPU configuration
+      enabled: true # Enable Intel NPU device support (default: true)
+      driver: "intel_vpu" # NPU driver to use (e.g. intel_vpu)
+    packages: ["linux-modules-extra", "intel-microcode"] # Kernel-specific packages to install
+
+cloudInit: # Cloud-init configuration for first-boot provisioning
+  gpu: # GPU provisioning via cloud-init
+    enabled: true # Enable cloud-init GPU configuration module
+    vfCount: 4 # Number of GPU VFs to configure at first boot
+    driver: "i915" # GPU driver to load/configure
+  npu: # NPU provisioning via cloud-init
+    enabled: true # Enable cloud-init NPU configuration module
+    driver: "intel_vpu" # NPU driver to load/configure
+    firmwarePath: "/opt/firmware/npu" # Path to NPU firmware package or directory
+
+runtimeConfig: # Container / orchestration runtime selection and settings
+  k3s: # Lightweight Kubernetes (K3s) runtime
+    enabled: true # Deploy K3s as the container orchestrator
+    version: "v1.29.3+k3s1" # K3s version to install (e.g. v1.29.3+k3s1)
+    serverArgs: "--write-kubeconfig-mode 644 --disable traefik" # Additional K3s server startup arguments
+    agentOnly: false # Deploy as K3s agent node only (no control plane)
+  container: # Standalone container runtime (Docker / containerd)
+    enabled: false # Deploy Docker / containerd without Kubernetes
+    runtime: "containerd" # Container runtime engine (docker / containerd / podman)
+    version: "1.7.13" # Runtime version to pin
