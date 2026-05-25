@@ -1,5 +1,8 @@
 # Edge Node Infrastructure Blueprint
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
+
 ## Introduction
 
 The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native infrastructure allows containerized and cloud-native applications to be deployed seamlessly on edge nodes.
