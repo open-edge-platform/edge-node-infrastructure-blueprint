@@ -44,15 +44,16 @@ host_type="container"
 # Note: For now don't provide any input and keep it as "0",it for Future use-case 
 lvm_size_ingb="0"
 
-# -------------------- Custom NTP Server Configuration --------------------
-# Configure NTP server settings according to your organization's requirements.
-# This configuration is optional and should only be set if required.
-#
-# Example:
-#   USER_CUSTOM_NTP_SERVERS="pool.ntp.org"
-#   For multiple servers: USER_CUSTOM_NTP_SERVERS="pool1.ntp.org,pool2.ntp.org"
+# ------------------ Installation Mode ------------------------
+# Choose the installation mode for the OS deployment.
+# Supported modes:
+#   - attended mode (true): Interactive mode where user can choose disk selection,
+#     user creation, proxy settings, and custom disk partition if required.
+#   - unattended mode (false): Non-interactive OS installation (default).
+# Set to true for attended mode (debug purpose), false for unattended mode.
+# Example: installation_mode="false"
 
-USER_CUSTOM_NTP_SERVERS=""
+installation_mode="false"
 
 # -------------------Custom cloud-init Config file---------------------
 # This section is to customize the cloud-init config file as per User Wish

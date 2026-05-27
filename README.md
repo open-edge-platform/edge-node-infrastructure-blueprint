@@ -135,6 +135,19 @@ Required inputs:
    - Proxy configurations
    - SSH public key (`id_rsa.pub`)
    - Additional system parameters
+   - Installation Mode (Attended or Unattended) 
+
+#### Installation Mode Details
+
+Installation mode is optional and defaults to **Unattended Mode** (fully automated installation without user interaction). If you require interactive debugging, set `installation_mode=true` in the `config-file` to enable **Attended Mode** with prompts for user input during the boot process.
+
+If installation fails or you need to troubleshoot, run the installer in interactive debug mode on the Alpine OS terminal:
+
+```bash
+/usr/local/bin/os-install.sh -i
+```
+
+This launches the installer in interactive debug mode for troubleshooting and manual configuration.
 
 > Note: Proxy configuration is optional in unrestricted network environments.
 
