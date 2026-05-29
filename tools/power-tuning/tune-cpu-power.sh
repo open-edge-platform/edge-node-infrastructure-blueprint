@@ -4,8 +4,7 @@
 #
 # tune-cpu-power.sh
 #
-# Apply a CPU + platform power profile for Intel Core Ultra Series 3
-# (Panther Lake, hybrid P/E/LPE topology). Idempotent and safe to re-run.
+# Apply a CPU + platform power profile for Intel Core Ultra (hybrid P/E/LPE topology).
 #
 # Modes:
 #   battery     - maximize battery life

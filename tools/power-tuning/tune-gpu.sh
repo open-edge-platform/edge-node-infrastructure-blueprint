@@ -5,8 +5,7 @@
 # tune-gpu.sh
 #
 # Apply a GPU power/performance profile for the Intel Xe3 iGPU on
-# Intel Core Ultra Series 3 (Panther Lake). Supports both i915 and xe
-# kernel drivers. Idempotent and safe to re-run.
+# Intel Core Ultra processors. Supports both i915 and xe kernel drivers.
 #
 # Modes:
 #   battery     - clamp gt freq to hw min, longer SR-IOV quanta
