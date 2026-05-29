@@ -25,7 +25,8 @@ description: Apply a CPU and/or GPU power profile (battery, balanced, performanc
 - target: which tuner(s) to run; one of `cpu`, `gpu`, `both` (default: `both`)
 - cpu_profile: `battery` | `balanced` | `performance` (required when target is `cpu` or `both`)
 - gpu_profile: `battery` | `balanced` | `performance` | `graphical` (required when target is `gpu` or `both`)
-- dry_run: `true` | `false` (default: `false`) — when `true`, scripts run with `--dry-run` and no sysfs writes occur
+- dry_run: `true` | `false` (default: `false`) — when `true`, the apply phase is skipped entirely; only the mandatory dry-run preview runs
+- auto_confirm: `true` | `false` (default: `false`) — when `true`, skip the interactive confirmation gate after the dry-run preview (use with care, e.g. for automation)
 
 Note: Private key authentication follows the same pattern as `validate-platform-config`: try direct login first; only on failure fall back to discovering a key under `~/.ssh/`.
 
@@ -84,25 +85,47 @@ Prompt only for missing required inputs:
     - `for f in /sys/class/drm/card*/gt_max_freq_mhz; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
     - `for f in /sys/class/drm/card*/device/tile*/gt*/freq0/max_freq; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
 
-4. Apply the requested profile(s). Use `--dry-run` only when `dry_run=true`.
+4. **Mandatory dry-run preview** — always runs first, regardless of `dry_run`.
   - If `target` in (`cpu`, `both`):
-    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-cpu-power.sh --profile <cpu_profile> $( [[ "$dry_run" == "true" ]] && echo --dry-run )"`
+    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-cpu-power.sh --profile <cpu_profile> --dry-run"`
   - If `target` in (`gpu`, `both`):
-    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-gpu.sh --profile <gpu_profile> $( [[ "$dry_run" == "true" ]] && echo --dry-run )"`
+    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-gpu.sh --profile <gpu_profile> --dry-run"`
+  - Parse each tuner's stdout and build a **Planned Changes** summary:
+    - count of `APPLY` lines (writes that will happen)
+    - count of `SKIP` lines (paths missing / not writable, with reason)
+    - list each planned write as `path <= value` grouped by tuner
+  - Render the Planned Changes summary to the user before doing anything else.
+
+5. **Confirmation gate** — pause and require explicit user confirmation before any write.
+  - If `dry_run=true`: report "dry-run only — no changes applied" and stop after Step 4. Do not proceed.
+  - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue to Step 6 without prompting.
+  - Else: prompt the user with the rendered Planned Changes summary and ask:
+    - "Apply these changes to `<ssh_user>@<ssh_host>`? (yes/no)"
+    - On any answer other than `yes` / `y` (case-insensitive), stop. Do not proceed to Step 6. Report `CONFIRMATION=declined`.
+
+6. Apply the requested profile(s) (only reached after confirmation).
+  - If `target` in (`cpu`, `both`):
+    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-cpu-power.sh --profile <cpu_profile>"`
+  - If `target` in (`gpu`, `both`):
+    - `$SSH <user>@<host> "sudo ~/.cache/enib-power-tuning/tune-gpu.sh --profile <gpu_profile>"`
   - Capture each script's stdout/stderr verbatim for the report; record the exit code.
 
-5. Capture a post-change snapshot using the same read commands as Step 3.
+7. Capture a post-change snapshot using the same read commands as Step 3.
 
-6. (Optional cleanup, only on explicit user request) remove staged scripts:
+8. (Optional cleanup, only on explicit user request) remove staged scripts:
   - `$SSH <user>@<host> "rm -rf ~/.cache/enib-power-tuning"`
 
 ## Validation
 Validation section is criteria-only. Do not render the pass/fail results table here.
 - SSH connectivity check passes.
-- Sudo precondition passes (unless `dry_run=true`, in which case sudo is still required only to actually apply, so dry-run may skip the sudo precheck).
+- Sudo precondition passes (sudo is required for both the mandatory dry-run preview and the apply phase).
 - Scripts copy successfully and become executable on the remote node.
-- Each invoked tuner exits with code `0`.
-- Post-change snapshot reflects the requested profile (only when `dry_run=false`):
+- Mandatory dry-run preview ran for every selected tuner and returned exit code `0`.
+- Planned Changes summary was rendered to the user.
+- Confirmation gate outcome is recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
+- Apply phase only executed when the gate outcome is `confirmed` or `auto_confirm`.
+- When the apply phase ran, each invoked tuner exits with code `0`.
+- Post-change snapshot reflects the requested profile (only when apply phase ran):
   - CPU profile mapping (best-effort, knob present-only):
     - `battery` → `scaling_governor=powersave`, `EPP=power`, `no_turbo=1`, `max_perf_pct=60`, `platform_profile=low-power` (if supported)
     - `balanced` → `EPP=balance_power`, `no_turbo=0`, `max_perf_pct=100`, `platform_profile=balanced`
@@ -138,9 +161,19 @@ Render the report as the following tables.
 | Target | `cpu` / `gpu` / `both` |
 | CPU profile | `<cpu_profile or n/a>` |
 | GPU profile | `<gpu_profile or n/a>` |
-| Dry run | `true` / `false` |
+| Dry run only | `true` / `false` |
+| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+
+### Planned Changes (from mandatory dry-run)
+
+| Tuner | APPLY count | SKIP count | Planned writes (path <= value) |
+|---|---|---|---|
+| tune-cpu-power.sh | `<n>` | `<n>` | `<list or 'n/a'>` |
+| tune-gpu.sh | `<n>` | `<n>` | `<list or 'n/a'>` |
 
 ### Apply Results
+
+(omit this table when the gate outcome is `declined` or `dry_run_only`)
 
 | Tuner | Exit Code | APPLY count | SKIP count | Notes |
 |---|---|---|---|---|
