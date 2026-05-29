@@ -18,6 +18,7 @@ For skill execution order, see [AGENTS.md](AGENTS.md#skill-execution-order-must-
 - `create-image` at `skills/create-image/SKILL.md`
 - `create-usb-installation-files` at `skills/create-usb-installation-files/SKILL.md`
 - `validate-platform-config` at `skills/validate-platform-config/SKILL.md`
+- `tune-platform-power` at `skills/tune-platform-power/SKILL.md`
 
 ## Completion Criteria for Skill Runs
 A run is complete only when Copilot returns:

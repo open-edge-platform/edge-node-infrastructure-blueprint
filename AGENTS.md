@@ -23,6 +23,7 @@ Skills are in `skills/`. Use trigger phrases to activate:
 - `create-image`: Build Ubuntu 24.04 host images using ICT and validate output artifacts.
 - `create-usb-installation-files`: Create `usb-installation-files.tar.gz` end-to-end, optionally chaining `create-image` when an ICT image is not already available.
 - `validate-platform-config`: Validate post-provision platform readiness over SSH (k3s pods, binaries/path, cloud-init, network, proxy values, devices, GPU VFs).
+- `tune-platform-power`: Apply CPU/GPU power profiles (battery, balanced, performance, graphical) on a provisioned Intel Core Ultra Series 3 node over SSH using the `tools/power-tuning/` scripts.
 
 ## Skill Execution Order (MUST follow for all skills)
 Every skill execution follows this mandatory sequence:
@@ -55,3 +56,5 @@ Use these prompts to test agent-driven development before writing your own skill
 4. `Use create-usb-installation-files to produce usb-installation-files.tar.gz using an existing ICT image at /path/to/image.raw.gz. Run preconditions first.`
 5. `Run create-usb-installation-files from scratch: build the ICT image first, then package usb-installation-files.tar.gz, and report artifact paths.`
 6. `Use validate-platform-config to verify a provisioned node over SSH and report checks for pods, k3s/kubectl binaries, cloud-init, networking, proxy values, devices, and GPU VFs.`
+7. `Use tune-platform-power to switch a node to the battery profile over SSH (target=both). Run preconditions first and report pre/post snapshots.`
+8. `Use tune-platform-power with target=gpu and gpu_profile=graphical over SSH; do a dry-run first.`
