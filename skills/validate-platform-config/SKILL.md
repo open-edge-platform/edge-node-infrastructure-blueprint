@@ -16,7 +16,7 @@ description: Validate whether a provisioned platform is correctly configured ove
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
 - ssh_host: target node IP or hostname
-- ssh_user: remote login user
+- ssh_user: remote login user (default: `user`)
 - ssh_port: SSH port (default: `22`)
 - kubeconfig_path: expected kubeconfig path (default: `/etc/rancher/k3s/k3s.yaml`)
 
@@ -28,20 +28,23 @@ Run silently without user prompts:
   - `test -f <enib_home>/skills/validate-platform-config/SKILL.md`
 - [ ] SSH client exists locally:
   - `command -v ssh`
-- [ ] At least one private key exists in `~/.ssh/` with safe permissions:
-  - Run: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then echo "KEY_FOUND=$key"; exit 0; fi; fi; done; echo "KEY_FOUND=none"`
-  - if output contains `KEY_FOUND=none`, stop and report missing/unsafe key error
 - [ ] Remote host is reachable on SSH port:
   - `timeout 5 bash -c '</dev/tcp/<ssh_host>/<ssh_port>'`
-- [ ] Remote login succeeds with the auto-discovered key.
+- [ ] Attempt remote login directly using the SSH agent / default keys (no key path required):
+  - `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host> true`
+  - if exit code is `0`, proceed; record `SSH_AUTH=default`
+  - only if direct login fails, fall back to explicit key discovery in `~/.ssh/`:
+    - Run: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then echo "KEY_FOUND=$key"; exit 0; fi; fi; done; echo "KEY_FOUND=none"`
+    - if output contains `KEY_FOUND=none`, stop and report missing/unsafe key error
+    - retry login with `-i <key>`; if it still fails, stop and report SSH auth error
 
 Prompt only for missing required inputs:
-- [ ] Ask for missing `ssh_host`, `ssh_user`, and `ssh_port` only.
+- [ ] Ask for missing `ssh_host` and `ssh_port` only. Assume `ssh_user=user` unless the user overrides it.
 
 ## Steps
-1. Auto-discover private key from `~/.ssh/` and build SSH command.
-  - Run key discovery: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then ssh_key="$key"; break; fi; fi; done`
-  - Use discovered `$ssh_key` in SSH command: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
+1. Build SSH command using the auth method established in preconditions.
+  - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host>`
+  - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
 
 2. Run remote check for basic k3s pods and statuses.
   - command:
@@ -169,10 +172,17 @@ This is a read-only validation skill. No rollback required.
 - If a check fails, continue collecting remaining checks and return a complete report.
 
 ## Expected Result Summary
-Return:
-- whether preconditions passed
-- SSH endpoint and auth method used (mask sensitive parts, report which auto-discovered key was used)
-- validation results table (render in this summary section):
+Render the report as the following tables.
+
+### Run Metadata
+
+| Field | Value |
+|---|---|
+| Preconditions | PASS/FAIL |
+| SSH endpoint | `<ssh_user>@<ssh_host>:<ssh_port>` |
+| Auth method | `default` (agent/default keys) or `key:<auto-discovered key name>` (mask path) |
+
+### Validation Results
 
 | Check Area | Status | Evidence | Notes |
 |---|---|---|---|
@@ -185,9 +195,27 @@ Return:
 | CPU/GPU/NPU inventory | PASS/FAIL/WARN | CPU topology, lspci, `/dev/dri` | codename must be verified or `unverified` |
 | GPU VF counts | PASS/FAIL/WARN | `sriov_numvfs`, `sriov_totalvfs` | unsupported/not-enabled if files missing |
 
-- exact observed values for proxy variables and VF counts
-- raw evidence snippets for failed checks
-- troubleshooting notes for each failed section
+### Observed Proxy Values
+
+| Variable | Source | Value |
+|---|---|---|
+| `http_proxy` | `/etc/environment` | `<value or unset>` |
+| `https_proxy` | `/etc/environment` | `<value or unset>` |
+| `no_proxy` | `/etc/environment` | `<value or unset>` |
+| k3s proxy env | `/etc/systemd/system/k3s.service.env` | `<values or permission-denied>` |
+| docker proxy | `/etc/systemd/system/docker.service.d/proxy.conf` | `<values or permission-denied>` |
+
+### GPU VF Counts
+
+| Device | `sriov_numvfs` | `sriov_totalvfs` |
+|---|---|---|
+| `/sys/class/drm/card<N>` | `<n>` | `<total>` |
+
+### Failures and Troubleshooting
+
+| Failed Check | Raw Evidence | Troubleshooting Note |
+|---|---|---|
+| `<check area>` | `<snippet>` | `<action>` |
 
 ## Troubleshooting Notes
 - If `kubectl` fails due to kubeconfig permissions, retry with `k3s kubectl`.
