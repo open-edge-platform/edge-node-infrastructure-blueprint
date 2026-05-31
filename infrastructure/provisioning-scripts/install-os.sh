@@ -1317,6 +1317,7 @@ custom_cloud_init_updates() {
        systemctl stop docker
        systemctl disable docker
        bash /opt/edge/scripts/kubernetes-provision.sh
+       bash /opt/edge/scripts/setup-kernel-depended-pkgs.sh
 EOF
 )
         awk -v new_lines="$NEW_LINES" '
@@ -1376,6 +1377,7 @@ EOF
          systemctl disable k3s
          systemctl stop k3s
          bash /opt/edge/scripts/container-provision.sh
+	 bash /opt/edge/scripts/setup-kernel-depended-pkgs.sh
 EOF
 )
          awk -v new_lines="$NEW_LINES" '

@@ -58,6 +58,8 @@ autoinstall:
           - net-tools
           - cloud-utils
           - chrony
+          - linux-tools-common
+          - linux-tools-generic
 
 
     - path: /usr/local/bin/first-boot-fix.sh
