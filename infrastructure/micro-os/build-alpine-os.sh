@@ -31,6 +31,7 @@ readonly -a FILES_LIST=(
     "$(pwd)/../installation-scripts/install-intel-device-plugins.sh"
     "$(pwd)/../installation-scripts/install-helm.sh"
     "$(pwd)/../installation-scripts/container_setup_sriov.sh"
+    "$(pwd)/../installation-scripts/setup-kernel-depended-pkgs.sh"
     "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/nfd.yaml"
     "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/nfd-node-feature-rules.yaml"
     "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/gpu-plugin.yaml"
