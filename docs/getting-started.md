@@ -28,7 +28,7 @@ The solution bridges the gap between edge hardware capabilities and application 
 | Topic | Guide |
 |---|---|
 | Host OS image generation from an Ubuntu ISO | [Ubuntu Desktop Raw Image Generation](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md) |
-| **Advanced**: Build the host OS image with the OS Image Composer Tool (ICT) | [Building an Ubuntu 24.04 Image with OS Image Composer](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md) |
+| **Advanced**: Build the host OS image with the OS Image Composer Tool (ICT) | [Building an Ubuntu 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md) |
 | Exposing Intel GPU/NPU to containers via CDI | [Intel CDI Usage Guide](./intel_cdi_usage_guide.md) |
 | Writing and using AI agent skills for this blueprint | [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md) |
 

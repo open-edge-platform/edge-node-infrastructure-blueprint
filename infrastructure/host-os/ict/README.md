@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Building an Ubuntu 24.04 Image with OS Image Composer
+# Building an Ubuntu 24.04 Image with Image Composer Tool
 
 This document describes how to build a bootable Ubuntu 24.04 raw image for
 Intel Core Ultra platforms using
