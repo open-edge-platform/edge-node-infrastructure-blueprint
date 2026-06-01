@@ -1,0 +1,260 @@
+<!--
+SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# Edge Node Infrastructure Blueprint — Getting Started
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
+
+Source repository: <https://github.com/open-edge-platform/edge-node-infrastructure-blueprint>
+
+## Introduction
+
+The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native infrastructure allows containerized and cloud-native applications to be deployed seamlessly on edge nodes.
+
+This blueprint helps you:
+
+- Build bootable installation artifacts.
+- Prepare USB media for target node provisioning.
+- Bring up core software components after first boot.
+- Validate platform readiness for cloud-native edge workloads.
+
+The solution bridges the gap between edge hardware capabilities and application requirements, providing a standardized platform for deploying latency-sensitive workloads, AI/ML inference, IoT processing, and real-time applications at the network edge.
+
+## Related Guides
+
+| Topic | Guide |
+|---|---|
+| Host OS image generation from an Ubuntu ISO | [Ubuntu Desktop Raw Image Generation](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md) |
+| **Advanced**: Build the host OS image with the OS Image Composer Tool (ICT) | [Building an Ubuntu 24.04 Image with OS Image Composer](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md) |
+| Exposing Intel GPU/NPU to containers via CDI | [Intel CDI Usage Guide](./intel_cdi_usage_guide.md) |
+| Writing and using AI agent skills for this blueprint | [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md) |
+
+## Scope
+
+- Developer system: Host machine used to generate installation artifacts.
+- Target system: Edge machine used for application deployment.
+
+## Phase 1: Build Artifacts on the Developer System
+
+### 1. Prerequisites
+
+Install and configure Docker before starting the build.
+
+- Docker installation: [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+- Docker proxy setup: [Docker daemon proxy configuration](https://docs.docker.com/engine/daemon/proxy/)
+
+If your environment uses a proxy, verify the following files:
+
+- `~/.docker/config.json` (Docker CLI proxy settings)
+- `/etc/systemd/system/docker.service.d/http-proxy.conf` (Docker service proxy settings)
+- `/etc/docker/daemon.json` (Docker daemon proxy settings)
+
+#### Go Toolchain
+
+Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
+
+```bash
+# Install Go 1.22+ (example: 1.24.2)
+wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
+export PATH=/usr/local/go/bin:$PATH  # add to ~/.bashrc to persist
+go version  # should report go1.22 or later
+```
+
+> Notes
+>
+> - Keep `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` consistent across all proxy configuration files.
+> - Build flow has been verified on Ubuntu 22.04 and 24.04.
+
+### 2. Clone the Repository
+
+```bash
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+cd edge-node-infrastructure-blueprint
+```
+
+### 3. Build Bootable USB Artifacts
+
+From the repository root, run one of the following build modes.
+
+> Note: If your environment is behind a firewall, add proxy configuration to `infrastructure/micro-os/config`.
+
+#### Option 1 (Recommended): Build from ISO
+
+Build the Ubuntu image (including required tools/packages) from an Ubuntu ISO:
+
+```bash
+make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
+```
+
+For additional image customization, refer to the [Ubuntu Desktop Raw Image Generation guide](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md).
+
+#### Option 2 (Advanced): Build with the OS Image Composer Tool (ICT)
+
+> This path is intended for advanced users who need fine-grained control over disk layout, package repositories, and image composition. Most users should start with **Option 1**.
+
+Generate an image using the OS Image Composer Tool (ICT) by following the [Building an Ubuntu 24.04 Image with OS Image Composer guide](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md).
+
+Use this mode when you already have an image generated by ICT:
+
+```bash
+make build MODE=image-from-tool ICT_IMG=/absolute/path/to/minimal-desktop-ubuntu-24.04.raw.gz
+```
+
+Supported ICT image extensions:
+
+- `.raw.gz`
+- `.raw.img.gz`
+
+Example:
+
+```bash
+make build MODE=image-from-tool ICT_IMG=/home/user/images/minimal-desktop-ubuntu-24.04.raw.gz
+```
+
+This mode skips host image creation and packages the provided ICT image into the USB artifacts.
+
+Build output:
+
+- `usb-installation-files.tar.gz` in `infrastructure/build-artifacts/out`
+
+#### Developer Incremental Build
+
+To skip base image regeneration and reduce build time:
+
+```bash
+make build MODE=reuse-image
+```
+
+This reuses a prebuilt image. You can also manually copy an existing image to USB partition 5 when required by your process.
+
+For reusable ICT images, use `MODE=image-from-tool` with `ICT_IMG` instead of `MODE=reuse-image`.
+
+## Phase 2: Prepare Bootable USB
+
+### 4. Extract Installation Files on the Developer System
+
+```bash
+sudo tar -xzf usb-installation-files.tar.gz
+```
+
+Extracted files include:
+
+- `usb-bootable-files.tar.gz`
+- `config-file`
+- `bootable-usb-prepare.sh`
+- `ven-deployment.sh`
+
+### 5. Configure and Prepare the USB Device
+
+Required inputs:
+
+- USB Device Path (`usb`): Target USB device identifier (for example, `/dev/sdX`). Use the `lsblk` command to locate the correct device.
+- Bootable Package (`usb-bootable-files.tar.gz`): Compressed archive containing bootable system files.
+- Configuration File (`config-file`): User-customizable settings including:
+  - Proxy configurations
+  - SSH public key (`id_rsa.pub`)
+  - Additional system parameters
+  - Installation Mode (Attended or Unattended)
+
+#### Installation Mode Details
+
+Installation mode is optional and defaults to **Unattended Mode** (fully automated installation without user interaction). If you require interactive debugging, set `installation_mode=true` in the `config-file` to enable **Attended Mode** with prompts for user input during the boot process.
+
+If installation fails or you need to troubleshoot, run the installer in interactive debug mode on the Alpine OS terminal:
+
+```bash
+/usr/local/bin/os-install.sh -i
+```
+
+This launches the installer in interactive debug mode for troubleshooting and manual configuration.
+
+> Note: Proxy configuration is optional in unrestricted network environments.
+
+Run the following command:
+
+```bash
+sudo ./bootable-usb-prepare.sh /dev/sdX usb-bootable-files.tar.gz config-file
+```
+
+For prebuilt image reuse:
+
+```bash
+sudo ./bootable-usb-prepare.sh /dev/sdX usb-bootable-files.tar.gz config-file image.raw.gz
+```
+
+After USB preparation completes:
+
+1. Safely disconnect the USB from the developer system.
+2. Connect it to the target system.
+3. Enter BIOS/boot menu and boot from USB.
+
+### Access the Edge Node
+
+After installation, log in using the credentials specified in the `config-file` during Ubuntu desktop image preparation.
+
+## Phase 3: Post-Boot Bring-Up and Validation on Target System
+
+For Kubernetes:
+
+```bash
+# Kubernetes nodes and plugin pods
+sudo kubectl get nodes
+sudo kubectl get pods -A
+```
+
+Expected healthy output includes running Intel and NFD components, for example:
+
+```text
+intel-device-plugins     intel-gpu-plugin-xxxxx                  1/1   Running
+intel-device-plugins     intel-npu-plugin-xxxxx                  1/1   Running
+node-feature-discovery   nfd-master-xxxxx                        1/1   Running
+node-feature-discovery   nfd-worker-xxxxx                        1/1   Running
+kube-system              coredns-xxxxx                           1/1   Running
+kube-system              metrics-server-xxxxx                    1/1   Running
+```
+
+Verify SR-IOV status:
+
+```bash
+sudo cat /sys/kernel/debug/dri/0000:00:02.1/sriov_info
+```
+
+Expected indicators:
+
+```text
+supported: yes
+enabled: yes
+mode: SR-IOV VF
+```
+
+Verify GPU and NPU driver bring-up:
+
+```bash
+sudo dmesg | grep xe
+sudo dmesg | grep vpu
+```
+
+For containers:
+
+```bash
+docker info
+docker ps
+```
+
+For details on exposing Intel GPU/NPU to containers via CDI, see the [Intel CDI Usage Guide](./intel_cdi_usage_guide.md).
+
+## Troubleshooting Checklist
+
+- Docker build fails: Recheck Docker daemon and CLI proxy settings, then restart Docker.
+- USB preparation fails: Verify device path and available USB capacity.
+- `kubectl` issues: Confirm K3s installation completed and node status is `Ready`.
+- GPU/NPU not detected: Re-run BKC installation and inspect `dmesg` for driver load failures.
+
+## Next Steps
+
+- Run repeatable workflows through natural language using the agent skills described in the [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md).
+- Expose Intel accelerators to containerized workloads using the [Intel CDI Usage Guide](./cdi/intel_cdi_usage_guide.md).
