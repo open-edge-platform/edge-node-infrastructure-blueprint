@@ -37,7 +37,7 @@ host_type="container"
 
 # ------------------ SR-IOV Configuration ------------------------
 # Enable or disable SR-IOV (Single Root I/O Virtualization) setup.
-# When enabled, creates GPU virtual functions for workload isolation.
+# When enabled, creates 7 GPU virtual functions for workload isolation.
 # Set to "true" to enable SR-IOV, "false" to disable.
 # Example: enable_sriov="true"
 enable_sriov="false"
