@@ -123,3 +123,24 @@ fi
 
 echo "=== Pod status after plugin installation ==="
 kubectl get pods -A
+
+# ── SR-IOV Configuration (Optional) ───────────────────────────────────────
+# Set up SR-IOV virtual functions if enabled in config-file
+CONFIG_FILE="/etc/cloud/config-file"
+if [ -f "$CONFIG_FILE" ]; then
+    enable_sriov=$(grep '^enable_sriov=' "$CONFIG_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" | tr '[:upper:]' '[:lower:]')
+    if [ "$enable_sriov" = "true" ]; then
+        echo "SR-IOV enabled in config — setting up virtual functions..."
+        SRIOV_SCRIPT="${INSTALL_SCRIPTS}/provision-sriov/setup-sriov.sh"
+        if [ -x "$SRIOV_SCRIPT" ]; then
+            bash "$SRIOV_SCRIPT" || echo "WARNING: SR-IOV setup failed"
+        else
+            echo "WARNING: SR-IOV script not found at $SRIOV_SCRIPT"
+        fi
+    else
+        echo "SR-IOV disabled in config — skipping VF setup"
+    fi
+fi
+
+date
+echo "=== kubernetes-provision.sh: end ==="

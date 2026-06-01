@@ -35,6 +35,13 @@ ssh_key=""
 # Example: host_type="container" or host_type="kubernetes"
 host_type="container"
 
+# ------------------ SR-IOV Configuration ------------------------
+# Enable or disable SR-IOV (Single Root I/O Virtualization) setup.
+# When enabled, creates GPU virtual functions for workload isolation.
+# Set to "true" to enable SR-IOV, "false" to disable.
+# Example: enable_sriov="true"
+enable_sriov="false"
+
 # ------------------ LVM partition size ------------------------
 # Set the LVM partition size in GB. This will be used for creating
 # the LVM partition that will be used for user data. By default,
