@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 name: tune-platform-power
-description: Apply a CPU and/or GPU power profile (battery, balanced, performance, graphical) on a provisioned Intel Core Ultra Series 3 (Panther Lake) node over SSH using the tools/power-tuning/ scripts.
+description: Apply a CPU and/or GPU power profile (battery, balanced, performance, graphical) on a provisioned Intel Core Ultra node over SSH using the tools/power-tuning/ scripts.
 ---
 
 ## Trigger Phrases

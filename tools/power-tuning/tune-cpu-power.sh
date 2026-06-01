@@ -4,7 +4,7 @@
 #
 # tune-cpu-power.sh
 #
-# Apply a CPU + platform power profile for Intel Core Ultra (hybrid P/E/LPE topology).
+# Apply a CPU + platform power profile for Intel Core Ultra (hybrid P/E/LPE topology) processors.
 #
 # Modes:
 #   battery     - maximize battery life

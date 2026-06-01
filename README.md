@@ -54,8 +54,8 @@ go version  # should report go1.22 or later
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/intel-innersource/frameworks.edge.one-intel-edge.edge-node.edge-node-infrastructure-blueprint.git
-cd frameworks.edge.one-intel-edge.edge-node.edge-node-infrastructure-blueprint
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+cd edge-node-infrastructure-blueprint
 ```
 
 ### 3. Build Bootable USB Artifacts

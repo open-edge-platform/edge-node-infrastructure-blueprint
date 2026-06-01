@@ -6,7 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 # Building an Ubuntu 24.04 Image with OS Image Composer
 
 This document describes how to build a bootable Ubuntu 24.04 raw image for
-Intel Panther Lake (PTL) platforms using
+Intel Core Ultra platforms using
 [image-composer-tool](https://github.com/open-edge-platform/image-composer-tool)
 and the provided template
 [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml).
