@@ -60,10 +60,28 @@ echo "Running docker hello-world smoke test..."
 docker pull hello-world || true
 docker run --rm hello-world || true
 
+# ── SR-IOV Configuration (Optional) ───────────────────────────────────────
+# Set up SR-IOV virtual functions if enabled in config-file
+INSTALL_SCRIPTS="/opt/edge/scripts"
+CONFIG_FILE="/etc/cloud/config-file"
+if [ -f "$CONFIG_FILE" ]; then
+    enable_sriov=$(grep '^enable_sriov=' "$CONFIG_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" | tr '[:upper:]' '[:lower:]')
+    if [ "$enable_sriov" = "true" ]; then
+        echo "SR-IOV enabled in config — setting up virtual functions..."
+        SRIOV_SCRIPT="${INSTALL_SCRIPTS}/container_setup_sriov.sh"
+        if [ -x "$SRIOV_SCRIPT" ]; then
+            bash "$SRIOV_SCRIPT" || echo "WARNING: SR-IOV setup failed"
+        else
+            echo "WARNING: SR-IOV script not found at $SRIOV_SCRIPT"
+        fi
+    else
+        echo "SR-IOV disabled in config — skipping VF setup"
+    fi
+fi
+
 # ── CDI (Container Device Interface) setup ───────────────────────────────
 # Installs systemd service that generates CDI specs for GPU/NPU on boot and
 # on device hotplug. Enables: docker run --device intel.com/gpu=card0
-INSTALL_SCRIPTS="/opt/edge/scripts"
 CDI_SCRIPTS="${INSTALL_SCRIPTS}/cdi"
 if [ -x "${CDI_SCRIPTS}/systemd/install-systemd.sh" ]; then
     echo "Installing CDI spec generator systemd service..."
