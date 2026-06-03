@@ -5,8 +5,6 @@ SPDX-License-Identifier: Apache-2.0
 
 # Intel CDI (Container Device Interface) Usage Guide
 
----
-
 ## Overview
 
 Container Device Interface (CDI) enables defining specifications that allow greater control on how devices are exposed to containers. Instead of running containers in `--privileged` mode (which exposes every host device) or manually bind-mounting `/dev/dri` paths, CDI lets you request devices by name — the runtime handles device nodes, permissions, and mounts automatically.
@@ -39,6 +37,7 @@ In ENIB images, the CDI spec generation service is **automatically started on fi
 - **NPU specs**: Generated using the custom `intel-cdi-npu-generator.sh` bash script
 
 The CDI generation service is pre-configured with:
+
 1. **Udev rules** — triggers CDI regeneration when GPU VFs or NPU devices appear
 2. **Systemd service** (`intel-cdi-regenerate.service`) — runs both generators
 3. **Systemd timer** — periodic fallback regeneration (every 5 minutes)
@@ -110,7 +109,7 @@ docker run --rm --device intel.com/gpu=card1 ubuntu:24.04 ls /dev/dri/
 
 Expected output — the container sees only the assigned GPU device:
 
-```
+```text
 card1
 renderD129
 ```
@@ -123,7 +122,7 @@ docker run --rm --device intel.com/npu=npu0 ubuntu:24.04 ls /dev/accel/
 
 Expected output:
 
-```
+```text
 accel0
 ```
 
@@ -224,7 +223,6 @@ devices:
           type: c
 ```
 
-
 ---
 
 ## Troubleshooting
@@ -241,24 +239,24 @@ sudo bash /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh --cdi-dir /etc/cdi
 
 1. Verify Docker version is 25+:
 
-```bash
-docker --version
-```
+   ```bash
+   docker --version
+   ```
 
 2. Verify CDI is enabled in `/etc/docker/daemon.json`:
 
-```json
-{
-  "features": { "cdi": true },
-  "cdi-spec-dirs": ["/etc/cdi"]
-}
-```
+   ```json
+   {
+     "features": { "cdi": true },
+     "cdi-spec-dirs": ["/etc/cdi"]
+   }
+   ```
 
 3. Restart Docker:
 
-```bash
-sudo systemctl restart docker
-```
+   ```bash
+   sudo systemctl restart docker
+   ```
 
 ### NPU not detected
 
