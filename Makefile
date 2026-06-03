@@ -34,6 +34,57 @@ coverage:
 	echo $@
 	@echo "---END MAKEFILE COVERAGE---"
 
+ICT_DIR            := infrastructure/host-os/ict
+ICT_UPSTREAM_REF   := $(ICT_DIR)/upstream/UPSTREAM_REF
+ICT_PATCH          := $(ICT_DIR)/generic-handheld-os-template.patch
+ICT_FINAL          := $(ICT_DIR)/generic-handheld-os-template.yml
+
+ict-refresh-upstream:
+	@# Help: Fetch upstream ICT template at the SHA pinned in UPSTREAM_REF & apply the patch to regenerate template
+	@echo "---MAKEFILE ICT REFRESH UPSTREAM---"
+	@set -eu; \
+	. ./$(ICT_UPSTREAM_REF); \
+	: "$${UPSTREAM_REPO:?UPSTREAM_REPO not set in $(ICT_UPSTREAM_REF)}"; \
+	: "$${UPSTREAM_PATH:?UPSTREAM_PATH not set in $(ICT_UPSTREAM_REF)}"; \
+	: "$${UPSTREAM_SHA:?UPSTREAM_SHA not set in $(ICT_UPSTREAM_REF)}"; \
+	RAW_URL="$${UPSTREAM_RAW_URL:-https://raw.githubusercontent.com/$$(echo $$UPSTREAM_REPO | sed -E 's#https?://github.com/##')/$$UPSTREAM_SHA/$$UPSTREAM_PATH}"; \
+	UPSTREAM_BASENAME="$$(basename $$UPSTREAM_PATH)"; \
+	TMP_DIR="$$(mktemp -d)"; \
+	TMP_UPSTREAM="$$TMP_DIR/$$UPSTREAM_BASENAME"; \
+	TMP_REGEN="$$TMP_DIR/regen.yml"; \
+	KEEP_ON_FAIL=0; \
+	trap '[ $$KEEP_ON_FAIL -eq 0 ] && rm -rf "$$TMP_DIR" || echo "Fetched upstream kept at: $$TMP_UPSTREAM"' EXIT; \
+	echo "Fetching upstream @ $$UPSTREAM_SHA"; \
+	echo "  URL: $$RAW_URL"; \
+	curl -fsSL "$$RAW_URL" -o "$$TMP_UPSTREAM"; \
+	echo "Dry-run applying $(ICT_PATCH) on the fetched upstream..."; \
+	if ! patch --dry-run -s -o "$$TMP_REGEN" "$$TMP_UPSTREAM" < $(ICT_PATCH); then \
+	  KEEP_ON_FAIL=1; \
+	  echo "ERROR: patch does not apply cleanly on the fetched upstream."; \
+	  echo "Resolve rejected hunks manually in $(ICT_FINAL) and regenerate $(ICT_PATCH)."; \
+	  exit 1; \
+	fi; \
+	patch -s -o "$$TMP_REGEN" "$$TMP_UPSTREAM" < $(ICT_PATCH); \
+	cp "$$TMP_REGEN" $(ICT_FINAL); \
+	echo "Regenerating $(ICT_PATCH) with refreshed SHA label..."; \
+	{ \
+	  echo "SPDX-FileCopyrightText: (C) 2026 Intel Corporation"; \
+	  echo "SPDX-License-Identifier: Apache-2.0"; \
+	  echo ""; \
+	  diff -u \
+	    --label "a/$$UPSTREAM_BASENAME (upstream @ $$UPSTREAM_SHA)" \
+	    --label "b/$$(basename $(ICT_FINAL))" \
+	    "$$TMP_UPSTREAM" $(ICT_FINAL) || [ $$? -eq 1 ]; \
+	} > $(ICT_PATCH); \
+	echo "Round-trip verification..."; \
+	patch -s -o "$$TMP_REGEN" "$$TMP_UPSTREAM" < $(ICT_PATCH); \
+	diff -q "$$TMP_REGEN" $(ICT_FINAL); \
+	echo "Refreshed:"; \
+	echo "  final: $(ICT_FINAL)"; \
+	echo "  patch: $(ICT_PATCH)"; \
+	echo "  (fetched upstream discarded)"
+	@echo "---END MAKEFILE ICT REFRESH UPSTREAM---"
+
 license: 
 	## Check licensing with the reuse tool.
 	reuse --version

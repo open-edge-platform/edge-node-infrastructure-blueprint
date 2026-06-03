@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+UPSTREAM_REPO=https://github.com/open-edge-platform/image-composer-tool
+UPSTREAM_PATH=image-templates/ubuntu24-x86_64-minimal-ptl-pv-raw.yml
+UPSTREAM_SHA=4c599067906013c9e331a1ecc0b99687ae8b63bc
+UPSTREAM_RAW_URL=https://raw.githubusercontent.com/open-edge-platform/image-composer-tool/4c599067906013c9e331a1ecc0b99687ae8b63bc/image-templates/ubuntu24-x86_64-minimal-ptl-pv-raw.yml
