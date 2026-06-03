@@ -63,6 +63,8 @@ cd edge-node-infrastructure-blueprint
 From the repository root, run one of the following build modes.
 
 > Note: If your environment is behind a firewall, add proxy configuration to `infrastructure/micro-os/config`.
+> 
+> For air-gapped deployments: run `infrastructure/installation-scripts/download-resources.sh` before building to bundle Intel device plugin manifests and container images into the installation artifacts.
 
 #### Option 1: Build from ISO
 
