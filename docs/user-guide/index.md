@@ -18,7 +18,6 @@ This blueprint helps you:
 
 The solution bridges the gap between edge hardware capabilities and application requirements, providing a standardized platform for deploying latency-sensitive workloads, AI/ML inference, IoT processing, and real-time applications at the network edge.
 
-
 <!--hide_directive
 :::{toctree}
 :hidden:
