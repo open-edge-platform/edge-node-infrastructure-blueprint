@@ -39,6 +39,7 @@ NFD_NS="${NFD_NS:-node-feature-discovery}"
 SKIP_GPU="${SKIP_GPU:-0}"
 SKIP_NPU="${SKIP_NPU:-0}"
 NFD_READY_TIMEOUT="${NFD_READY_TIMEOUT:-180}"
+INTEL_DEVICE_PLUGINS_VERSION="${INTEL_DEVICE_PLUGINS_VERSION:-v0.35.0}"
 
 # K3s installs its kubeconfig at /etc/rancher/k3s/k3s.yaml; set it if not
 # already configured so kubectl works under sudo.
@@ -78,12 +79,82 @@ wait_pods_ready() {
         || warn "Some pods in '${ns}' did not become ready within ${timeout}s. Check: kubectl get pods -n ${ns}"
 }
 
+# Download and render a manifest from GitHub using kubectl kustomize
+# Usage: download_manifest_from_github <manifest_name> <target_path>
+# Returns: 0 on success, 1 on failure
+download_manifest_from_github() {
+    local manifest_name="$1"
+    local target_path="$2"
+
+    warn "Manifest not bundled locally, attempting to render from GitHub using kubectl kustomize..."
+    warn "(Similar to how k3s pulls images from registry when not pre-loaded)"
+
+    # Use the version already set globally
+    local version="${INTEL_DEVICE_PLUGINS_VERSION}"
+    local github_base="github.com/intel/intel-device-plugins-for-kubernetes/deployments"
+    local kustomize_url=""
+
+    # Map manifest names to kustomize overlay URLs
+    case "${manifest_name}" in
+        nfd.yaml)
+            kustomize_url="${github_base}/nfd?ref=${version}"
+            ;;
+        nfd-node-feature-rules.yaml)
+            kustomize_url="${github_base}/nfd/overlays/node-feature-rules?ref=${version}"
+            ;;
+        gpu-plugin.yaml)
+            kustomize_url="${github_base}/gpu_plugin/overlays/nfd_labeled_nodes?ref=${version}"
+            ;;
+        npu-plugin.yaml)
+            kustomize_url="${github_base}/npu_plugin/overlays/nfd_labeled_nodes?ref=${version}"
+            ;;
+        *)
+            warn "Unknown manifest: ${manifest_name}"
+            return 1
+            ;;
+    esac
+
+    info "  Rendering manifest from: ${kustomize_url}"
+    info "  Saving to: ${target_path}"
+
+    # Create parent directory if it doesn't exist
+    mkdir -p "$(dirname "${target_path}")"
+
+    # Render manifest using kubectl kustomize with timeout and proper error handling
+    if timeout 60 kubectl kustomize "${kustomize_url}" > "${target_path}" 2>/dev/null && [[ -s "${target_path}" ]]; then
+        success "  Rendered ${manifest_name} successfully and saved to ${target_path}"
+        return 0
+    else
+        warn "  Failed to render ${manifest_name}"
+        warn "  Check internet connectivity, proxy settings, or GitHub availability"
+        # Clean up empty file
+        rm -f "${target_path}"
+        return 1
+    fi
+}
+
 # Apply a manifest, optionally scoped to a namespace.
+# Automatically falls back to downloading from GitHub if manifest is missing.
 # Usage: kube_apply <manifest_path> [namespace]
 kube_apply() {
     local manifest="$1"
     local ns="${2:-}"
-    [[ -f "${manifest}" ]] || die "Manifest not found: ${manifest}"
+    local manifest_name="$(basename "${manifest}")"
+
+    # Check if manifest exists locally
+    if [[ ! -f "${manifest}" ]]; then
+        warn "Manifest not found locally: ${manifest}"
+
+        # Try to download from GitHub to the same location where we checked for it
+        # This ensures the downloaded manifest is stored in the expected resource location
+        if download_manifest_from_github "${manifest_name}" "${manifest}"; then
+            info "Using downloaded manifest: ${manifest}"
+        else
+            die "Manifest not found and could not be downloaded: ${manifest} \n\nThis usually means:\n  1. download-resources.sh was not run before building\n  2. No internet connectivity available for fallback \n\nFor air-gapped deployments, run './download-resources.sh' and rebuild."
+        fi
+    fi
+
+    # Apply the manifest
     if [[ -n "${ns}" ]]; then
         kubectl apply -n "${ns}" -f "${manifest}"
     else
@@ -95,13 +166,6 @@ kube_apply() {
 # Preflight checks
 # ------------------------------------------------------------------------------
 [[ "${EUID}" -ne 0 ]] && die "This script must be run as root.  Use: sudo $0"
-
-[[ -d "${RESOURCES_DIR}" ]] || \
-    die "Resources directory not found: ${RESOURCES_DIR}\nRun './download-resources.sh' first."
-[[ -d "${RESOURCES_DIR}/manifests" ]] || \
-    die "Manifests directory not found: ${RESOURCES_DIR}/manifests\nRun './download-resources.sh' first."
-[[ -d "${RESOURCES_DIR}/images" ]] || \
-    die "Images directory not found: ${RESOURCES_DIR}/images\nRun './download-resources.sh' first."
 
 command -v kubectl &>/dev/null || \
     die "'kubectl' not found. Ensure K3s is installed and /usr/local/bin is in PATH."
@@ -189,7 +253,7 @@ echo ""
 # by the time the plugins look for node labels the labels already exist.
 # ==============================================================================
 info "Applying NFD manifest ..."
-kube_apply "${RESOURCES_DIR}/manifests/nfd.yaml"
+kube_apply "${SCRIPT_DIR}/nfd.yaml"
 success "NFD manifest applied"
 echo ""
 
@@ -204,7 +268,7 @@ echo ""
 # and which labels to apply to nodes.
 # ==============================================================================
 info "Applying Intel NodeFeatureRules ..."
-kube_apply "${RESOURCES_DIR}/manifests/nfd-node-feature-rules.yaml"
+kube_apply "${SCRIPT_DIR}/nfd-node-feature-rules.yaml"
 success "NodeFeatureRules applied"
 echo ""
 
@@ -222,7 +286,7 @@ echo ""
 # ==============================================================================
 if [[ "${SKIP_GPU}" != "1" ]]; then
     info "Applying Intel GPU device plugin ..."
-    kube_apply "${RESOURCES_DIR}/manifests/gpu-plugin.yaml" "${INTEL_PLUGINS_NS}"
+    kube_apply "${SCRIPT_DIR}/gpu-plugin.yaml" "${INTEL_PLUGINS_NS}"
     success "GPU device plugin applied"
     echo ""
 else
@@ -237,7 +301,7 @@ fi
 # ==============================================================================
 if [[ "${SKIP_NPU}" != "1" ]]; then
     info "Applying Intel NPU device plugin ..."
-    kube_apply "${RESOURCES_DIR}/manifests/npu-plugin.yaml" "${INTEL_PLUGINS_NS}"
+    kube_apply "${SCRIPT_DIR}/npu-plugin.yaml" "${INTEL_PLUGINS_NS}"
     success "NPU device plugin applied"
     echo ""
 else
