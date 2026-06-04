@@ -367,12 +367,16 @@ systemConfig:
     - grub-efi-amd64-bin
     - efibootmgr
     # PTL network stack
+    - libbpf1
     - curl
     - wget
     - cron
     - ethtool
     - iproute2
+    - libtbb12
     # PTL packages
+    - libigfxcmrt-dev
+    - libigfxcmrt7
     - vim
     - nano
     - ocl-icd-libopencl1
@@ -501,7 +505,7 @@ systemConfig:
     - gcc
     - git
     - intel-gpu-tools
-    - libssl3t64
+    - libssl3
     - libssl-dev
     - make
     - mosquitto
@@ -556,24 +560,10 @@ systemConfig:
     - clinfo
     - xvfb
     - xnest
-    # ---- Local additions below this line; keep upstream order above ----------
-    - util-linux-extra
-    - dbus-x11
-    - sg3-utils
-    - dash
-    - hostname
-    - login
-    - passwd
-    - sed
-    - network-manager-config-connectivity-ubuntu
     - cloud-init
-    - network-manager
     - chrony
-    - xdp-tools
-    - mutter-common-bin
-    - libmutter-14-0
-    - gir1.2-mutter-14
-    - spice-client-gtk
+    - sg3-utils
+    - util-linux-extra
     # -- Performance & Profiling Tools ------------------------------------------
     # Intel Performance Counter Monitor - CPU/uncore/PCIe counters
     - pcm
