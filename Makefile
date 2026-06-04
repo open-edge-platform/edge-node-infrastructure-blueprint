@@ -79,10 +79,6 @@ ict-refresh-upstream:
 	echo "Round-trip verification..."; \
 	patch -s -o "$$TMP_REGEN" "$$TMP_UPSTREAM" < $(ICT_PATCH); \
 	diff -q "$$TMP_REGEN" $(ICT_FINAL); \
-	echo "Refreshed:"; \
-	echo "  final: $(ICT_FINAL)"; \
-	echo "  patch: $(ICT_PATCH)"; \
-	echo "  (fetched upstream discarded)"
 	@echo "---END MAKEFILE ICT REFRESH UPSTREAM---"
 
 license: 
