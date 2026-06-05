@@ -14,8 +14,7 @@ hide_directive-->
 
 
 
-### The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for
-production use.
+#### The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
 
 Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration
 capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native 
