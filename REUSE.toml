@@ -10,6 +10,8 @@ path = [
     "**/GOTOOLS_VERSIONS",
     "**/*.md",
     "**/go.mod*",
+    "**/*.png",
+    "**/*.txt",
     "**/go.sum",
     "VERSION",
     "gitleaks_baselines/*"
