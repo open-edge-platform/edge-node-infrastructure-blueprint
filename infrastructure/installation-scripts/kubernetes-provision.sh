@@ -40,6 +40,24 @@ systemctl stop docker 2>/dev/null || true
 # Option 2 (ICT): k3s pre-installed as package; needs to be enabled.
 systemctl enable --now k3s
 
+# ── Configure k3s proxy for containerd (if proxy variables are set) ───────
+if [ -n "${HTTP_PROXY:-}" ] || [ -n "${HTTPS_PROXY:-}" ]; then
+    echo "Configuring k3s proxy settings..."
+    mkdir -p /etc/systemd/system/k3s.service.d
+    cat > /etc/systemd/system/k3s.service.d/http-proxy.conf <<EOF
+[Service]
+Environment="HTTP_PROXY=${HTTP_PROXY}"
+Environment="HTTPS_PROXY=${HTTPS_PROXY}"
+Environment="NO_PROXY=${NO_PROXY}"
+Environment="CONTAINERD_HTTP_PROXY=${HTTP_PROXY}"
+Environment="CONTAINERD_HTTPS_PROXY=${HTTPS_PROXY}"
+Environment="CONTAINERD_NO_PROXY=${NO_PROXY}"
+EOF
+    systemctl daemon-reload
+    systemctl restart k3s
+    echo "K3s proxy configuration applied"
+fi
+
 # ── Wait for k3s kubeconfig (up to 90s) ──────────────────────────────────
 echo "Waiting for k3s kubeconfig..."
 for i in $(seq 1 45); do
@@ -131,7 +149,7 @@ if [ -f "$CONFIG_FILE" ]; then
     enable_sriov=$(grep '^enable_sriov=' "$CONFIG_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" | tr '[:upper:]' '[:lower:]')
     if [ "$enable_sriov" = "true" ]; then
         echo "SR-IOV enabled in config — setting up virtual functions..."
-        SRIOV_SCRIPT="${INSTALL_SCRIPTS}/provision-sriov/setup-sriov.sh"
+        SRIOV_SCRIPT="${INSTALL_SCRIPTS}/container_setup_sriov.sh"
         if [ -x "$SRIOV_SCRIPT" ]; then
             bash "$SRIOV_SCRIPT" || echo "WARNING: SR-IOV setup failed"
         else
