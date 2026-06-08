@@ -231,3 +231,4 @@ docker ps
 - USB preparation fails: Verify device path and available USB capacity.
 - `kubectl` issues: Confirm K3s installation completed and node status is `Ready`.
 - GPU/NPU not detected: Re-run BKC installation and inspect `dmesg` for driver load failures.
+- CDI GPU generator reports wrong Go version: The build runs under `sudo`, which may find a different Go. Verify with `sudo go version` and symlink the correct binary to `/usr/local/bin/go` if needed.

@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Intel CDI (Container Device Interface) Usage Guide
+# Container Device Interface (CDI) Usage Guide
 
 ## Overview
 
