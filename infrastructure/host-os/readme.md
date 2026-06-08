@@ -31,7 +31,7 @@ If you have a large `installer.sh`, keep it next to `auto-install-pkgs.yaml` ins
 #### Note
 
 The installer script is updated from:
-- Index of `hspe-edge-png-local/ubuntu/milestone/panther-lake/20260320-1533/`
+- Index of `hspe-edge-png-local/ubuntu/milestone/panther-lake/20260512-1624/`
 
 **For any future releases**, please take the latest release above this.
 

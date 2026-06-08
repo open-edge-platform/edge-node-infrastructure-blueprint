@@ -39,7 +39,7 @@ NFD_NS="${NFD_NS:-node-feature-discovery}"
 SKIP_GPU="${SKIP_GPU:-0}"
 SKIP_NPU="${SKIP_NPU:-0}"
 NFD_READY_TIMEOUT="${NFD_READY_TIMEOUT:-180}"
-INTEL_DEVICE_PLUGINS_VERSION="${INTEL_DEVICE_PLUGINS_VERSION:-v0.35.0}"
+INTEL_DEVICE_PLUGINS_VERSION="${INTEL_DEVICE_PLUGINS_VERSION:-v0.36.0}"
 
 # K3s installs its kubeconfig at /etc/rancher/k3s/k3s.yaml; set it if not
 # already configured so kubectl works under sudo.
