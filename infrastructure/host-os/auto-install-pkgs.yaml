@@ -58,8 +58,6 @@ autoinstall:
           - net-tools
           - cloud-utils
           - chrony
-          - linux-tools-common
-          - linux-tools-generic
 
 
     - path: /usr/local/bin/first-boot-fix.sh
@@ -181,7 +179,18 @@ autoinstall:
         DEBIAN_FRONTEND=noninteractive apt-get install -y \
           librealsense2-dkms librealsense2 librealsense2-utils librealsense2-dev librealsense2-gl
 
-        # 12 Self-destruct
+        # 12 Intel Linux Kernel Tooling Packages (v6.18.23)
+        wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/
+
+        if [ $? -eq 0 ]; then
+            echo "Successfully downloaded the debian files"
+            apt install -y  -f --fix-broken -o Dpkg::Options::="--force-overwrite" /tmp/*.deb
+            apt install -f
+        else
+            echo "Failure to download the debian files"
+        fi
+
+        # 13 Self-destruct
         systemctl disable first-boot-fix.service
         rm -f /etc/systemd/system/first-boot-fix.service
         sleep 2

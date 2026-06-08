@@ -28,8 +28,9 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-# This Scripts updated with panther-lake/20260320-1533/instaler.sh  
-set -x
+# This Scripts updated with panther-lake/20260512-1624/instaler.sh
+set -x 
+
 function usage ()
 {
   echo 'Usage : Script <Program Name> <Kernel Type>'
@@ -126,27 +127,29 @@ fi
 
 
 current_workspace="$PWD"
+exceptionFailString=("NOCHANGE: partition" 
+		    "'rbfadmin' already exists"
+		    "E: Sub-process /usr/bin/dpkg returned an error code (1)")
+current_workspace="$PWD"
 
 # Load configuration from config file
 CONFIG_FILE="/etc/environment"
 if [ -f "$CONFIG_FILE" ]; then
-        source "$CONFIG_FILE" 
+        source "$CONFIG_FILE"
         set +a
         export http_proxy
         export https_proxy
-	export no_proxy="devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com"
-	export ftp_proxy=$http_proxy
-	export socks_server
+        export no_proxy="devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com"
+        export ftp_proxy=$http_proxy
+        export socks_server
 else
-	# Default values if config file not found
-	PROXY_HTTP="$http_proxy"
-	PROXY_HTTPS="$https_proxy"
-	PROXY_SOCKS="$socks_server"
+        # Default values if config file not found
+        PROXY_HTTP="$http_proxy"
+        PROXY_HTTPS="$https_proxy"
+        PROXY_SOCKS="$socks_server"
 fi
 
-exceptionFailString=("NOCHANGE: partition" 
-		    "'rbfadmin' already exists"
-		    "E: Sub-process /usr/bin/dpkg returned an error code (1)")
+
 
 function die() 
 {
@@ -264,35 +267,36 @@ q
 ##################################################################
 ##.............. Setting Proxy Setup .........
 function ProxySetUp() {
-	run "echo '$(date): Setting up Proxies...'"
-	run "echo 'Acquire::ftp::Proxy \"$http_proxy\";' > /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::http::Proxy \"$http_proxy\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::https::Proxy \"$http_proxy\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::https::proxy::af01p-png.devtools.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::https::proxy::af01p-png.devtools.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::https::proxy::ubit-artifactory-or.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "echo 'Acquire::https::proxy::*.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-	run "sed -e 's@archive.ubuntu.com@mirrors.gbnetwork.com@g' -i /etc/apt/sources.list.d/ubuntu.sources"
-	if [ "$(grep -R 'http_proxy=$http_proxy' /etc/environment)" == "" ]; then
-		run "echo 'http_proxy=$http_proxy' >> /etc/environment"
-	fi
-	if [ "$(grep -R 'https_proxy=$https_proxy' /etc/environment)" == "" ]; then
-		run "echo 'https_proxy=$https_proxy' >> /etc/environment"
-	fi
-	if [ "$(grep -R 'ftp_proxy=$http_proxy' /etc/environment)" == "" ]; then
-		run "echo 'ftp_proxy=$http_proxy' >> /etc/environment"
-	fi
-	if [ "$(grep -R 'socks_server=$socks_server' /etc/environment)" == "" ]; then
-		run "echo 'socks_server=$socks_server' >> /etc/environment"
-	fi
-	if [ "$(grep -R 'no_proxy=localhost,127.0.0.1,127.0.1.1,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8,10.1.0.0/16,10.152.183.0/24,devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com' /etc/environment)" == "" ]; then
-		run "echo 'no_proxy=localhost,127.0.0.1,127.0.1.1,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8,10.1.0.0/16,10.152.183.0/24,devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com' >> /etc/environment"
-	fi
-	run ". /etc/environment"
-	run "export http_proxy https_proxy ftp_proxy socks_server no_proxy"
-	
-	return 0
+        run "echo '$(date): Setting up Proxies...'"
+        run "echo 'Acquire::ftp::Proxy \"$http_proxy\";' > /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::http::Proxy \"$http_proxy\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::https::Proxy \"$http_proxy\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::https::proxy::af01p-png.devtools.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::https::proxy::af01p-png.devtools.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::https::proxy::ubit-artifactory-or.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "echo 'Acquire::https::proxy::*.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
+        run "sed -e 's@archive.ubuntu.com@mirrors.gbnetwork.com@g' -i /etc/apt/sources.list.d/ubuntu.sources"
+        if [ "$(grep -R 'http_proxy=$http_proxy' /etc/environment)" == "" ]; then
+                run "echo 'http_proxy=$http_proxy' >> /etc/environment"
+        fi
+        if [ "$(grep -R 'https_proxy=$https_proxy' /etc/environment)" == "" ]; then
+                run "echo 'https_proxy=$https_proxy' >> /etc/environment"
+        fi
+        if [ "$(grep -R 'ftp_proxy=$http_proxy' /etc/environment)" == "" ]; then
+                run "echo 'ftp_proxy=$http_proxy' >> /etc/environment"
+        fi
+        if [ "$(grep -R 'socks_server=$socks_server' /etc/environment)" == "" ]; then
+                run "echo 'socks_server=$socks_server' >> /etc/environment"
+        fi
+        if [ "$(grep -R 'no_proxy=localhost,127.0.0.1,127.0.1.1,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8,10.1.0.0/16,10.152.183.0/24,devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com' /etc/environment)" == "" ]; then
+                run "echo 'no_proxy=localhost,127.0.0.1,127.0.1.1,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8,10.1.0.0/16,10.152.183.0/24,devtools.intel.com,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com' >> /etc/environment"
+        fi
+        run ". /etc/environment"
+        run "export http_proxy https_proxy ftp_proxy socks_server no_proxy"
+
+        return 0
 }
+
 
 
 function reconfigureGrub()
@@ -334,7 +338,7 @@ function PPAUpdate() {
 	#Platform onboard 6.17 kernels onward will using canonical ethtool and libbpf1 	
 	run "DEBIAN_FRONTEND=noninteractive apt-get install ethtool libbpf1 -y"
 
-	run "echo deb https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260318-0012_2026_SW_A_REL2_RC01/ noble main non-free multimedia internal > /etc/apt/sources.list.d/intel-internal.list"
+	run "echo deb https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260318-0012_2026_SW_A_REL2_RC03/ noble main non-free multimedia internal > /etc/apt/sources.list.d/intel-internal.list"
 	#run " echo deb https://af01p-png.devtools.intel.com/artifactory/hspe-edge-repos-png-local-png-local/ubuntu-ppa2/ noble main  > /etc/apt/sources.list.d/stable.list"
 	if [ "$producName" == "ASL" ] || [ "$producName" == "ADL" ] || [ "$producName" == "RPL" ] || [ "$producName" == "BTL" ] || [ "$producName" == "ACM" ]
 	then
@@ -362,7 +366,7 @@ function PPAUpdate() {
 ##.................. Installing Packages .........................
 function InstallPackage(){
 	echo "$(date): Installing Packages...................."
-	package=("vim,ocl-icd-libopencl1,curl,openssh-server,net-tools,libdrm-amdgpu1,libdrm-common,libdrm-dev,libdrm-intel1,libdrm-nouveau2,libdrm-radeon1,libdrm-tests,libdrm2,libtpms-dev,libtpms0,libwayland-bin,libwayland-client0,libwayland-cursor0,libwayland-dev,libwayland-doc,libwayland-egl-backend-dev,libwayland-egl1,libwayland-server0,mesa-utils,ovmf,ovmf-ia32,xserver-xorg-core,libvirt0,libvirt-clients,libvirt-daemon,libvirt-daemon-config-network,libvirt-daemon-config-nwfilter,libvirt-daemon-driver-lxc,libvirt-daemon-driver-qemu,libvirt-daemon-driver-storage-gluster,libvirt-daemon-driver-storage-iscsi-direct,libvirt-daemon-driver-storage-rbd,libvirt-daemon-driver-storage-zfs,libvirt-daemon-driver-vbox,libvirt-daemon-driver-xen,libvirt-daemon-system,libvirt-daemon-system-systemd,libvirt-dev,libvirt-doc,libvirt-login-shell,libvirt-sanlock,libvirt-wireshark,libnss-libvirt,swtpm,swtpm-tools,bmap-tools,adb,autoconf,automake,libtool,cmake,g++,gcc,git,intel-gpu-tools,libssl3,libssl-dev,make,mosquitto,mosquitto-clients,build-essential,apt-transport-https,default-jre,docker-compose,git-lfs,gnuplot,lbzip2,libglew-dev,libglm-dev,libsdl2-dev,mc,openssl,pciutils,python3-pandas,python3-pip,python3-seaborn,terminator,vim,wmctrl,wayland-protocols,gdbserver,iperf3,msr-tools,powertop,lsscsi,tpm2-tools,tpm2-abrmd,binutils,cifs-utils,i2c-tools,xdotool,gnupg,lsb-release,socat,virt-viewer,util-linux-extra,dbus-x11,sg3-utils,rpm,iproute2=6.14.0-ppa1~noble1,xdp-tools=1.5.8-1ppa1~noble1,libxdp-dev=1.5.8-1ppa1~noble1,libxdp1=1.5.8-1ppa1~noble1,mutter-common-bin=46.2-1.0.24.04.14-1ppa1~noble2,mutter-common-bin=46.2-1.0.24.04.14-1ppa1~noble2,libmutter-14-0=46.2-1.0.24.04.14-1ppa1~noble2,gir1.2-mutter-14=46.2-1.0.24.04.14-1ppa1~noble2,libigdgmm-dev=22.9.0-1ppa1~noble1,libigdgmm12=22.9.0-1ppa1~noble1,libmfx-gen1.2=25.4.6-1ppa1~noble1,libva-dev=2.23.0-1ppa1~noble1,libva-drm2=2.23.0-1ppa1~noble1,libva-glx2=2.23.0-1ppa1~noble1,libva-wayland2=2.23.0-1ppa1~noble1,libva-x11-2=2.23.0-1ppa1~noble1,libva2=2.23.0-1ppa1~noble1,linux-firmware=20240318.git3b128b60-0.2.25-1ppa1-noble1,mesa-vulkan-drivers=25.3.4-1ppa1~noble1,libvpl-dev=1:2.16.0-1ppa1~noble1,libmfx-gen-dev=25.4.6-1ppa1~noble1,onevpl-tools=1:2.16.0-1ppa1~noble1,qemu-block-extra=4:9.1.0+git20260114-ppa1-noble5,qemu-guest-agent=4:9.1.0+git20260114-ppa1-noble5,qemu-system=4:9.1.0+git20260114-ppa1-noble5,qemu-system-arm=4:9.1.0+git20260114-ppa1-noble5,qemu-system-common=4:9.1.0+git20260114-ppa1-noble5,qemu-system-data=4:9.1.0+git20260114-ppa1-noble5,qemu-system-gui=4:9.1.0+git20260114-ppa1-noble5,qemu-system-mips=4:9.1.0+git20260114-ppa1-noble5,qemu-system-misc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-ppc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-s390x=4:9.1.0+git20260114-ppa1-noble5,qemu-system-sparc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-x86=4:9.1.0+git20260114-ppa1-noble5,qemu-user=4:9.1.0+git20260114-ppa1-noble5,qemu-user-binfmt=4:9.1.0+git20260114-ppa1-noble5,qemu-utils=4:9.1.0+git20260114-ppa1-noble5,qemu-system-modules-opengl=4:9.1.0+git20260114-ppa1-noble5,va-driver-all=2.23.0-1ppa1~noble1,weston=10.0.0+git20250321-1ppa1~noble6,linuxptp=4.3-ppa1~noble2,libvpl-tools=2:1.5.0~1ppa1-noble1,spice-client-gtk=0.42-1ppa1~noble4,rpc-go=2.49.0-1ppa1~noble1,lms=2550.0.0.0-1ppa1~noble1,metee=5.0.0-1ppa1~noble3,intel-media-va-driver-non-free=25.4.6-1ppa1~noble1,gir1.2-gst-plugins-bad-1.0=1.26.10-1ppa1~noble1,gir1.2-gst-plugins-base-1.0=1.26.10-1ppa1~noble1,gir1.2-gstreamer-1.0=1.26.10-1ppa1~noble1,gir1.2-gst-rtsp-server-1.0=1.26.5-1ppa1~noble2,gstreamer1.0-alsa=1.26.10-1ppa1~noble1,gstreamer1.0-gl=1.26.10-1ppa1~noble1,gstreamer1.0-gtk3=1.26.10-1ppa1~noble1,gstreamer1.0-opencv=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-bad=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-bad-apps=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-base=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-base-apps=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-good=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-ugly=1.26.10-1ppa1~noble1,gstreamer1.0-pulseaudio=1.26.10-1ppa1~noble1,gstreamer1.0-qt5=1.26.10-1ppa1~noble1,gstreamer1.0-rtsp=1.26.5-1ppa1~noble2,gstreamer1.0-tools=1.26.10-1ppa1~noble1,gstreamer1.0-x=1.26.10-1ppa1~noble1,libgstrtspserver-1.0-dev=1.26.5-1ppa1~noble2,libgstrtspserver-1.0-0=1.26.5-1ppa1~noble2,libgstreamer-gl1.0-0=1.26.10-1ppa1~noble1,libgstreamer-opencv1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-bad1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-bad1.0-dev=1.26.10-1ppa1~noble1,libgstreamer-plugins-base1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-base1.0-dev=1.26.10-1ppa1~noble1,libgstreamer1.0-0=1.26.10-1ppa1~noble1,libgstreamer1.0-dev=1.26.10-1ppa1~noble1,vainfo=2.23.0-1ppa1~noble1,ffmpeg=7:8.0.0-1ppa1~noble1,xpu-smi=1.3.0-20250707.103634.3db7de07~u24.04,intel-ocloc=26.05.37020.3-0,libze-intel-gpu1=26.05.37020.3-0,intel-metrics-discovery=1.14.180-1,intel-metrics-library=1.0.196-1,intel-gsc=0.9.5-1ppa1~noble1,level-zero=1.22.4,intel-igc-core-2=2.28.4,intel-igc-opencl-2=2.28.4,intel-opencl-icd=26.05.37020.3-0,xserver-common=2:21.1.12-1ppa1~noble3,xnest=2:21.1.12-1ppa1~noble3,xserver-xorg-dev=2:21.1.12-1ppa1~noble3,xvfb=2:21.1.12-1ppa1~noble3")
+	package=("vim,ocl-icd-libopencl1,curl,openssh-server,net-tools,libdrm-amdgpu1,libdrm-common,libdrm-dev,libdrm-intel1,libdrm-nouveau2,libdrm-radeon1,libdrm-tests,libdrm2,libtpms-dev,libtpms0,libwayland-bin,libwayland-client0,libwayland-cursor0,libwayland-dev,libwayland-doc,libwayland-egl-backend-dev,libwayland-egl1,libwayland-server0,mesa-utils,ovmf,ovmf-ia32,xserver-xorg-core,libvirt0,libvirt-clients,libvirt-daemon,libvirt-daemon-config-network,libvirt-daemon-config-nwfilter,libvirt-daemon-driver-lxc,libvirt-daemon-driver-qemu,libvirt-daemon-driver-storage-gluster,libvirt-daemon-driver-storage-iscsi-direct,libvirt-daemon-driver-storage-rbd,libvirt-daemon-driver-storage-zfs,libvirt-daemon-driver-vbox,libvirt-daemon-driver-xen,libvirt-daemon-system,libvirt-daemon-system-systemd,libvirt-dev,libvirt-doc,libvirt-login-shell,libvirt-sanlock,libvirt-wireshark,libnss-libvirt,swtpm,swtpm-tools,bmap-tools,adb,autoconf,automake,libtool,cmake,g++,gcc,git,intel-gpu-tools,libssl3,libssl-dev,make,mosquitto,mosquitto-clients,build-essential,apt-transport-https,default-jre,docker-compose,git-lfs,gnuplot,lbzip2,libglew-dev,libglm-dev,libsdl2-dev,mc,openssl,pciutils,python3-pandas,python3-pip,python3-seaborn,terminator,vim,wmctrl,wayland-protocols,gdbserver,iperf3,msr-tools,powertop,lsscsi,tpm2-tools,tpm2-abrmd,binutils,cifs-utils,i2c-tools,xdotool,gnupg,lsb-release,socat,virt-viewer,util-linux-extra,dbus-x11,sg3-utils,rpm,iproute2=6.14.0-ppa1~noble1,xdp-tools=1.5.8-1ppa1~noble1,libxdp-dev=1.5.8-1ppa1~noble1,libxdp1=1.5.8-1ppa1~noble1,mutter-common-bin=46.2-1.0.24.04.14-1ppa1~noble2,mutter-common-bin=46.2-1.0.24.04.14-1ppa1~noble2,libmutter-14-0=46.2-1.0.24.04.14-1ppa1~noble2,gir1.2-mutter-14=46.2-1.0.24.04.14-1ppa1~noble2,libigdgmm-dev=22.9.0-1ppa1~noble1,libigdgmm12=22.9.0-1ppa1~noble1,libmfx-gen1.2=25.4.6-1ppa1~noble1,libva-dev=2.23.0-1ppa1~noble1,libva-drm2=2.23.0-1ppa1~noble1,libva-glx2=2.23.0-1ppa1~noble1,libva-wayland2=2.23.0-1ppa1~noble1,libva-x11-2=2.23.0-1ppa1~noble1,libva2=2.23.0-1ppa1~noble1,linux-firmware=20240318.git3b128b60-0.2.25-1ppa1-noble4,mesa-vulkan-drivers=25.3.4-1ppa1~noble1,libvpl-dev=1:2.16.0-1ppa1~noble1,libmfx-gen-dev=25.4.6-1ppa1~noble1,onevpl-tools=1:2.16.0-1ppa1~noble1,qemu-block-extra=4:9.1.0+git20260114-ppa1-noble5,qemu-guest-agent=4:9.1.0+git20260114-ppa1-noble5,qemu-system=4:9.1.0+git20260114-ppa1-noble5,qemu-system-arm=4:9.1.0+git20260114-ppa1-noble5,qemu-system-common=4:9.1.0+git20260114-ppa1-noble5,qemu-system-data=4:9.1.0+git20260114-ppa1-noble5,qemu-system-gui=4:9.1.0+git20260114-ppa1-noble5,qemu-system-mips=4:9.1.0+git20260114-ppa1-noble5,qemu-system-misc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-ppc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-s390x=4:9.1.0+git20260114-ppa1-noble5,qemu-system-sparc=4:9.1.0+git20260114-ppa1-noble5,qemu-system-x86=4:9.1.0+git20260114-ppa1-noble5,qemu-user=4:9.1.0+git20260114-ppa1-noble5,qemu-user-binfmt=4:9.1.0+git20260114-ppa1-noble5,qemu-utils=4:9.1.0+git20260114-ppa1-noble5,qemu-system-modules-opengl=4:9.1.0+git20260114-ppa1-noble5,va-driver-all=2.23.0-1ppa1~noble1,weston=10.0.0+git20250321-1ppa1~noble6,linuxptp=4.3-ppa1~noble2,libvpl-tools=2:1.5.0~1ppa1-noble1,spice-client-gtk=0.42-1ppa1~noble4,rpc-go=2.49.2-1ppa1~noble2,lms=2550.0.0.0-1ppa1~noble1,metee=5.0.0-1ppa1~noble3,intel-media-va-driver-non-free=25.4.6-1ppa1~noble1,gir1.2-gst-plugins-bad-1.0=1.26.10-1ppa1~noble1,gir1.2-gst-plugins-base-1.0=1.26.10-1ppa1~noble1,gir1.2-gstreamer-1.0=1.26.10-1ppa1~noble1,gir1.2-gst-rtsp-server-1.0=1.26.5-1ppa1~noble2,gstreamer1.0-alsa=1.26.10-1ppa1~noble1,gstreamer1.0-gl=1.26.10-1ppa1~noble1,gstreamer1.0-gtk3=1.26.10-1ppa1~noble1,gstreamer1.0-opencv=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-bad=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-bad-apps=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-base=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-base-apps=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-good=1.26.10-1ppa1~noble1,gstreamer1.0-plugins-ugly=1.26.10-1ppa1~noble1,gstreamer1.0-pulseaudio=1.26.10-1ppa1~noble1,gstreamer1.0-qt5=1.26.10-1ppa1~noble1,gstreamer1.0-rtsp=1.26.5-1ppa1~noble2,gstreamer1.0-tools=1.26.10-1ppa1~noble1,gstreamer1.0-x=1.26.10-1ppa1~noble1,libgstrtspserver-1.0-dev=1.26.5-1ppa1~noble2,libgstrtspserver-1.0-0=1.26.5-1ppa1~noble2,libgstreamer-gl1.0-0=1.26.10-1ppa1~noble1,libgstreamer-opencv1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-bad1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-bad1.0-dev=1.26.10-1ppa1~noble1,libgstreamer-plugins-base1.0-0=1.26.10-1ppa1~noble1,libgstreamer-plugins-base1.0-dev=1.26.10-1ppa1~noble1,libgstreamer1.0-0=1.26.10-1ppa1~noble1,libgstreamer1.0-dev=1.26.10-1ppa1~noble1,vainfo=2.23.0-1ppa1~noble1,ffmpeg=7:8.0.0-1ppa1~noble1,xpu-smi=1.3.0-20250707.103634.3db7de07~u24.04,intel-ocloc=26.05.37020.3-0,libze-intel-gpu1=26.05.37020.3-0,intel-metrics-discovery=1.14.180-1,intel-metrics-library=1.0.196-1,intel-gsc=0.9.5-1ppa1~noble1,level-zero=1.22.4,intel-igc-core-2=2.28.4,intel-igc-opencl-2=2.28.4,intel-opencl-icd=26.05.37020.3-0,xserver-common=2:21.1.12-1ppa1~noble3,xnest=2:21.1.12-1ppa1~noble3,xserver-xorg-dev=2:21.1.12-1ppa1~noble3,xvfb=2:21.1.12-1ppa1~noble3")
 	
 	if [ "$producName" == "ASL" ] || [ "$producName" == "ADL" ] || [ "$producName" == "RPL" ] || [ "$producName" == "BTL" ];then
 		package+=",rtcm"
@@ -392,25 +396,36 @@ function KernelUpdate() {
 	kernelCmd=""
 	if [ "$producName" == "ARL" ] || [ "$producName" == "BTL" ] || [ "$producName" == "ASL" ] || [ "$producName" == "RPL" ] || [ "$producName" == "MTL" ] || [ "$producName" == "ACM" ]; then
 		if [ "$kernelType" == "rt" ]; then
-	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18rt-intel=260310t050801z-r2 linux-image-6.18rt-intel=260310t050801z-r2"
+	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18rt-intel=260427t075939z-r2 linux-image-6.18rt-intel=260427t075939z-r2"
                 	run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"i915.enable_guc=3 i915.max_vfs=7 i915.force_probe=* udmabuf.list_limit=8192 processor.max_cstate=0 intel.max_cstate=0 processor_idle.max_cstate=0 intel_idle.max_cstate=0 clocksource=tsc tsc=reliable nowatchdog intel_pstate=disable idle=poll noht isolcpus=2,3 rcu_nocbs=2,3 rcupdate.rcu_cpu_stall_suppress=1 rcu_nocb_poll irqaffinity=0 i915.enable_rc6=0 i915.enable_dc=0 i915.disable_power_well=0 mce=off hpet=disable numa_balancing=disable igb.blacklist=no efi=runtime art=virtallow iommu=pt nmi_watchdog=0 nosoftlockup hugepages=1024 console=tty0 console=ttyS0,115200n8 intel_iommu=on\"/' /etc/default/grub"
                 	run "sudo sed -i -e 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.18rt-intel\"/g' /etc/default/grub"
             	else
-	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18-intel=260310t050801z-r2 linux-image-6.18-intel=260310t050801z-r2"
+	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18-intel=260427t075939z-r2 linux-image-6.18-intel=260427t075939z-r2"
 	        		run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"i915.enable_guc=3 i915.max_vfs=7 i915.force_probe=* udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8\"/' /etc/default/grub"
                 	run "sudo sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.18-intel\"/g' /etc/default/grub"
 	    	fi
 	elif [ "$producName" == "WCL" ] || [ "$producName" == "PTL" ]; then
 		if [ "$kernelType" == "rt" ]; then
-	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18rt-intel=260310t050801z-r2 linux-image-6.18rt-intel=260310t050801z-r2"
+	        	kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18rt-intel=260427t075939z-r2 linux-image-6.18rt-intel=260427t075939z-r2"
                 	run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"modprobe.blacklist=i915  processor.max_cstate=0 intel.max_cstate=0 processor_idle.max_cstate=0 intel_idle.max_cstate=0 clocksource=tsc tsc=reliable nowatchdog intel_pstate=disable idle=poll nosmt isolcpus=2,3 rcu_nocbs=2,3 rcupdate.rcu_cpu_stall_suppress=1 rcu_nocb_poll irqaffinity=0 mce=off hpet=disable numa_balancing=disable igb.blacklist=no nmi_watchdog=0 nosoftlockup\"/' /etc/default/grub"
 			        run "sudo sed -i -e 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.18rt-intel\"/g' /etc/default/grub"
                 else	
-				kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18-intel=260310t050801z-r2 linux-image-6.18-intel=260310t050801z-r2"
+				kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.18-intel=260427t075939z-r2 linux-image-6.18-intel=260427t075939z-r2"
 					run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8\"/' /etc/default/grub"
 					run "sudo sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.18-intel\"/g' /etc/default/grub"
-		fi	
+		fi
+	elif [ "$producName" == "NVL" ]; then
+		if [ "$kernelType" == "rt" ]; then
+		kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.19rt-intel=260408t073214z-r2 linux-image-6.19rt-intel=260408t073214z-r2"
+			run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"modprobe.blacklist=i915 processor.max_cstate=0 intel.max_cstate=0 processor_idle.max_cstate=0 intel_idle.max_cstate=0 clocksource=tsc tsc=reliable nowatchdog intel_pstate=disable idle=poll nosmt isolcpus=2,3 rcu_nocbs=2,3 rcupdate.rcu_cpu_stall_suppress=1 rcu_nocb_poll irqaffinity=0 mce=off hpet=disable numa_balancing=disable igb.blacklist=no nmi_watchdog=0 nosoftlockup\"/' /etc/default/grub"
+			run "sudo sed -i -e 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.19rt-intel\"/g' /etc/default/grub"
+			else	
+			kernelCmd="apt-get -y --allow-downgrades install linux-headers-6.19-intel=260408t073214z-r2 linux-image-6.19-intel=260408t073214z-r2"
+			run "sudo sed -i 's/GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8\"/' /etc/default/grub"
+			run "sudo sed -i 's/GRUB_DEFAULT=.*/GRUB_DEFAULT=\"Advanced options for Ubuntu>Ubuntu, with Linux 6.19-intel\"/g' /etc/default/grub"
+		fi
 	fi
+	run "sh -c \"printf 'install esp4 /bin/false\ninstall esp6 /bin/false\ninstall rxrpc /bin/false\n' > /etc/modprobe.d/dirtyfrag.conf; rmmod esp4 esp6 rxrpc 2>/dev/null; echo 3 > /proc/sys/vm/drop_caches; true\""
 	run "$kernelCmd"
 	
 	#Update GRUB
@@ -449,7 +464,7 @@ function InternalConfigSetup() {
 	
 	if [ "$producName" == "MTL" ] || [ "$producName" == "ARL"  ] || [ "$producName" == "PTL"  ]  || [ "$producName" == "WCL" ] || [ "$producName" == "NVL" ] || [ "$producName" == "BMG"  ]; then
 		run "mkdir -p /tmp/npu-drv-package"
-		run "curl -s \https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.30.0.20260315-23110866573/linux-npu-driver-v1.30.0.20260315-23110866573-ubuntu2404.tar.gz | tar -zxv --strip-components=1 -C /tmp/npu-drv-package -f -"
+		run "curl -s \https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.32.0.20260402-23905121947/linux-npu-driver-v1.32.0.20260402-23905121947-ubuntu2404.tar.gz | tar -zxv --strip-components=1 -C /tmp/npu-drv-package -f -"
 		run "cd /tmp/npu-drv-package && dpkg -i *.deb"
 		run "mkdir -pv /lib/firmware/intel/sof-ipc4/mtl/ /lib/firmware/intel/sof-ace-tplg/"
 		run "wget https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ipc4/mtl/sof-mtl.ldc -O /lib/firmware/intel/sof-ipc4/mtl/sof-mtl.ldc"
@@ -459,6 +474,9 @@ function InternalConfigSetup() {
 		run "wget https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-hda-generic.tplg -O /lib/firmware/intel/sof-ace-tplg/sof-hda-generic.tplg"
 		run "wget https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-es83x6-ssp1-hdmi-ssp02.tplg -O /lib/firmware/intel/sof-ace-tplg/sof-mtl-es83x6-ssp1-hdmi-ssp02.tplg"
 		run "wget https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-hdmi-ssp02.tplg -O /lib/firmware/intel/sof-ace-tplg/sof-mtl-hdmi-ssp02.tplg"
+	fi
+	if [ "$producName" == "NVL" ]; then
+		run "wget https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/NVL/GuC/nvl_guc_70.55.4.bin -O /lib/firmware/xe/nvl_guc_70.55.4.bin"
 	fi
 	
 	run "echo Bom-list.txt Dumped into cbkc_output.log"
@@ -479,9 +497,9 @@ function InternalConfigSetup() {
 		fi
 	elif [ "$producName" == "NVL"  ]; then
 		if [ "$kernelType" == "rt" ]; then
-			run "echo -e '$producName KERNEL=iotg-next-rt-6.18' >> /opt/jenkins-build-timestamp"
+			run "echo -e '$producName KERNEL=mainline-preprod-rt-6.19' >> /opt/jenkins-build-timestamp"
 		else
-			run "echo -e '$producName KERNEL=iotg-next-6.18' >> /opt/jenkins-build-timestamp"
+			run "echo -e '$producName KERNEL=mainline-preprod-6.19' >> /opt/jenkins-build-timestamp"
 		fi
 	elif [ "$producName" == "BMG" ]; then
                 run "echo -e '$producName KERNEL=mainline-tracking-6.15-rc3' >> /opt/jenkins-build-timestamp"
@@ -538,5 +556,8 @@ KernelUpdate 2>&1 | tee -a "$current_workspace/cbkc_output.log" || exit 1
 InternalConfigSetup 2>&1 | tee -a "$current_workspace/cbkc_output.log" || exit 1
 ValidatePackages 2>&1 | tee -a "$current_workspace/cbkc_output.log" || exit 1
 
-echo "DONE"
+echo "Rebooting Device now" | tee -a "$current_workspace/cbkc_output.log"
+
+echo "Done"
+
 
