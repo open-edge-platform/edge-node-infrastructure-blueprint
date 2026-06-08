@@ -1,13 +1,25 @@
 # Edge-Node Infrastructure Blueprint
 
+<!--hide_directive
+<div class="component_card_widget">
+  <a class="icon_github" href="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint">
+     GitHub
+  </a>
+</div>
+hide_directive-->
+
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
-Source repository: <https://github.com/open-edge-platform/edge-node-infrastructure-blueprint>
+:::{attention}
+The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
+:::
 
-## Introduction
-
-The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native infrastructure allows containerized and cloud-native applications to be deployed seamlessly on edge nodes.
+Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration
+capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native 
+infrastructure allows containerized and cloud-native applications to be deployed seamlessly 
+on edge nodes.
 
 This blueprint helps you:
 
@@ -16,7 +28,9 @@ This blueprint helps you:
 - Bring up core software components after first boot.
 - Validate platform readiness for cloud-native edge workloads.
 
-The solution bridges the gap between edge hardware capabilities and application requirements, providing a standardized platform for deploying latency-sensitive workloads, AI/ML inference, IoT processing, and real-time applications at the network edge.
+The solution bridges the gap between edge hardware capabilities and application requirements,
+providing a standardized platform for deploying latency-sensitive workloads, AI/ML inference, 
+IoT processing, and real-time applications at the network edge.
 
 <!--hide_directive
 :::{toctree}
