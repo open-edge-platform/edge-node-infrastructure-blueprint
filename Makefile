@@ -65,9 +65,10 @@ ict-refresh-upstream:
 	patch -s -o "$$TMP_REGEN" "$$TMP_UPSTREAM" < $(ICT_PATCH); \
 	cp "$$TMP_REGEN" $(ICT_FINAL); \
 	echo "Regenerating $(ICT_PATCH) with refreshed SHA label..."; \
+	SPDX_TAG="SPDX-License-Identifier"; \
 	{ \
 	  echo "SPDX-FileCopyrightText: (C) 2026 Intel Corporation"; \
-	  echo "SPDX-License-Identifier: Apache-2.0"; \
+	  echo "$$SPDX_TAG: Apache-2.0"; \
 	  echo ""; \
 	  diff -u \
 	    --label "a/$$UPSTREAM_BASENAME (upstream @ $(ICT_UPSTREAM_SHA))" \

@@ -562,14 +562,16 @@ systemConfig:
     - sg3-utils
     - util-linux-extra
     # -- Performance & Profiling Tools ------------------------------------------
+    # Runtime deps for the Intel mainline-tracking 6.18 kernel tooling .debs
+    # (linux-perf, linux-kbuild, linux-misc-tools, rtla)
+    - pahole
+    - libconfig9
+    - libbabeltrace1
+    - libdebuginfod1t64
+    - libopencsd1
+    - libtracefs1
     # Intel Performance Counter Monitor - CPU/uncore/PCIe counters
     - pcm
-    # GPU top - Intel GPU utilisation monitor (intel_gpu_top is part of intel-gpu-tools, already included above)
-    # Linux perf tool - perf top, perf stat, perf record / report
-    # linux-tools-common provides the perf wrapper script;
-    # linux-tools-generic provides the actual perf binary for the running kernel
-    - linux-tools-common
-    - linux-tools-generic
     # Multi-purpose CPU / memory / I/O benchmark
     - sysbench
     # CPU, memory, I/O and device stress & benchmark suite
@@ -614,19 +616,11 @@ systemConfig:
       hash_algo: sha512
 
   configurations:
-    # Set up APT proxies
-    - cmd: "echo 'Acquire::ftp::Proxy \"http://proxy-dmz.intel.com:911\";' > /etc/apt/apt.conf.d/99proxy.conf"
-    - cmd: "echo 'Acquire::http::Proxy \"http://proxy-dmz.intel.com:911\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-    - cmd: "echo 'Acquire::https::Proxy \"http://proxy-dmz.intel.com:911\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-    - cmd: "echo 'Acquire::https::proxy::*.intel.com \"DIRECT\";' >> /etc/apt/apt.conf.d/99proxy.conf"
-    # Set environment proxies
-    - cmd: "echo 'http_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment"
-    - cmd: "echo 'https_proxy=http://proxy-dmz.intel.com:912' >> /etc/environment"
-    - cmd: "echo 'ftp_proxy=http://proxy-dmz.intel.com:911' >> /etc/environment"
-    - cmd: "echo 'socks_server=http://proxy-dmz.intel.com:1080' >> /etc/environment"
-    - cmd: "echo 'no_proxy=localhost,127.0.0.1,127.0.1.1,127.0.0.0/8,172.16.0.0/20,192.168.0.0/16,10.0.0.0/8,10.1.0.0/16,10.152.183.0/24,jf.intel.com,teamcity-or.intel.com,caas.intel.com,inn.intel.com,isscorp.intel.com,gfx-assets.fm.intel.com' >> /etc/environment"
-    # Enable SSH service to start automatically on boot
-    - cmd: "ln -sf /lib/systemd/system/ssh.service /etc/systemd/system/multi-user.target.wants/ssh.service"
+    # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
+    # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
+    # so later apt steps cannot re-pull it.
+    - cmd: "printf 'Package: systemd-boot systemd-boot-efi\\nPin: release *\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/no-systemd-boot"
+    - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
     # Install Intel Graphics Compiler and compute runtime packages for PTL
     - cmd: "mkdir -p /tmp/gpu-packages"
     - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.28.4+20760_amd64.deb"
@@ -659,38 +653,7 @@ systemConfig:
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-perf_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-perf.deb"
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
-    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
-    # Configure Wayland
-    - cmd: "sed -i 's/#WaylandEnable=/WaylandEnable=/g' /etc/gdm3/custom.conf"
-    # Disable auto-updates
-    # - cmd: "sed -i 's/\"1\"/\"0\"/g' /etc/apt/apt.conf.d/20auto-upgrades"
-    # Configure bash environment
-    - cmd: "echo 'source /etc/profile.d/mesa_driver.sh' | tee -a /etc/bash.bashrc"
-    - cmd: "echo 'set enable-bracketed-paste off' >> /etc/inputrc"
-    # Configure automatic login
-    - cmd: "sed -i 's/.*AutomaticLoginEnable =.*/AutomaticLoginEnable = true/g' /etc/gdm3/custom.conf"
-    - cmd: "sed -i 's/.*AutomaticLogin = user1/AutomaticLogin = user/g' /etc/gdm3/custom.conf"
-    # Configure sudo permissions
-    - cmd: "echo 'sys_olvtelemetry ALL=(ALL) NOPASSWD: /usr/sbin/biosdecode, /usr/sbin/dmidecode, /usr/sbin/ownership, /usr/sbin/vpddecode' > /etc/sudoers.d/user-sudo"
-    - cmd: "echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/user-sudo"
-    - cmd: "chmod 440 /etc/sudoers.d/user-sudo"
-    # Configure kernel messages
-    - cmd: "echo 'kernel.printk = 7 4 1 7' > /etc/sysctl.d/99-kernel-printk.conf"
-    - cmd: "echo 'kernel.dmesg_restrict = 0' >> /etc/sysctl.d/99-kernel-printk.conf"
-    # Configure NTP and timezone for correct datetime
-    - cmd: "ln -sf /usr/share/zoneinfo/UTC /etc/localtime"
-    - cmd: "ln -sf /lib/systemd/system/chrony.service /etc/systemd/system/multi-user.target.wants/chrony.service"
-    # Set up snap proxy refresh
-    - cmd: "echo '#!/bin/bash' > /opt/snapd_refresh.sh"
-    - cmd: "echo 'snap set system proxy.http=http://proxy-dmz.intel.com:911' >> /opt/snapd_refresh.sh"
-    - cmd: "echo 'snap set system proxy.https=http://proxy-dmz.intel.com:912' >> /opt/snapd_refresh.sh"
-    - cmd: "echo 'sleep 60 && snap refresh snapd-desktop-integration' >> /opt/snapd_refresh.sh"
-    - cmd: "chmod +x /opt/snapd_refresh.sh"
-    - cmd: "(crontab -l 2>/dev/null; echo '@reboot sudo /opt/snapd_refresh.sh 2>&1 | tee /opt/snapd_refresh_logs.txt') | crontab -"
-    # Set build timestamp. Note: BUILD_TIME is captured at image build time (image creation), not at deployment/runtime.
-    - cmd: "echo \"BUILD_TIME=$(date +%Y%m%d-%H%M)\" > /opt/jenkins-build-timestamp"
-    - cmd: "echo 'PLATFORM=PTL' >> /opt/jenkins-build-timestamp"
-    - cmd: "echo 'PTL KERNEL=mainline-tracking-6.17' >> /opt/jenkins-build-timestamp"
+    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
     # ----------------------------------------------------------------------------------
     # Pre-install K3s and Docker CE (both disabled by default)
     # On first boot, cloud-init reads host_type from /etc/cloud/config-file and
