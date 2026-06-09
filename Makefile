@@ -39,7 +39,7 @@ ICT_PATCH            := $(ICT_DIR)/generic-handheld-os-template.patch
 ICT_FINAL            := $(ICT_DIR)/generic-handheld-os-template.yml
 ICT_UPSTREAM_REPO    := open-edge-platform/image-composer-tool
 ICT_UPSTREAM_PATH    := image-templates/ubuntu24-x86_64-minimal-ptl-pv-raw.yml
-ICT_UPSTREAM_SHA     := 4c599067906013c9e331a1ecc0b99687ae8b63bc
+ICT_UPSTREAM_SHA     := b21499751a1e50677bbf2b4ea4517adcb67da7d8
 ICT_UPSTREAM_RAW_URL := https://raw.githubusercontent.com/$(ICT_UPSTREAM_REPO)/$(ICT_UPSTREAM_SHA)/$(ICT_UPSTREAM_PATH)
 
 ict-refresh-upstream:
