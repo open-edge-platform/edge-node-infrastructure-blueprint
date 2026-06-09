@@ -19,7 +19,7 @@ OUTPUT_IMG="ubuntu-desktop-24.04.raw.img"
 USER_DATA=""
 INSTALLER_SCRIPT=""
 SEED_ISO="seed.iso"
-DISK_SIZE="20G"
+DISK_SIZE="25G"
 TEMP_USER_DATA=""
 
 
