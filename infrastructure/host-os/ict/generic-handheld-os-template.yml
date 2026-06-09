@@ -561,14 +561,6 @@ systemConfig:
     - chrony
     - sg3-utils
     - util-linux-extra
-    # Runtime deps for the Intel mainline-tracking 6.18 kernel tooling .debs
-    # installed under configurations: (linux-perf, linux-kbuild, linux-misc-tools, rtla)
-    #- pahole
-    #- libconfig9
-    #- libbabeltrace1
-    #- libdebuginfod1t64
-    #- libopencsd1
-    #- libtracefs1
     # -- Performance & Profiling Tools ------------------------------------------
     # Intel Performance Counter Monitor - CPU/uncore/PCIe counters
     - pcm
@@ -622,9 +614,6 @@ systemConfig:
       hash_algo: sha512
 
   configurations:
-    - cmd: "sed -e 's@^GRUB_TIMEOUT_STYLE=hidden@# GRUB_TIMEOUT_STYLE=hidden@' -e 's@^GRUB_TIMEOUT=0@GRUB_TIMEOUT=5@g' -i /etc/default/grub"
-    - cmd: "update-grub"
-    - cmd: "update-initramfs -u"
     # Set up APT proxies
     - cmd: "echo 'Acquire::ftp::Proxy \"http://proxy-dmz.intel.com:911\";' > /etc/apt/apt.conf.d/99proxy.conf"
     - cmd: "echo 'Acquire::http::Proxy \"http://proxy-dmz.intel.com:911\";' >> /etc/apt/apt.conf.d/99proxy.conf"
