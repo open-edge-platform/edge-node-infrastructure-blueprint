@@ -94,6 +94,18 @@ users:
     password: "<SHA-512-hashed-password>"
 ```
 
+Generate the password hash using one of the following methods:
+
+```bash
+# Using openssl (requires `openssl` to be installed)
+openssl passwd -6 'your-password-here'
+
+# Using mkpasswd (requires `whois` to be installed)
+mkpasswd --method=sha-512 'your-password-here'
+```
+
+> **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
+
 ---
 
 ## Validate the Template

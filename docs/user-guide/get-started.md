@@ -23,17 +23,6 @@ SPDX-License-Identifier: Apache-2.0
 
 ### 1. Prerequisites
 
-Install and configure Docker before starting the build.
-
-- Docker installation: [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
-- Docker proxy setup: [Docker daemon proxy configuration](https://docs.docker.com/engine/daemon/proxy/)
-
-If your environment uses a proxy, verify the following files:
-
-- `~/.docker/config.json` (Docker CLI proxy settings)
-- `/etc/systemd/system/docker.service.d/http-proxy.conf` (Docker service proxy settings)
-- `/etc/docker/daemon.json` (Docker daemon proxy settings)
-
 #### Go Toolchain
 
 Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
@@ -139,6 +128,7 @@ Required inputs:
 - Configuration File (`config-file`): User-customizable settings including:
   - Proxy configurations
   - SSH public key (`id_rsa.pub`)
+  - Single Root I/O Virtualization (SRIOV) toggle
   - Additional system parameters
   - Installation Mode (Attended or Unattended)
 
