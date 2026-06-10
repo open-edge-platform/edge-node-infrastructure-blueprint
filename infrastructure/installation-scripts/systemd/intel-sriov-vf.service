@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+[Unit]
+Description=Intel iGPU SR-IOV VF setup (oneshot, boot-time)
+DefaultDependencies=no
+After=systemd-udev-settle.service systemd-modules-load.service local-fs.target
+Wants=systemd-udev-settle.service
+Before=docker.service containerd.service k3s.service kubelet.service basic.target
+ConditionPathExists=/sys/class/drm/card0/device/sriov_totalvfs
+ConditionPathExists=/opt/edge/scripts/container_setup_sriov.sh
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash /opt/edge/scripts/container_setup_sriov.sh
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

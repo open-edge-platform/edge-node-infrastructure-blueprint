@@ -137,6 +137,16 @@ if [ -f "$CONFIG_FILE" ]; then
         else
             echo "WARNING: SR-IOV script not found at $SRIOV_SCRIPT"
         fi
+
+        # Install oneshot unit so VFs are re-created on every boot
+        SRIOV_UNIT_SRC="${INSTALL_SCRIPTS}/intel-sriov-vf.service"
+        if [ -f "$SRIOV_UNIT_SRC" ]; then
+            install -m 0644 "$SRIOV_UNIT_SRC" /etc/systemd/system/intel-sriov-vf.service
+            systemctl daemon-reload
+            systemctl enable intel-sriov-vf.service || echo "WARNING: failed to enable intel-sriov-vf.service"
+        else
+            echo "WARNING: intel-sriov-vf.service not found at $SRIOV_UNIT_SRC"
+        fi
     else
         echo "SR-IOV disabled in config — skipping VF setup"
     fi
