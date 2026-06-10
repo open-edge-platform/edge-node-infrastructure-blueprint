@@ -16,10 +16,7 @@ hide_directive-->
 The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
 :::
 
-Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration
-capabilities (GPU, NPU, SR-IOV, etc.) for modern applications. This cloud-native 
-infrastructure allows containerized and cloud-native applications to be deployed seamlessly 
-on edge nodes.
+The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
 
 This blueprint helps you:
 
@@ -29,7 +26,7 @@ This blueprint helps you:
 - Validate platform readiness for cloud-native edge workloads.
 
 The solution bridges the gap between edge hardware capabilities and application requirements,
-providing a standardized platform for deploying latency-sensitive workloads, AI/ML inference, 
+providing a standardized platform for deploying latency-sensitive workloads, AI and machine learning inference inference, 
 IoT processing, and real-time applications at the network edge.
 
 <!--hide_directive

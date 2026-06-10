@@ -7,60 +7,61 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Overview
 
-Container Device Interface (CDI) enables defining specifications that allow greater control on how devices are exposed to containers. Instead of running containers in `--privileged` mode (which exposes every host device) or manually bind-mounting `/dev/dri` paths, CDI lets you request devices by name — the runtime handles device nodes, permissions, and mounts automatically.
+Container Device Interface (CDI) enables defining specifications that allow greater control on how devices are exposed to containers. Instead of running containers in `--privileged` mode, which exposes every host device, or manually bind-mounting `/dev/dri` paths, CDI lets you request devices by name — the runtime handles device nodes, permissions, and mounts automatically.
 
-CDI uses predefined YAML specification files in `/etc/cdi/` to describe which device files, mounts, and environment variables should be exposed to the container.
+CDI uses predefined YAML specification files in `/etc/cdi/` to describe the device files, mounts, and environment variables that are exposed to the container.
 
-| CDI Kind | Spec File | Device Names | Description |
+| CDI Kind | Specification File | Device Names | Description |
 |----------|-----------|--------------|-------------|
-| `intel.com/gpu` | `intel.com-gpu.yaml` | `card0`, `card1`, … | Intel GPU devices (PF and SR-IOV VFs) |
-| `intel.com/npu` | `intel.com-npu.yaml` | `npu0`   | Intel NPU accelerator device |
+| `intel.com/gpu` | `intel.com-gpu.yaml` | `card0`, `card1`, … | Intel® GPU devices [Physical Function (PF) and SR-IOV Virtual Functions (VFs)] |
+| `intel.com/npu` | `intel.com-npu.yaml` | `npu0`   | Intel® NPU accelerator device |
 
 ---
 
 ## Prerequisites
 
-- ENIB (Edge Node Infrastructure Blueprint) image deployed
-- Ubuntu 24.04 with kernel 6.17 BKC recommended
-- Docker 25+ (with CDI support enabled), Podman 4.1+, or containerd 1.7+
+- Edge Node Infrastructure Blueprint image deployed
+- Ubuntu OS version 24.04 with kernel version 6.17 - recommended best-known configuration (BKC)
+- Docker Engine version 25 or newer (with CDI support enabled), Podman version 4.1 or newer, or containerd version 1.7 or newer
 - Intel GPU with SR-IOV VFs enabled
 - Intel NPU hardware present (optional)
 - `sudo` access
 
 ---
 
-## Step 1: CDI Spec Generation (Automatic on First Boot)
+## Step 1: CDI Specification Generation (Automatic on First Boot)
 
-In ENIB images, the CDI spec generation service is **automatically started on first boot**. The service includes:
+In Edge Node Infrastructure Blueprint images, the CDI specification generation service is **automatically started on first boot**. The service includes:
 
-- **GPU specs**: Generated using the official `intel-cdi-specs-generator-gpu` binary from [Intel Resource Drivers for Kubernetes](https://github.com/intel/intel-resource-drivers-for-kubernetes)
-- **NPU specs**: Generated using the custom `intel-cdi-npu-generator.sh` bash script
+- **GPU specifications**: Generated using the official `intel-cdi-specs-generator-gpu` binary from [Intel® Resource Drivers for Kubernetes
+](https://github.com/intel/intel-resource-drivers-for-kubernetes)
+- **NPU specifications**: Generated using the custom `intel-cdi-npu-generator.sh` bash script
 
 The CDI generation service is pre-configured with:
 
 1. **Udev rules** — triggers CDI regeneration when GPU VFs or NPU devices appear
-2. **Systemd service** (`intel-cdi-regenerate.service`) — runs both generators
+2. **Systemd service** (`intel-cdi-regenerate.service`) — runs both GPU and NPU generators
 3. **Systemd timer** — periodic fallback regeneration (every 5 minutes)
 
-### Verify CDI Spec Generation
+### Verify CDI Specification Generation
 
-After the first boot, verify the service ran successfully:
+After the first boot, verify that the service ran successfully:
 
 ```bash
 systemctl status intel-cdi-regenerate.service
 journalctl -u intel-cdi-regenerate.service --no-pager -n 20
 ```
 
-Verify the specs were generated:
+Verify that the specifications were generated:
 
 ```bash
 ls /etc/cdi/
 # Expected: intel.com-gpu.yaml  intel.com-npu.yaml
 ```
 
-### Manual Regeneration (if needed)
+### Manual Regeneration (If Needed)
 
-If you need to manually trigger spec regeneration:
+If you need to trigger specification regeneration manually:
 
 ```bash
 sudo systemctl start intel-cdi-regenerate.service
@@ -76,7 +77,7 @@ sudo bash /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh --cdi-dir /etc/cdi
 
 ---
 
-## Step 2: Configure Docker for CDI
+## Step 2: Configure Docker Daemon for CDI
 
 Check `/etc/docker/daemon.json`:
 
@@ -89,7 +90,7 @@ Check `/etc/docker/daemon.json`:
 }
 ```
 
-Restart Docker after any changes:
+Restart Docker daemon after any changes:
 
 ```bash
 sudo systemctl restart docker
@@ -101,7 +102,7 @@ sudo systemctl restart docker
 
 ### GPU Container
 
-Use Docker's `--device` flag with the CDI device name from the spec file:
+Use the `--device` flag with the CDI device name from the specification file:
 
 ```bash
 docker run --rm --device intel.com/gpu=card1 ubuntu:24.04 ls /dev/dri/
@@ -128,7 +129,7 @@ accel0
 
 ### Multiple Devices
 
-Assign both a GPU and an NPU to the same container:
+Assign a GPU and an NPU to the same container:
 
 ```bash
 docker run --rm \
@@ -152,7 +153,7 @@ docker run --rm \
 
 ## Step 4: Use CDI Devices with Docker Compose
 
-Reference CDI device names directly in your compose file:
+Reference CDI device names directly in your Docker Compose file:
 
 ```yaml
 services:
@@ -181,9 +182,9 @@ services:
 
 ---
 
-## CDI Spec Format Reference
+## CDI Specification Format Reference
 
-The GPU spec generated by `intel-cdi-specs-generator-gpu` follows the standard CDI 0.5.0 format:
+The GPU specification generated by `intel-cdi-specs-generator-gpu` follows the standard CDI 0.5.0 format:
 
 ```yaml
 ---
@@ -208,7 +209,7 @@ devices:
               type: none
 ```
 
-The NPU spec generated by `intel-cdi-npu-generator.sh`:
+The NPU specification generated by `intel-cdi-npu-generator.sh`:
 
 ```yaml
 ---
@@ -227,7 +228,7 @@ devices:
 
 ## Troubleshooting
 
-### No CDI spec files in `/etc/cdi/`
+### No CDI Specification Files in `/etc/cdi/`
 
 ```bash
 # Scripts are located at /opt/edge/scripts/cdi
@@ -235,15 +236,15 @@ sudo /opt/edge/scripts/cdi/intel-cdi-specs-generator-gpu --cdi-dir /etc/cdi gpu
 sudo bash /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh --cdi-dir /etc/cdi
 ```
 
-### Docker says "CDI device not found"
+### Docker Says "CDI device not found"
 
-1. Verify Docker version is 25+:
+1. Verify that the Docker Engine version is 25 or newer:
 
    ```bash
    docker --version
    ```
 
-2. Verify CDI is enabled in `/etc/docker/daemon.json`:
+2. Verify that CDI is enabled in `/etc/docker/daemon.json`:
 
    ```json
    {
@@ -252,15 +253,15 @@ sudo bash /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh --cdi-dir /etc/cdi
    }
    ```
 
-3. Restart Docker:
+3. Restart the Docker service:
 
    ```bash
    sudo systemctl restart docker
    ```
 
-### NPU not detected
+### NPU Not Detected
 
-Verify the NPU driver is loaded and the device exists:
+Verify that the NPU driver is loaded and the device exists:
 
 ```bash
 ls /sys/bus/pci/drivers/intel_vpu/
@@ -273,29 +274,29 @@ If `/dev/accel/` is empty, load the driver:
 sudo modprobe intel_vpu
 ```
 
-For kernel 6.17+, verify NPU firmware is present:
+For kernel version 6.17 or newer, verify that the NPU firmware is present:
 
 ```bash
 ls /lib/firmware/intel/vpu/
 dmesg | grep -i vpu
 ```
 
-### GPU VFs not showing in CDI spec
+### GPU VFs Not Showing in CDI Specification
 
-Verify SR-IOV VFs are enabled:
+Verify that SR-IOV VFs are enabled:
 
 ```bash
 cat /sys/bus/pci/devices/0000:00:02.0/sriov_numvfs
 ls /dev/dri/renderD*
 ```
 
-If VFs are not created, enable them first, then regenerate CDI specs.
+If the VFs are not created, enable them first, then regenerate the CDI specifications.
 
 ---
 
 ## References
 
 - [Intel GPU Plugin — CDI Support](https://github.com/intel/intel-device-plugins-for-kubernetes/tree/main/cmd/gpu_plugin#cdi-support)
-- [Intel GPU Plugin — CDI Docker Usage](https://github.com/intel/intel-device-plugins-for-kubernetes/blob/main/cmd/gpu_plugin/cdi.md)
-- [Intel NPU Plugin — Leverage CDI](https://github.com/intel/intel-device-plugins-for-kubernetes/tree/main/cmd/npu_plugin#leverage-cdi)
+- [Intel GPU Plugin — CDI and Docker Daemon Usage](https://github.com/intel/intel-device-plugins-for-kubernetes/blob/main/cmd/gpu_plugin/cdi.md)
+- [Intel NPU Plugin — CDI Leverage](https://github.com/intel/intel-device-plugins-for-kubernetes/tree/main/cmd/npu_plugin#leverage-cdi)
 - [CDI Specification](https://github.com/cncf-tags/container-device-interface/blob/main/SPEC.md)
