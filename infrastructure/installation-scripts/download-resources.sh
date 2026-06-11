@@ -60,6 +60,37 @@ check_dep() {
     command -v "$1" &>/dev/null || { echo "ERROR: '$1' is required but not found. Install it and retry."; exit 1; }
 }
 
+verify_sha256_hex() {
+    # $1 = file path, $2 = expected 64-hex sha256
+    local file="$1" expected="$2" got
+    [[ "${#expected}" -eq 64 ]] || { echo "[ERROR] verify_sha256_hex: invalid expected sha length for $(basename "$file")"; return 2; }
+    got="$(sha256sum "$file" | awk '{print $1}')"
+    if [[ "$got" != "$expected" ]]; then
+        echo "[ERROR] sha256 mismatch: $(basename "$file")"
+        echo "  expected: $expected"
+        echo "  got     : $got"
+        return 1
+    fi
+    echo "[OK]    sha256 verified: $(basename "$file")"
+}
+
+verify_sha256_from_sumfile() {
+    # $1 = file path, $2 = sha256sum-format file, $3 = optional upstream name
+    #                                                  (defaults to basename $1)
+    local file="$1" sumfile="$2" name="${3:-$(basename "$1")}" expected got
+    [[ -f "$sumfile" ]] || { echo "[ERROR] sumfile not found: $sumfile"; return 1; }
+    expected="$(awk -v n="$name" '$2 == n || $2 == "*"n {print $1; exit}' "$sumfile")"
+    [[ -n "$expected" ]] || { echo "[ERROR] no entry for $name in $(basename "$sumfile")"; return 1; }
+    got="$(sha256sum "$file" | awk '{print $1}')"
+    if [[ "$got" != "$expected" ]]; then
+        echo "[ERROR] sha256 mismatch: $name"
+        echo "  expected: $expected"
+        echo "  got     : $got"
+        return 1
+    fi
+    echo "[OK]    sha256 verified: $name"
+}
+
 # ------------------------------------------------------------------------------
 # Preflight
 # ------------------------------------------------------------------------------
@@ -87,10 +118,16 @@ echo ""
 # K3s
 # ==============================================================================
 K3S_BASE_URL="https://github.com/k3s-io/k3s/releases/download/${K3S_VERSION}"
+info "Downloading K3s checksums..."
+curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
+    -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+K3S_SUMS="${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+success "sha256sum-${K3S_ARCH}.txt saved"
 
 info "Downloading K3s binary..."
 curl -fL "${K3S_BASE_URL}/${K3S_BINARY}" \
     -o "${RESOURCES_DIR}/k3s/k3s"
+verify_sha256_from_sumfile "${RESOURCES_DIR}/k3s/k3s" "${K3S_SUMS}" "${K3S_BINARY}"
 chmod +x "${RESOURCES_DIR}/k3s/k3s"
 success "k3s binary saved"
 
@@ -98,23 +135,29 @@ info "Downloading K3s airgap images (this may take several minutes)..."
 # Try the newer .tar.zst format first; fall back to .tar.gz
 if curl -fL "${K3S_BASE_URL}/k3s-airgap-images-${K3S_ARCH}.tar.zst" \
         -o "${RESOURCES_DIR}/k3s/k3s-airgap-images-${K3S_ARCH}.tar.zst" 2>/dev/null; then
+    verify_sha256_from_sumfile \
+        "${RESOURCES_DIR}/k3s/k3s-airgap-images-${K3S_ARCH}.tar.zst" "${K3S_SUMS}"
     success "k3s-airgap-images-${K3S_ARCH}.tar.zst saved"
 else
     warn ".tar.zst not found, falling back to .tar.gz"
     curl -fL "${K3S_BASE_URL}/k3s-airgap-images-${K3S_ARCH}.tar.gz" \
         -o "${RESOURCES_DIR}/k3s/k3s-airgap-images-${K3S_ARCH}.tar.gz"
+    verify_sha256_from_sumfile \
+        "${RESOURCES_DIR}/k3s/k3s-airgap-images-${K3S_ARCH}.tar.gz" "${K3S_SUMS}"
     success "k3s-airgap-images-${K3S_ARCH}.tar.gz saved"
 fi
 
 info "Downloading K3s install script..."
-curl -fL "https://get.k3s.io" -o "${RESOURCES_DIR}/k3s/install.sh"
+K3S_INSTALL_URL="https://raw.githubusercontent.com/k3s-io/k3s/${K3S_VERSION}/install.sh"
+curl -fL "${K3S_INSTALL_URL}" -o "${RESOURCES_DIR}/k3s/install.sh"
+if [[ -n "${K3S_INSTALL_SH_SHA256:-}" ]]; then
+    verify_sha256_hex "${RESOURCES_DIR}/k3s/install.sh" "${K3S_INSTALL_SH_SHA256}"
+else
+    warn "K3S_INSTALL_SH_SHA256 not set — install.sh content is not checksum-verified."
+    warn "  Pin it for reproducibility: K3S_INSTALL_SH_SHA256=<sha> ./download-resources.sh"
+fi
 chmod +x "${RESOURCES_DIR}/k3s/install.sh"
 success "install.sh saved"
-
-info "Downloading K3s checksums..."
-curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
-    -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
-success "sha256sum-${K3S_ARCH}.txt saved"
 
 # Store the version so install scripts can report it
 echo "${K3S_VERSION}" > "${RESOURCES_DIR}/k3s/VERSION"
@@ -128,12 +171,26 @@ DOCKER_STATIC_URL="https://download.docker.com/linux/static/stable/${DOCKER_ARCH
 info "Downloading Docker static binaries..."
 curl -fL "${DOCKER_STATIC_URL}" \
     -o "${RESOURCES_DIR}/docker/docker-${DOCKER_VERSION}.tgz"
+
+if [[ -n "${DOCKER_SHA256:-}" ]]; then
+    verify_sha256_hex "${RESOURCES_DIR}/docker/docker-${DOCKER_VERSION}.tgz" "${DOCKER_SHA256}"
+else
+    warn "DOCKER_SHA256 not set — docker-${DOCKER_VERSION}.tgz is not checksum-verified."
+    warn "  Pin it for reproducibility: DOCKER_SHA256=<sha> ./download-resources.sh"
+fi
 success "docker-${DOCKER_VERSION}.tgz saved"
 
 info "Downloading Docker Compose plugin (${COMPOSE_VERSION})..."
 COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${COMPOSE_ARCH}"
 curl -fL "${COMPOSE_URL}" \
     -o "${RESOURCES_DIR}/docker/docker-compose"
+
+curl -fL "${COMPOSE_URL}.sha256" \
+    -o "${RESOURCES_DIR}/docker/docker-compose.sha256"
+verify_sha256_from_sumfile \
+    "${RESOURCES_DIR}/docker/docker-compose" \
+    "${RESOURCES_DIR}/docker/docker-compose.sha256" \
+    "docker-compose-linux-${COMPOSE_ARCH}"
 chmod +x "${RESOURCES_DIR}/docker/docker-compose"
 success "docker-compose saved"
 
@@ -157,6 +214,11 @@ info "Downloading Helm checksum..."
 curl -fL "${HELM_BASE_URL}/${HELM_TARBALL}.sha256sum" \
     -o "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum"
 success "${HELM_TARBALL}.sha256sum saved"
+
+verify_sha256_from_sumfile \
+    "${RESOURCES_DIR}/helm/${HELM_TARBALL}" \
+    "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum" \
+    "${HELM_TARBALL}"
 
 # Store the version
 echo "${HELM_VERSION}" > "${RESOURCES_DIR}/helm/VERSION"
