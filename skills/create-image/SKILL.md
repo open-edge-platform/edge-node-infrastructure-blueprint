@@ -25,6 +25,7 @@ Run silently without user prompts:
 - [ ] Required tool check: `command -v ukify && dpkg -l mmdebstrap | grep '^ii'`
 - [ ] Source template exists: `test -f <enib_home>/<target_template>`
 - [ ] Working template path is not source template path.
+- [ ] **Sudo probe (MANDATORY before `sudo -E ./image-composer-tool build`):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry for `image-composer-tool` in `/etc/sudoers.d/`), then re-trigger the skill. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 Prompt only before destructive operations:
 - [ ] Prompt for `sudo` confirmation only before destructive operations: disk wipe, partition table changes, or build commands that overwrite the output directory. Do not prompt for non-destructive `sudo` commands such as `apt install`

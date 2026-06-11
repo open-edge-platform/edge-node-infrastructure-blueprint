@@ -49,6 +49,35 @@ Do not skip preconditions or validation.
 - Never overwrite user templates in place; copy to a new working template.
 - Always report artifact paths and validation results at the end.
 
+## Sudo Handling (MUST follow for all skills that invoke `sudo`)
+Agent terminals are not always interactive TTYs, so a `sudo` password prompt
+can silently fail — the command appears to "do nothing" with no prompt and no
+output. Every skill that runs `sudo` MUST:
+
+1. **Probe sudo state before any privileged step**:
+   - Run `sudo -n true` and capture the exit code.
+   - Exit 0 → cached creds or `NOPASSWD` in effect; proceed.
+   - Non-zero → a password is required; do NOT run the privileged command yet.
+
+2. **If a password is required, instruct the user (do not collect it via the agent)**:
+   - Tell the user to run one of the following in their own terminal and then
+     re-trigger the skill:
+     - `sudo -v` — primes the sudo timestamp for ~5 minutes (safe, temporary).
+     - Or add a scoped `NOPASSWD` entry for the specific binary the skill
+       needs, e.g. in `/etc/sudoers.d/<skill-name>` via `sudo visudo -f`:
+       ```
+       <user> ALL=(root) NOPASSWD: /absolute/path/to/binary
+       ```
+   - Never request a password through `vscode_askQuestions` or any agent
+     prompt. Never write a password into a script, env var, or log.
+   - Do not suggest `NOPASSWD: ALL` — only scoped entries with absolute paths.
+
+3. **Separate sudo failure from command failure** in reported exit codes so
+   an auth failure is never misreported as a build/deploy failure.
+
+4. **Do not retry** a privileged command after a sudo failure without first
+   re-probing with `sudo -n true`.
+
 ## Quick Tryout Prompts
 Use these prompts to test agent-driven development before writing your own skills:
 1. `Use the create-image skill to build an Ubuntu 24.04 image from infrastructure/host-os/ict/generic-handheld-os-template.yml. Ask me for missing inputs first.`

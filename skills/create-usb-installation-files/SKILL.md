@@ -48,6 +48,7 @@ description: Package bootable USB installation artifacts (HookOS, host image, de
   - capture timestamps with `stat` and ask user one informed question to reuse or rebuild.
 - [ ] If `build_mode=image-from-tool` and `ict_img` was already provided: skip reuse/rebuild prompt and use the given path directly.
 - [ ] Prompt for `sudo` confirmation only before destructive operations: disk wipe, partition table changes, or build commands that overwrite the output directory. Do not prompt for non-destructive `sudo` commands such as `apt install`.
+- [ ] **Sudo probe (MANDATORY before any step that runs `sudo`, including `sudo tar`, `sudo ./ven-deployment.sh`, or any privileged `make build` substep):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry in `/etc/sudoers.d/` for the specific binary), then re-trigger the skill. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 ## Steps
 1. Collect required inputs and determine flow:

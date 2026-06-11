@@ -30,6 +30,7 @@ description: Update Ubuntu package configuration files for package add/delete op
 - [ ] Verify package availability in Ubuntu 24.04 repositories for each requested package.
 - [ ] Create backup copies before modifying configuration files.
 - [ ] Prompt for `sudo` confirmation only before privileged or destructive operations.
+- [ ] **Sudo probe (MANDATORY before any privileged step such as `sudo apt update`/`sudo apt install`):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry in `/etc/sudoers.d/` for the specific binary), then re-trigger the skill. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 ## Steps
 1. Collect required inputs:
