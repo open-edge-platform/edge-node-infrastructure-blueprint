@@ -1,0 +1,186 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+--- a/ubuntu24-x86_64-minimal-ptl-pv-raw.yml (upstream @ b21499751a1e50677bbf2b4ea4517adcb67da7d8)
++++ b/generic-handheld-os-template.yml
+@@ -1,23 +1,8 @@
+-# AI-searchable metadata for template discovery
+-metadata:
+-  description: "Ubuntu 24.04 minimal PTL PV desktop image in raw format for Intel PTL development and validation"
+-  use_cases:
+-    - "PTL platform validation"
+-    - "Intel GPU and NPU enablement"
+-    - "desktop development"
+-    - "raw image deployment"
+-  keywords:
+-    - ptl
+-    - pv
+-    - ubuntu
+-    - raw
+-    - desktop
+-    - intel
+-    - gpu
+-    - npu
++# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
++# SPDX-License-Identifier: Apache-2.0
+ 
+ image:
+-  name: minimal-desktop-ubuntu-ptl-pv
++  name: minimal-desktop-ubuntu
+   version: "24.04"
+ 
+ target:
+@@ -29,7 +14,7 @@
+ # Disk layout and output artifact definition
+ disk:
+   # Human friendly name logged by builders
+-  name: minimal-desktop-ubuntu-ptl-pv
++  name: minimal-desktop-ubuntu
+   artifacts:
+     # Request conversion to raw
+     - type: raw
+@@ -79,6 +64,7 @@
+ 
+ # Additional package repositories for this image
+ packageRepositories:
++
+   # Intel overlay repository (aligned with installer script)
+   - codename: "noble"
+     url: "https://download.01.org/intel-linux-overlay/ubuntu"
+@@ -287,6 +273,35 @@
+       - libxdp1
+       - intel-media-va-driver-non-free
+       - spice-client-gtk
++  # ----- OpenVINO -----
++  - codename: "ubuntu24"
++    url: "https://apt.repos.intel.com/openvino/2025"
++    pkey: "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB"
++  # ----- Intel oneAPI (oneDNN / Base Toolkit) -----
++  - codename: "all"
++    url: "https://apt.repos.intel.com/oneapi"
++    pkey: "https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB"
++    component: "main"
++    priority: 500
++  # ----- Docker CE official -----
++  - codename: "noble"
++    url: "https://download.docker.com/linux/ubuntu"
++    pkey: "https://download.docker.com/linux/ubuntu/gpg"
++    component: "stable"
++    priority: 500
++  # ----- Intel RealSense SDK -----
++  # ref: https://docs.ros.org/en/iron/p/librealsense2/user_docs/distribution_linux.html
++  # TODO: the key ID below is hardcoded; need to find a better way to handle dynamic key discovery
++  #       in the packageRepositories section (ICT does not support shell substitution here).
++  # To get the current key ID if the build fails with NO_PUBKEY, run:
++  #   curl -sSf "https://librealsense.intel.com/Debian/apt-repo/dists/$(lsb_release -cs)/InRelease" \
++  #     | gpg --status-fd 1 --verify 2>/dev/null | grep "NO_PUBKEY" | awk '{print $3}'
++  # Then update the key ID in the pkey URL below.
++  - codename: "noble"
++    url: "https://librealsense.intel.com/Debian/apt-repo"
++    pkey: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xFB0B24895113F120"
++    component: "main"
++    priority: 500
+ 
+ systemConfig:
+   name: minimal
+@@ -485,7 +500,12 @@
+     - build-essential
+     - apt-transport-https
+     - default-jre
+-    - docker-compose
++    # Docker CE engine (pre-installed, disabled by default; cloud-init enables on first boot)
++    - docker-ce
++    - docker-ce-cli
++    - containerd.io
++    - docker-buildx-plugin
++    - docker-compose-plugin
+     - ffmpeg
+     - git-lfs
+     - gnuplot
+@@ -537,7 +557,43 @@
+     - intel-media-va-driver-non-free
+     - spice-client-gtk
+     - libdrm-tests
+-
++    - cloud-init
++    - chrony
++    - sg3-utils
++    - util-linux-extra
++    # -- Performance & Profiling Tools ------------------------------------------
++    # Runtime deps for the Intel mainline-tracking 6.18 kernel tooling .debs
++    # (linux-perf, linux-kbuild, linux-misc-tools, rtla)
++    - pahole
++    - libconfig9
++    - libbabeltrace1
++    - libdebuginfod1t64
++    - libopencsd1
++    - libtracefs1
++    # Intel Performance Counter Monitor - CPU/uncore/PCIe counters
++    - pcm
++    # Multi-purpose CPU / memory / I/O benchmark
++    - sysbench
++    # CPU, memory, I/O and device stress & benchmark suite
++    - stress-ng
++    # Flexible I/O tester for storage benchmarking
++    - fio
++    # OpenGL / GPU benchmark (glmark2)
++    - glmark2
++    # -- Intel AI / Media Stack -------------------------------------------------
++    # Intel OpenVINO Runtime & Toolkit (latest 2025.x via apt)
++    - openvino
++    # oneVPL runtime - H.264 / HEVC / AV1 HW encode & decode via VA-API
++    - libvpl2
++    # oneAPI oneDNN - runtime library + development headers for custom kernels
++    - intel-oneapi-dnnl
++    - intel-oneapi-dnnl-devel
++    # Intel RealSense SDK
++    - librealsense2-dkms
++    - librealsense2
++    - librealsense2-utils
++    - librealsense2-dev
++    - librealsense2-gl
+ 
+   additionalFiles:
+     - local: ../additionalfiles/ptl/01-network-manager-all.yaml
+@@ -553,7 +609,18 @@
+         - linux-image-6.18-intel_260427t075939z-r2
+         - linux-headers-6.18-intel_260427t075939z-r2
+ 
++  users:
++    - name: user
++      password: $6$xXo2NxaLDQE6xrCa$lwcawer1BMsC63xx5jHHrVSI4625We6CMv0nzmflYiXVldJC/9gXFqYoe5KTu8lBnuc6W8MxE0eGLUUt1RiJw.
++      groups: ["sudo"]
++      hash_algo: sha512
++
+   configurations:
++    # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
++    # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
++    # so later apt steps cannot re-pull it.
++    - cmd: "printf 'Package: systemd-boot systemd-boot-efi\\nPin: release *\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/no-systemd-boot"
++    - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
+     # Install Intel Graphics Compiler and compute runtime packages for PTL
+     - cmd: "mkdir -p /tmp/gpu-packages"
+     - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.28.4+20760_amd64.deb"
+@@ -586,4 +653,20 @@
+     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-perf_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-perf.deb"
+     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
+     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
+-    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
+\ No newline at end of file
++    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
++    # ----------------------------------------------------------------------------------
++    # Pre-install K3s and Docker CE (both disabled by default)
++    # On first boot, cloud-init reads host_type from /etc/cloud/config-file and
++    # enables the correct service:
++    #   host_type=kubernetes  ? systemctl enable --now k3s + copies kubeconfig
++    #   host_type=container   ? systemctl disable k3s, enable --now docker
++    # See additionalfiles/ptl/edge-provisioning.cfg for the cloud-init runcmd.
++    # ----------------------------------------------------------------------------------
++    # Pre-install K3s binary and service (network available during build)
++    - cmd: "curl -sfL https://get.k3s.io | INSTALL_K3S_SKIP_ENABLE=true INSTALL_K3S_SKIP_START=true INSTALL_K3S_EXEC='server --disable=traefik' sh - 2>&1 || echo Warning: K3s pre-install failed"
++    # Ensure both services are disabled by default; cloud-init activates the right one
++    - cmd: "systemctl disable k3s 2>/dev/null || true"
++    - cmd: "systemctl disable docker 2>/dev/null || true"
++    # Pre-create docker data-root and daemon config (avoids first-boot delay)
++    - cmd: "mkdir -p /opt/docker-data /etc/docker && echo '{\"data-root\": \"/opt/docker-data\"}' > /etc/docker/daemon.json"
++
