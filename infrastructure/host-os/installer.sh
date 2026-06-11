@@ -255,8 +255,7 @@ q
 			run "sudo swapon /$latest_trimmed_parition"
 			echo "Update /etc/fstab for the new partition line"
 			run "sudo sed -i '$ d' /etc/fstab"
-			run "sudo chmod 766 /etc/fstab"
-			echo "/dev/disk/by-uuid/6443e3b1-12bc-41d0-83d8-e5c25477b5a0   none    swap    sw      0       " >> /etc/fstab
+			run "echo '/dev/disk/by-uuid/6443e3b1-12bc-41d0-83d8-e5c25477b5a0   none    swap    sw      0       ' | sudo tee -a /etc/fstab > /dev/null"
 			run "sudo chmod 644 /etc/fstab"
 		fi
 	fi
