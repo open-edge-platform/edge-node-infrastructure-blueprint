@@ -45,8 +45,10 @@ systemctl enable --now k3s
 # ── Configure k3s proxy for containerd (if proxy variables are set) ───────
 if [ -n "${HTTP_PROXY:-}" ] || [ -n "${HTTPS_PROXY:-}" ]; then
     echo "Configuring k3s proxy settings..."
-    mkdir -p /etc/systemd/system/k3s.service.d
-    cat > /etc/systemd/system/k3s.service.d/http-proxy.conf <<EOF
+    install -d -m 0755 /etc/systemd/system/k3s.service.d
+    # Drop-in may contain proxy URLs with embedded credentials. Restrict to root.
+    DROPIN=/etc/systemd/system/k3s.service.d/http-proxy.conf
+    ( umask 077 && cat > "$DROPIN" <<EOF
 [Service]
 Environment="HTTP_PROXY=${HTTP_PROXY}"
 Environment="HTTPS_PROXY=${HTTPS_PROXY}"
@@ -55,6 +57,9 @@ Environment="CONTAINERD_HTTP_PROXY=${HTTP_PROXY}"
 Environment="CONTAINERD_HTTPS_PROXY=${HTTPS_PROXY}"
 Environment="CONTAINERD_NO_PROXY=${NO_PROXY}"
 EOF
+    )
+    chmod 0600 "$DROPIN"
+    chown root:root "$DROPIN"
     systemctl daemon-reload
     systemctl restart k3s
     echo "K3s proxy configuration applied"

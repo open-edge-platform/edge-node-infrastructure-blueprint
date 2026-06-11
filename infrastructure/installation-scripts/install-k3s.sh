@@ -109,14 +109,30 @@ if [[ "${STAGED}" -eq 0 ]]; then
 fi
 
 # ==============================================================================
-# 3. Ensure config directory exists
+# 3. Ensure config directory exists (root-only)
 # ==============================================================================
-mkdir -p "${K3S_CONFIG_DIR}"
+install -d -m 0700 -o root -g root "${K3S_CONFIG_DIR}"
 
-# Copy a user-supplied config if provided
+# Copy a user-supplied config if provided. Permissions hardened to 0600 root:root
+# because the config may contain `token:` or other secrets.
 if [[ -n "${K3S_CONFIG_FILE:-}" && -f "${K3S_CONFIG_FILE}" ]]; then
     info "Copying config file ${K3S_CONFIG_FILE} → ${K3S_CONFIG_DIR}/config.yaml"
-    cp "${K3S_CONFIG_FILE}" "${K3S_CONFIG_DIR}/config.yaml"
+    install -m 0600 -o root -g root "${K3S_CONFIG_FILE}" "${K3S_CONFIG_DIR}/config.yaml"
+fi
+
+# Persist server URL and join token to a permission-hardened drop-in.
+if [[ "${K3S_MODE}" == "agent" ]]; then
+    install -d -m 0700 -o root -g root "${K3S_CONFIG_DIR}/config.yaml.d"
+    AGENT_DROPIN="${K3S_CONFIG_DIR}/config.yaml.d/00-agent.yaml"
+    ( umask 077 && cat > "${AGENT_DROPIN}" <<EOF
+server: ${K3S_URL}
+token: ${K3S_TOKEN}
+EOF
+    )
+    chmod 0600 "${AGENT_DROPIN}"
+    chown root:root "${AGENT_DROPIN}"
+    # Drop the token from this script's env
+    unset K3S_TOKEN
 fi
 
 # ==============================================================================
@@ -127,17 +143,12 @@ fi
 info "Running K3s installer (offline mode) ..."
 echo ""
 
-if [[ "${K3S_MODE}" == "agent" ]]; then
-    INSTALL_K3S_SKIP_DOWNLOAD=true \
-    INSTALL_K3S_BIN_DIR="${K3S_INSTALL_DIR}" \
-    K3S_URL="${K3S_URL}" \
-    K3S_TOKEN="${K3S_TOKEN}" \
-    bash "${RESOURCES_DIR}/install.sh" agent
-else
-    INSTALL_K3S_SKIP_DOWNLOAD=true \
-    INSTALL_K3S_BIN_DIR="${K3S_INSTALL_DIR}" \
-    bash "${RESOURCES_DIR}/install.sh"
-fi
+INSTALL_ARGS=()
+[[ "${K3S_MODE}" == "agent" ]] && INSTALL_ARGS+=(agent)
+
+INSTALL_K3S_SKIP_DOWNLOAD=true \
+INSTALL_K3S_BIN_DIR="${K3S_INSTALL_DIR}" \
+bash "${RESOURCES_DIR}/install.sh" "${INSTALL_ARGS[@]}"
 
 # ==============================================================================
 # 5. Post-install guidance
