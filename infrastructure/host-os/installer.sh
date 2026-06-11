@@ -454,7 +454,7 @@ function InternalConfigSetup() {
 		run "echo 'set enable-bracketed-paste off' >> /etc/inputrc"
 	fi
 	run "echo 'sys_olvtelemetry ALL=(ALL) NOPASSWD: /usr/sbin/biosdecode, /usr/sbin/dmidecode, /usr/sbin/ownership, /usr/sbin/vpddecode' > /etc/sudoers.d/user-sudo"
-	run "echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/user-sudo"
+	run "echo 'user ALL=(ALL) ALL' >> /etc/sudoers.d/user-sudo"
 	run "chmod 440 /etc/sudoers.d/user-sudo"
 	run "sed -i 's/.*AutomaticLoginEnable =.*/AutomaticLoginEnable = true/g' /etc/gdm3/custom.conf"
 	run "sed -i 's/.*AutomaticLogin = user1/AutomaticLogin = user/g' /etc/gdm3/custom.conf"
