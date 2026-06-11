@@ -29,7 +29,9 @@ echo "=== kubernetes-provision.sh: start ==="
 . /etc/environment 2>/dev/null || true
 # Export so child processes (curl, helm, kubectl, etc.) inherit them
 export http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY 2>/dev/null || true
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+K3S_KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+k() { KUBECONFIG="$K3S_KUBECONFIG" kubectl "$@"; }
 
 # ── Disable docker — kubernetes node does not run docker ──────────────────
 systemctl disable docker 2>/dev/null || true
@@ -81,15 +83,15 @@ fi
 # ── Wait for k3s API to be ready (up to 5 minutes) ───────────────────────
 echo "Waiting for K3s API server to be ready..."
 for i in $(seq 1 60); do
-    kubectl get nodes --no-headers 2>/dev/null | grep -q ' Ready' && break
+    k get nodes --no-headers 2>/dev/null | grep -q ' Ready' && break
     sleep 5
 done
-if ! kubectl get nodes >/dev/null 2>&1; then
+if ! k get nodes >/dev/null 2>&1; then
     echo "ERROR: K3s API not ready after 5 minutes — aborting plugin setup"
     exit 1
 fi
 echo "K3s nodes:"
-kubectl get nodes
+k get nodes
 
 # ── Install Helm if not already present ───────────────────────────────────
 INSTALL_SCRIPTS="/opt/edge/scripts"
@@ -122,15 +124,15 @@ fi
 # applying manifests directly (k3s pulls images at runtime).
 apply_manifests_directly() {
     # Manifests are at /opt/edge/scripts/ (flat layout from hook OS)
-    [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/nfd.yaml" && sleep 15 || true
-    [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd.yaml" && sleep 15 || true
+    [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
 }
 
 if [ -f "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" ]; then
     echo "Running install-intel-device-plugins.sh..."
-    bash "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" || {
+    KUBECONFIG="$K3S_KUBECONFIG" bash "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" || {
         echo "WARNING: install-intel-device-plugins.sh failed (likely missing pre-pulled images) — applying manifests directly"
         apply_manifests_directly
     }
@@ -140,7 +142,7 @@ else
 fi
 
 echo "=== Pod status after plugin installation ==="
-kubectl get pods -A
+k get pods -A
 
 # ── SR-IOV Configuration (Optional) ───────────────────────────────────────
 # Set up SR-IOV virtual functions if enabled in config-file
