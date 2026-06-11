@@ -70,21 +70,18 @@ echo "======================================================================"
 echo ""
 
 # ==============================================================================
-# 1. Verify checksum (if available)
+# 1. Verify checksum  (missing treated as a hard error so a tampered bundle that
+#                      strips the .sha256sum cannot bypass verification.)
 # ==============================================================================
 CHECKSUM_FILE="${HELM_TARBALL}.sha256sum"
-if [[ -f "${CHECKSUM_FILE}" ]]; then
-    info "Verifying checksum ..."
-    # sha256sum file contains an absolute path; rebuild it relative to RESOURCES_DIR
-    EXPECTED_SUM="$(awk '{print $1}' "${CHECKSUM_FILE}")"
-    ACTUAL_SUM="$(sha256sum "${HELM_TARBALL}" | awk '{print $1}')"
-    if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
-        die "Checksum mismatch for $(basename "${HELM_TARBALL}")!\n  Expected: ${EXPECTED_SUM}\n  Got     : ${ACTUAL_SUM}\nDelete the file and re-run download-resources.sh."
-    fi
-    success "Checksum verified"
-else
-    echo "[WARN]  No checksum file found — skipping verification."
+[[ -f "${CHECKSUM_FILE}" ]] || die "Checksum file not found: $(basename "${CHECKSUM_FILE}")\nRefusing to install without verification. Re-run download-resources.sh to repopulate the bundle."
+info "Verifying checksum ..."
+EXPECTED_SUM="$(awk '{print $1}' "${CHECKSUM_FILE}")"
+ACTUAL_SUM="$(sha256sum "${HELM_TARBALL}" | awk '{print $1}')"
+if [[ "${EXPECTED_SUM}" != "${ACTUAL_SUM}" ]]; then
+    die "Checksum mismatch for $(basename "${HELM_TARBALL}")!\n  Expected: ${EXPECTED_SUM}\n  Got     : ${ACTUAL_SUM}\nDelete the file and re-run download-resources.sh."
 fi
+success "Checksum verified"
 
 # ==============================================================================
 # 2. Extract Helm binary

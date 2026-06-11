@@ -105,19 +105,14 @@ if ! command -v helm >/dev/null 2>&1; then
         echo "Installing Helm from local resources..."
         bash "${INSTALL_SCRIPTS}/install-helm.sh"
     else
-        # Local helm tarball not bundled (resources/helm/ not present in hook OS).
-        # Attempt internet install only if reachable within 10s; skip otherwise.
-        echo "Local Helm resources not found — testing internet connectivity..."
-        if curl -fsSL --connect-timeout 10 --max-time 10 \
-            https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
-            -o /tmp/get-helm-3 2>/dev/null; then
-            bash /tmp/get-helm-3 || true
-            rm -f /tmp/get-helm-3
-        else
-            echo "WARNING: Helm internet install skipped (endpoint unreachable)."
-            echo "  Install Helm manually after first boot:"
-            echo "  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
-        fi
+        # Local helm tarball not bundled.
+        echo "WARNING: Helm not present and no local install-helm.sh bundle found."
+        echo "  Refusing to download get-helm-3 from the internet without a"
+        echo "  pinned checksum. Re-run download-resources.sh to bundle helm,"
+        echo "  rebuild the image, and re-provision."
+        echo "    curl -fsSL https://raw.githubusercontent.com/helm/helm/<tag>/scripts/get-helm-3 -o get-helm-3"
+        echo "    echo '<expected-sha256>  get-helm-3' | sha256sum -c -"
+        echo "    bash ./get-helm-3"
     fi
 else
     echo "Helm already installed: $(helm version --short 2>/dev/null)"
