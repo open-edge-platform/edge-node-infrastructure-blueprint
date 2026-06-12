@@ -29,7 +29,9 @@ echo "=== kubernetes-provision.sh: start ==="
 . /etc/environment 2>/dev/null || true
 # Export so child processes (curl, helm, kubectl, etc.) inherit them
 export http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY 2>/dev/null || true
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+K3S_KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+k() { KUBECONFIG="$K3S_KUBECONFIG" kubectl "$@"; }
 
 # ── Disable docker — kubernetes node does not run docker ──────────────────
 systemctl disable docker 2>/dev/null || true
@@ -43,8 +45,10 @@ systemctl enable --now k3s
 # ── Configure k3s proxy for containerd (if proxy variables are set) ───────
 if [ -n "${HTTP_PROXY:-}" ] || [ -n "${HTTPS_PROXY:-}" ]; then
     echo "Configuring k3s proxy settings..."
-    mkdir -p /etc/systemd/system/k3s.service.d
-    cat > /etc/systemd/system/k3s.service.d/http-proxy.conf <<EOF
+    install -d -m 0755 /etc/systemd/system/k3s.service.d
+    # Drop-in may contain proxy URLs with embedded credentials. Restrict to root.
+    DROPIN=/etc/systemd/system/k3s.service.d/http-proxy.conf
+    ( umask 077 && cat > "$DROPIN" <<EOF
 [Service]
 Environment="HTTP_PROXY=${HTTP_PROXY}"
 Environment="HTTPS_PROXY=${HTTPS_PROXY}"
@@ -53,6 +57,9 @@ Environment="CONTAINERD_HTTP_PROXY=${HTTP_PROXY}"
 Environment="CONTAINERD_HTTPS_PROXY=${HTTPS_PROXY}"
 Environment="CONTAINERD_NO_PROXY=${NO_PROXY}"
 EOF
+    )
+    chmod 0600 "$DROPIN"
+    chown root:root "$DROPIN"
     systemctl daemon-reload
     systemctl restart k3s
     echo "K3s proxy configuration applied"
@@ -81,35 +88,50 @@ fi
 # ── Wait for k3s API to be ready (up to 5 minutes) ───────────────────────
 echo "Waiting for K3s API server to be ready..."
 for i in $(seq 1 60); do
-    kubectl get nodes --no-headers 2>/dev/null | grep -q ' Ready' && break
+    k get nodes --no-headers 2>/dev/null | grep -q ' Ready' && break
     sleep 5
 done
-if ! kubectl get nodes >/dev/null 2>&1; then
+if ! k get nodes >/dev/null 2>&1; then
     echo "ERROR: K3s API not ready after 5 minutes — aborting plugin setup"
     exit 1
 fi
 echo "K3s nodes:"
-kubectl get nodes
+k get nodes
 
 # ── Install Helm if not already present ───────────────────────────────────
 INSTALL_SCRIPTS="/opt/edge/scripts"
+HELM_VERSION="v3.17.2"
 if ! command -v helm >/dev/null 2>&1; then
-    if [ -f "${INSTALL_SCRIPTS}/install-helm.sh" ] && ls "${INSTALL_SCRIPTS}"/helm-*-linux-*.tar.gz >/dev/null 2>&1; then
-        echo "Installing Helm from local resources..."
+    if [ -f "${INSTALL_SCRIPTS}/install-helm.sh" ] && ls "${INSTALL_SCRIPTS}"/resources/helm/helm-*-linux-*.tar.gz >/dev/null 2>&1; then
+        echo "Installing Helm from local airgap bundle..."
         bash "${INSTALL_SCRIPTS}/install-helm.sh"
     else
-        # Local helm tarball not bundled (resources/helm/ not present in hook OS).
-        # Attempt internet install only if reachable within 10s; skip otherwise.
-        echo "Local Helm resources not found — testing internet connectivity..."
-        if curl -fsSL --connect-timeout 10 --max-time 10 \
-            https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
-            -o /tmp/get-helm-3 2>/dev/null; then
-            bash /tmp/get-helm-3 || true
-            rm -f /tmp/get-helm-3
+        echo "Local Helm bundle not found"
+        case "$(uname -m)" in
+            x86_64)  HELM_ARCH="amd64" ;;
+            aarch64) HELM_ARCH="arm64" ;;
+            armv7l)  HELM_ARCH="arm"   ;;
+            *)       HELM_ARCH=""      ;;
+        esac
+
+        if [ -z "${HELM_ARCH}" ]; then
+            echo "ERROR: Unsupported architecture $(uname -m) — cannot install Helm"
         else
-            echo "WARNING: Helm internet install skipped (endpoint unreachable)."
-            echo "  Install Helm manually after first boot:"
-            echo "  curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash"
+            HELM_TARBALL="helm-${HELM_VERSION}-linux-${HELM_ARCH}.tar.gz"
+            HELM_TMP="$(mktemp -d)"
+            ( umask 077 && cd "${HELM_TMP}" && \
+              for i in 1 2 3; do
+                  curl -fsSL --max-time 120 --retry 3 "https://get.helm.sh/${HELM_TARBALL}"           -o "${HELM_TARBALL}" && \
+                  curl -fsSL --max-time 30  --retry 3 "https://get.helm.sh/${HELM_TARBALL}.sha256sum" -o "${HELM_TARBALL}.sha256sum" && break
+                  echo "  helm download attempt $i failed, retrying..."
+                  sleep 5
+              done && \
+              sha256sum -c "${HELM_TARBALL}.sha256sum" && \
+              tar -xzf "${HELM_TARBALL}" && \
+              install -m 0755 "linux-${HELM_ARCH}/helm" /usr/local/bin/helm
+            ) && echo "Helm ${HELM_VERSION} installed: $(helm version --short 2>/dev/null)" \
+              || echo "WARNING: Helm install failed (download or checksum verification error)"
+            rm -rf "${HELM_TMP}"
         fi
     fi
 else
@@ -122,15 +144,15 @@ fi
 # applying manifests directly (k3s pulls images at runtime).
 apply_manifests_directly() {
     # Manifests are at /opt/edge/scripts/ (flat layout from hook OS)
-    [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/nfd.yaml" && sleep 15 || true
-    [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ] && kubectl apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd.yaml" && sleep 15 || true
+    [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
+    [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
 }
 
 if [ -f "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" ]; then
     echo "Running install-intel-device-plugins.sh..."
-    bash "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" || {
+    KUBECONFIG="$K3S_KUBECONFIG" bash "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" || {
         echo "WARNING: install-intel-device-plugins.sh failed (likely missing pre-pulled images) — applying manifests directly"
         apply_manifests_directly
     }
@@ -140,7 +162,7 @@ else
 fi
 
 echo "=== Pod status after plugin installation ==="
-kubectl get pods -A
+k get pods -A
 
 # ── SR-IOV Configuration (Optional) ───────────────────────────────────────
 # Set up SR-IOV virtual functions if enabled in config-file

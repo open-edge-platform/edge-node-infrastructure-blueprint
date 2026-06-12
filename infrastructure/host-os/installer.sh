@@ -255,8 +255,7 @@ q
 			run "sudo swapon /$latest_trimmed_parition"
 			echo "Update /etc/fstab for the new partition line"
 			run "sudo sed -i '$ d' /etc/fstab"
-			run "sudo chmod 766 /etc/fstab"
-			echo "/dev/disk/by-uuid/6443e3b1-12bc-41d0-83d8-e5c25477b5a0   none    swap    sw      0       " >> /etc/fstab
+			run "echo '/dev/disk/by-uuid/6443e3b1-12bc-41d0-83d8-e5c25477b5a0   none    swap    sw      0       ' | sudo tee -a /etc/fstab > /dev/null"
 			run "sudo chmod 644 /etc/fstab"
 		fi
 	fi
@@ -455,7 +454,7 @@ function InternalConfigSetup() {
 		run "echo 'set enable-bracketed-paste off' >> /etc/inputrc"
 	fi
 	run "echo 'sys_olvtelemetry ALL=(ALL) NOPASSWD: /usr/sbin/biosdecode, /usr/sbin/dmidecode, /usr/sbin/ownership, /usr/sbin/vpddecode' > /etc/sudoers.d/user-sudo"
-	run "echo 'user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/user-sudo"
+	run "echo 'user ALL=(ALL) ALL' >> /etc/sudoers.d/user-sudo"
 	run "chmod 440 /etc/sudoers.d/user-sudo"
 	run "sed -i 's/.*AutomaticLoginEnable =.*/AutomaticLoginEnable = true/g' /etc/gdm3/custom.conf"
 	run "sed -i 's/.*AutomaticLogin = user1/AutomaticLogin = user/g' /etc/gdm3/custom.conf"
