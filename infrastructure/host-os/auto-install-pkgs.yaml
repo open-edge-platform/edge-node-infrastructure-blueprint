@@ -70,10 +70,17 @@ autoinstall:
         exec > >(tee -a "$LOG_FILE") 2>&1
 
         set -a
-        source /etc/environment
+        cp /etc/environment /etc/environment.bak
+        cat /etc/proxy.env >> /etc/environment 
+        source /etc/environment || true
         set +a
         export http_proxy
         export https_proxy
+        export no_proxy
+        export HTTP_PROXY
+        export HTTPS_PROXY
+        export NO_PROXY
+        
         echo "--- Starting First Boot Fix: $(date) ---"
         # 1. Kill the installer's "lock" files
         rm -f /etc/cloud/cloud-init.disabled
@@ -160,9 +167,9 @@ autoinstall:
         ./get_helm.sh
 
         # Install CBKC kernel && Packages 
-        if [ -f /usr/local/bin/installer.sh ]; then
-            chmod 755 /usr/local/bin/installer.sh
-            bash  /usr/local/bin/installer.sh PTL default 
+        if [ -f /usr/local/bin/curate-host-packages.sh ]; then
+            chmod 700 /usr/local/bin/curate-host-packages.sh
+            bash  /usr/local/bin/curate-host-packages.sh
         fi
 
         # 11 Install Intel RealSense SDK
@@ -193,6 +200,8 @@ autoinstall:
         # 13 Self-destruct
         systemctl disable first-boot-fix.service
         rm -f /etc/systemd/system/first-boot-fix.service
+        rm -rf /etc/proxy.env
+        mv /etc/environment.bak /etc/environment
         sleep 2
         poweroff 
 
@@ -232,7 +241,6 @@ autoinstall:
     version: 2
   oem:
     install: auto
-  proxy: http://proxy-dmz.intel.com:912/
   source:
     id: ubuntu-desktop-minimal
     search_drivers: false
@@ -254,7 +262,6 @@ autoinstall:
     - curtin in-target --target=/target -- apt-get upgrade -y || true
     - curtin in-target --target=/target -- sed -e 's@^GRUB_TIMEOUT_STYLE=hidden@# GRUB_TIMEOUT_STYLE=hidden@g' -e 's@^GRUB_TIMEOUT=0@GRUB_TIMEOUT=5@g' -e 's@^GRUB_CMDLINE_LINUX=\"\"@GRUB_CMDLINE_LINUX=\"console=tty0 console=ttyS0,115200n8\"@g' -i /etc/default/grub
     - curtin in-target --target=/target -- update-grub
-    - curtin in-target --target=/target -- sh -c "printf '%s\n' 'http_proxy=\"http://proxy-dmz.intel.com:911\"' 'https_proxy=\"http://proxy-dmz.intel.com:912\"' 'socks_server=\"http://proxy-dmz.intel.com:1080\"' 'no_proxy=\"localhost\"' >> /etc/environment"
     - curtin in-target --target=/target -- apt list --installed > /opt/Bom-list.txt
   shutdown: poweroff
 

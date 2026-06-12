@@ -36,10 +36,9 @@ export PATH=/usr/local/go/bin:$PATH  # add to ~/.bashrc to persist
 go version  # should report Go programming language version 1.22 or later
 ```
 
-> **Notes**:
->
-> - Keep the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` values consistent across all proxy configuration files.
-> - Intel has verified the build flow on Ubuntu OS versions 22.04 and 24.04.
+> Notes
+> - Keep `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` consistent across all proxy configuration files.
+> - Build flow has been verified on Ubuntu 22.04 and 24.04.
 
 ### 2. Clone the Repository
 
@@ -52,8 +51,7 @@ cd edge-node-infrastructure-blueprint
 
 From the repository root, run one of the following build modes.
 
-> **Note**: If your environment is behind a firewall, add proxy configuration to `infrastructure/micro-os/config`.
-> 
+> Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 > For air-gapped deployments: run `infrastructure/installation-scripts/download-resources.sh` before building, to bundle Intel's device-plugin manifests and container images into the installation artifacts.
 
 #### Option 1: Build from ISO Image File

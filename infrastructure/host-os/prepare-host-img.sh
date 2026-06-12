@@ -30,7 +30,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 usage() {
-    echo "Usage : `basename $0` -i <iso_link> -c auto-install-pkgs.yaml [-s installer.sh]"
+    echo "Usage : `basename $0` -i <iso_link> -c auto-install-pkgs.yaml [-s curate-host-packages.sh]"
     echo "Options are below"
     echo "  -i , --isolink  | provide the iso artifactory link"
     echo "  -c , --configuration file | provide the auto-install-pkgs.yaml file"
@@ -70,7 +70,7 @@ fi
 USER_DATA_DIR=$(cd "$(dirname "$USER_DATA")" && pwd)
 USER_DATA_FILE=$(basename "$USER_DATA")
 
-INSTALLER_SCRIPT="$USER_DATA_DIR/installer.sh"
+INSTALLER_SCRIPT="$USER_DATA_DIR/curate-host-packages.sh"
 
 if [ -n "$INSTALLER_SCRIPT" ] && [ ! -f "$INSTALLER_SCRIPT" ]; then
     echo "Error: Installer script not found: $INSTALLER_SCRIPT"
@@ -105,32 +105,36 @@ touch meta-data
 # Update the auto-install-pkgs.yaml to add CBKC Scripts
 USER_DATA_SOURCE="$USER_DATA"
 
-if [ -n "$INSTALLER_SCRIPT" ]; then
-        echo "Attaching installer script: $INSTALLER_SCRIPT"
-        INSTALLER_B64=$(base64 -w 0 "$INSTALLER_SCRIPT")
+if [ -n "${INSTALLER_SCRIPT}" ] || [ -f "../../proxy.env" ]; then
         TEMP_USER_DATA=$(mktemp)
-
-        awk -v installer_b64="$INSTALLER_B64" '
+        
+        awk '
             /^    write_files:$/ && !inserted {
                 print
-                print "    - path: /usr/local/bin/installer.sh"
-                print "      owner: root:root"
-                print "      permissions: '\''0755'\''"
-                print "      encoding: b64"
-                print "      content: " installer_b64
                 inserted=1
                 next
             }
             { print }
-            END {
-                if (!inserted) {
-                    exit 1
-                }
-            }
         ' "$USER_DATA" > "$TEMP_USER_DATA" || {
-                echo "Error: Failed to inject installer.sh into $USER_DATA_FILE"
+                echo "Error: Failed to process ${USER_DATA_FILE}"
                 exit 1
         }
+        
+        if [ -n "${INSTALLER_SCRIPT}" ] && [ -f "${INSTALLER_SCRIPT}" ]; then
+                echo "Attaching curate-host-packages script: ${INSTALLER_SCRIPT}"
+                INSTALLER_B64=$(base64 -w 0 "${INSTALLER_SCRIPT}")
+                
+                # Insert curate-host-packages.sh 
+                sed -i '/^    write_files:$/a\    - path: /usr/local/bin/curate-host-packages.sh\n      owner: root:root\n      permissions: '"'"'0755'"'"'\n      encoding: b64\n      content: '"$INSTALLER_B64"'' "$TEMP_USER_DATA"
+        fi
+        
+        if [ -f "../../proxy.env" ]; then
+                echo "Attaching proxy.env file"
+                PROXY_B64=$(base64 -w 0 "../../proxy.env")
+                
+                # Insert proxy.env
+                sed -i '/^    write_files:$/a\    - path: /etc/proxy.env\n      owner: root:root\n      permissions: '"'"'0644'"'"'\n      encoding: b64\n      content: '"$PROXY_B64"'' "$TEMP_USER_DATA"
+        fi
 
         USER_DATA_SOURCE="$TEMP_USER_DATA"
 fi

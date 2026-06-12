@@ -7,16 +7,62 @@ SHELL := bash -eu -o pipefail
 # Find all shell scripts
 SH_FILES := $(shell find . -type f -name '*.sh')
 
+PROXY_FILE := proxy.env
+ETC_ENV    := /etc/environment
+# Environment variables for build commands.skip-proxy to bypass proxy checks, useful for CI environments where proxy settings are not needed.
+# If proxy settings are detected under proxy.env, they will be loaded into ENV_PROXIES
+# if not, ENV_PROXIES will be updated from /etc/environment. 
+# if neither have valid proxy settings, the user will be prompted to proceed without proxy or abort the build.
+check-proxy:
+	@if [ "$(skip-proxy)" = "true" ]; then \
+		echo "Proxy explicitly skipped by user."; \
+	else \
+		# Source proxy.env to check if variables have actual data \
+		FILE_HTTP=$$(file_val=$$(. ./$(PROXY_FILE) 2>/dev/null && echo "$$HTTP_PROXY$$http_proxy"); echo $$file_val); \
+		FILE_HTTPS=$$(file_val=$$(. ./$(PROXY_FILE) 2>/dev/null && echo "$$HTTPS_PROXY$$https_proxy"); echo $$file_val); \
+		\
+		if [ -n "$$FILE_HTTP" ] && [ -n "$$FILE_HTTPS" ]; then \
+			echo "Valid proxy settings detected inside $(PROXY_FILE)."; \
+		else \
+			echo "$(PROXY_FILE) contains empty values. Checking $(ETC_ENV)..."; \
+			\
+			# Extract proxy values directly from /etc/environment if it exists \
+			SYS_HTTP=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTP_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
+			SYS_HTTPS=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTPS_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
+			SYS_NO=$$( [ -f $(ETC_ENV) ] && grep -E -i "^NO_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
+			\
+			if [ -n "$$SYS_HTTP" ] && [ -n "$$SYS_HTTPS" ]; then \
+				echo "System proxies found in $(ETC_ENV)! Syncing them into $(PROXY_FILE)..."; \
+				echo "HTTP_PROXY=\"$$SYS_HTTP\"" > $(PROXY_FILE); \
+				echo "HTTPS_PROXY=\"$$SYS_HTTPS\"" >> $(PROXY_FILE); \
+				echo "NO_PROXY=\"$$SYS_NO\"" >> $(PROXY_FILE); \
+				echo "http_proxy=\"$$SYS_HTTP\"" >> $(PROXY_FILE); \
+				echo "https_proxy=\"$$SYS_HTTPS\"" >> $(PROXY_FILE); \
+				echo "no_proxy=\"$$SYS_NO\"" >> $(PROXY_FILE); \
+			else \
+				# Both proxy.env and /etc/environment are empty \
+				echo "No proxy configurations found in $(PROXY_FILE) or $(ETC_ENV)."; \
+				echo -n "Do you want to proceed without a proxy? [y/N]: " && read ans; \
+				if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then \
+					echo "Build aborted. Please populate $(PROXY_FILE) or configure system proxies."; \
+					exit 1; \
+				fi; \
+				echo "Proceeding without proxy..."; \
+			fi; \
+		fi; \
+	fi
+
+
 all: 
 	@# Help: Runs build, lint, test stages
 	build lint test 	
 	
-build: 
+build: check-proxy
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
 	@echo "Preparing USB Installation Artifacts $@"
 	echo $@
-	cd infrastructure/build-artifacts && sudo -E ./build-installation-artifacts.sh "$(MODE)" "$(ISO_URL)" "$(ICT_IMG)" && cd ../..
+	cd infrastructure/build-artifacts && . ../../$(PROXY_FILE) 2>/dev/null && sudo -E ./build-installation-artifacts.sh "$(MODE)" "$(ISO_URL)" "$(ICT_IMG)" && cd ../..
 	@echo "---END MAKEFILE Build---"
 
 lint: shellcheck
