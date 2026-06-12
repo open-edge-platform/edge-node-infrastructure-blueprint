@@ -94,7 +94,6 @@ for pci_dir in "$SYSFS_DRIVER_PATH"/????:??:??.?; do
     continue
   fi
 
-  accel_index="${accel_dev#accel}"
   device_name="npu${npu_index}"
 
   echo "  NPU: intel.com/npu=${device_name} (${model_name}) -> /dev/accel/${accel_dev}"

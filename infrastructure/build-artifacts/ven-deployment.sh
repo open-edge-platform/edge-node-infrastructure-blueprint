@@ -32,9 +32,6 @@ if [ "$(id -u)" -ne 0 ]; then
     exit 1
 fi
 
-# Check if the is virtual edge node or not
-CONFIG_FILE=config-file
-
 # if Custom image update
 if [ -n "$1" ]; then
     if echo "$1" | grep -qE '\.gz$'; then

@@ -14,9 +14,7 @@ os_disk=""
 OS_IMG_PART=5
 USER_CONF_PART=6
 os_rootfs_part=
-os_data_part=
 deploy_mode="real"
-user_apps_data="false"
 LOG_FILE="/var/log/os-installer.log"
 lvm_size=""
 USER_SELECTED_DISK=""
@@ -37,7 +35,6 @@ PROVISION_STEP=0
 MAX_STATUS_MESSAGE_LENGTH=25
 
 # Dynamically updating the cloud-init file.
-TMP_YAML=$(mktemp)
 CONFIG_FILE=""
 CLOUD_INIT_FILE=""
 
@@ -277,8 +274,9 @@ install_os_on_disk() {
 create_user_account() {
     echo -e "${BLUE}Create a new user account${NC}"
     TTY=/dev/tty1
-    local TMPFILE=$(mktemp /tmp/dialog.XXXXXX)
-    trap "rm -f '$TMPFILE'" RETURN
+    local TMPFILE
+    TMPFILE=$(mktemp /tmp/dialog.XXXXXX)
+    trap 'rm -f "$TMPFILE"' RETURN
     
     # Ask if user wants to create an account 
     if ! dialog --title "User Account" \
@@ -407,7 +405,6 @@ create_partitions() {
         return 0
     fi
     
-    ROOTFS_PARTITION="${os_disk}${os_rootfs_part}"
     ROOTFS_PART_NUM=$(echo "$os_rootfs_part" | tr -dc '0-9')
     
     # Get total disk size
@@ -446,7 +443,6 @@ create_partitions() {
     free_gb=$((free_mb / 1024))
     rootfs_size_gb=$((rootfs_size_mb / 1024))
     FREE_MB=$free_mb
-    FREE_GB=$free_gb
     
     current_layout=$(parted -s "$USER_SELECTED_DISK" unit MB print 2>/dev/null)
     dialog \
@@ -865,9 +861,7 @@ apply_partitions() {
         if mount "$os_disk$os_rootfs_part" /mnt 2>/dev/null; then
             if [ -f /mnt/etc/fstab ]; then
                 echo "Adding new partition entries to /etc/fstab"
-                echo -e "$FSTAB_ENTRIES" >> /mnt/etc/fstab
-                
-                if [ $? -eq 0 ]; then
+                if echo -e "$FSTAB_ENTRIES" >> /mnt/etc/fstab; then
                     success "fstab entries added successfully"
                 else
                     error "Failed to write fstab entries"
@@ -979,7 +973,9 @@ setup_proxy_settings() {
         # by both the QEMU (auto-install-pkgs.yaml) and ICT build paths but are
         # not sourced from config-file.  Derive their values from http_proxy so
         # they stay consistent; clear them when http_proxy is empty.
+        # shellcheck disable=SC2034
         ftp_proxy="$http_proxy"
+        # shellcheck disable=SC2034
         socks_server=""
 
         if [ -n "$http_proxy" ] || [ -n "$https_proxy" ] || [ -n "$no_proxy" ]; then
@@ -1036,8 +1032,9 @@ EOF
 ask_for_proxy_settings(){
     echo -e "${BLUE}Configure Proxy Settings (Optional)${NC}"
     TTY=/dev/tty1
-    local TMPFILE=$(mktemp /tmp/dialog.XXXXXX)
-    trap "rm -f '$TMPFILE'" RETURN
+    local TMPFILE
+    TMPFILE=$(mktemp /tmp/dialog.XXXXXX)
+    trap 'rm -f "$TMPFILE"' RETURN
 
     dialog --title "Proxy Configuration" \
         --yesno "Do you want to configure proxy settings?" \

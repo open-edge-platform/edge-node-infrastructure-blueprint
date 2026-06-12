@@ -17,7 +17,7 @@ build-alpine-os(){
 
 echo "Started Alpine OS build!!,it will take some time"
 
-pushd ../micro-os/
+pushd ../micro-os/ || exit 1
 
 if bash build-alpine-os.sh; then
     echo "Alpine OS Build Successful"
@@ -25,7 +25,7 @@ else
     echo "Alpine build Failed,Please check!!"
     exit 1
 fi
-popd > /dev/null
+popd > /dev/null || exit 1
 
 }
 
@@ -52,7 +52,7 @@ fi
 # Download Ubuntu image and store it under out directory
 download-Ubuntu_img(){
 
-pushd ../host-os > /dev/null
+pushd ../host-os > /dev/null || exit 1
 
 chmod +x prepare-host-img.sh 
 if [ -z "$ISO_URL" ]; then
@@ -66,10 +66,10 @@ if [ "$?" -eq 0 ]; then
     cp $os_filename ../build-artifacts/
 else
     echo "Host OS image download failed,please chheck!!!"
-    popd
+    popd > /dev/null || exit 1
     exit 1
 fi
-popd > /dev/null 
+popd > /dev/null || exit 1
 }
 
 # Create alpine-iso
@@ -89,7 +89,7 @@ else
     mkdir -p out
     cp ../micro-os/build/output/initramfs out/
     cp ../micro-os/build/output/vmlinuz out/
-    pushd out/
+    pushd out/ || exit 1
 
     # Create the ISO structure
     mkdir -p iso/boot/grub
@@ -117,10 +117,10 @@ EOF
         echo "ISO created successfully under $(pwd)"
     else
         echo "ISO creation failed,please check!!"
-        popd >/dev/null
+        popd >/dev/null || exit 1
 	exit 1
     fi
-    popd >/dev/null
+    popd >/dev/null || exit 1
 fi
 
 }
@@ -138,16 +138,13 @@ cp bootable-usb-prepare.sh out/
 cp config-file out/
 cp ven-deployment.sh out/
 
-pushd out > /dev/null
+pushd out > /dev/null || exit 1
 
 echo "Creating usb-bootable-files.tar.gz (ISO + OS image). This can take several minutes..."
-tar -czf usb-bootable-files.tar.gz alpine-os.iso $os_filename  > /dev/null
-echo "usb-bootable-files.tar.gz created"
-
-if [ "$?" -eq 0 ]; then
+if tar -czf usb-bootable-files.tar.gz alpine-os.iso $os_filename > /dev/null; then
+    echo "usb-bootable-files.tar.gz created"
     echo "Creating usb-installation-files.tar.gz..."
-    tar -czf usb-installation-files.tar.gz bootable-usb-prepare.sh config-file usb-bootable-files.tar.gz ven-deployment.sh 
-    if [ "$?" -eq 0 ]; then
+    if tar -czf usb-installation-files.tar.gz bootable-usb-prepare.sh config-file usb-bootable-files.tar.gz ven-deployment.sh; then
         echo ""
 	echo ""
 	echo ""
@@ -162,15 +159,15 @@ if [ "$?" -eq 0 ]; then
         echo "###############################################################################################"
     else
 	echo "Failed to create usb Installation files, please check!!!"
-	popd
+	popd > /dev/null || exit 1
 	exit 1
     fi
 else
     echo "usb-bootable-files.tar.gz not created, please check!!!"
-    popd
+    popd > /dev/null || exit 1
     exit 1
 fi
-popd
+popd > /dev/null || exit 1
 
 }
 

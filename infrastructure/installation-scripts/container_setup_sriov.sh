@@ -29,7 +29,7 @@ function remove_sriov_vf() {
 
 function validate_sriov_vf(){
   TotalVFs=`lspci | grep -i vga | cut -b 1-7 | cut -d "." -f2 | tail -n 1`
-  if [[ $TotalVFs != $NUMVFS ]]; then
+  if [[ $TotalVFs != "$NUMVFS" ]]; then
     echo -e "SRIOV enumeration failed."
     # Remove SRIOV VFs
     echo '0' | tee -a /sys/class/drm/card0/device/sriov_numvfs
@@ -51,7 +51,7 @@ function validate_vfio(){
       fi
     done
 
-    if [[ $count !=  $NUMVFS ]]; then
+    if [[ $count !=  "$NUMVFS" ]]; then
       echo -e "VFIO Device Create Failed"
       remove_sriov_vf
       exit 1

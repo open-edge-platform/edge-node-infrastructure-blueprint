@@ -31,8 +31,6 @@ MAX_STATUS_MESSAGE_LENGTH=28
 
 : >"$LOG_FILE"
 
-working_dir=$(pwd)
-
 # Usage info for user
 usage() {
     echo "Usage: $0 <usb> <usb-bootable-files.tar.gz> <config-file>"
@@ -202,7 +200,7 @@ prepare_usb_setup() {
     if  [ -n "$RAW_IMG" ]; then
         cp "$RAW_IMG" . || { echo "Failed to copy OS image"; exit 1; }
     fi
-    popd 
+    popd > /dev/null || exit 1
 }
 
 # Wipeoff the USB before install 

@@ -33,7 +33,21 @@ EOF'
 
 download_and_install_gpg_key() {
 	echo "Downloading and installing GPG key..."
-	sudo wget https://download.01.org/intel-linux-overlay/ubuntu/E6FA98203588250569758E97D176E3162086EE4C.gpg -O /etc/apt/trusted.gpg.d/ptl.gpg
+	EXPECTED_FINGERPRINT="E6FA98203588250569758E97D176E3162086EE4C"
+	wget -O /tmp/ptl.gpg https://download.01.org/intel-linux-overlay/ubuntu/E6FA98203588250569758E97D176E3162086EE4C.gpg
+	ACTUAL_FINGERPRINT=$(gpg --show-keys --with-colons /tmp/ptl.gpg | awk -F: '/^fpr:/ {print $10}')
+
+	# Compare fingerprints
+	if [ "$ACTUAL_FINGERPRINT" = "$EXPECTED_FINGERPRINT" ]; then
+        echo "Fingerprint matches! Safe to install."
+        sudo cp /tmp/ptl.gpg /etc/apt/trusted.gpg.d/ptl.gpg
+	else
+		echo "ERROR: Fingerprint does not match! Aborting installation."
+		echo "Expected: $EXPECTED_FINGERPRINT"
+		echo "Actual:   $ACTUAL_FINGERPRINT"
+		rm -f /tmp/ptl.gpg
+		exit 1
+	fi
 	echo "GPG key installed."
 }
 

@@ -45,7 +45,7 @@ EDGE_USER=$(awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" && $7 !~ /(nolog
 
 # ── Wait for Docker daemon to be ready (up to 60 seconds) ────────────────
 echo "Waiting for Docker daemon..."
-for i in $(seq 1 30); do
+for _ in $(seq 1 30); do
     docker info >/dev/null 2>&1 && break
     sleep 2
 done

@@ -18,7 +18,7 @@ user_name="$2"
 
 
 # Sync file system
-function sync_file_system(){
+sync_file_system(){
 block_disk_part=$1
 blockdev --rereadpt "/dev/$os_disk" 2>/dev/null
 udevadm settle --timeout=15 2>/dev/null
@@ -38,7 +38,7 @@ done
 create_lvm_partition(){
 blk_device_count=$1
 shift
-lvm_disks="$@"
+lvm_disks="$*"
 
 #if one disk found and it has rootfs
 if [ "$blk_device_count" -eq "1" ];then
@@ -305,7 +305,6 @@ echo "--------Starting the Partition creation on Ubuntu OS---------"
 
 rootfs_part=$(blkid | grep -Ei 'cloudimg-rootfs|rootfs|ROOT' | grep -i ext4 | awk -F: '{print $1}' | head -n 1)
 efiboot_part=$(blkid | grep -i uefi | grep -i vfat |  awk -F: '{print $1}')
-boot_part=$(blkid | grep -i boot | grep -i ext4 |  awk -F: '{print $1}')
 
 if echo "$rootfs_part" | grep -q "nvme"; then
     os_disk=$(echo "$rootfs_part" | grep -oE 'nvme[0-9]+n[0-9]+' | head -n 1)

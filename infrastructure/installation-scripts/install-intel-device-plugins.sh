@@ -139,7 +139,8 @@ download_manifest_from_github() {
 kube_apply() {
     local manifest="$1"
     local ns="${2:-}"
-    local manifest_name="$(basename "${manifest}")"
+    local manifest_name
+    manifest_name="$(basename "${manifest}")"
 
     # Check if manifest exists locally
     if [[ ! -f "${manifest}" ]]; then
