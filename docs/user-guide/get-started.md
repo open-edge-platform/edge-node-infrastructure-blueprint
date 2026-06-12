@@ -51,7 +51,8 @@ cd edge-node-infrastructure-blueprint
 
 From the repository root, run one of the following build modes.
 
-> **Note**: If your environment is behind a firewall, add proxy configuration to `infrastructure/micro-os/config`.
+> **Note**:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
+ 
 
 #### Option 1 (Recommended): Build from ISO
 
