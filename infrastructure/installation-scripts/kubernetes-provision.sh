@@ -100,19 +100,39 @@ k get nodes
 
 # ── Install Helm if not already present ───────────────────────────────────
 INSTALL_SCRIPTS="/opt/edge/scripts"
+HELM_VERSION="v3.17.2"
 if ! command -v helm >/dev/null 2>&1; then
-    if [ -f "${INSTALL_SCRIPTS}/install-helm.sh" ] && ls "${INSTALL_SCRIPTS}"/helm-*-linux-*.tar.gz >/dev/null 2>&1; then
-        echo "Installing Helm from local resources..."
+    if [ -f "${INSTALL_SCRIPTS}/install-helm.sh" ] && ls "${INSTALL_SCRIPTS}"/resources/helm/helm-*-linux-*.tar.gz >/dev/null 2>&1; then
+        echo "Installing Helm from local airgap bundle..."
         bash "${INSTALL_SCRIPTS}/install-helm.sh"
     else
-        # Local helm tarball not bundled.
-        echo "WARNING: Helm not present and no local install-helm.sh bundle found."
-        echo "  Refusing to download get-helm-3 from the internet without a"
-        echo "  pinned checksum. Re-run download-resources.sh to bundle helm,"
-        echo "  rebuild the image, and re-provision."
-        echo "    curl -fsSL https://raw.githubusercontent.com/helm/helm/<tag>/scripts/get-helm-3 -o get-helm-3"
-        echo "    echo '<expected-sha256>  get-helm-3' | sha256sum -c -"
-        echo "    bash ./get-helm-3"
+        echo "Local Helm bundle not found"
+        case "$(uname -m)" in
+            x86_64)  HELM_ARCH="amd64" ;;
+            aarch64) HELM_ARCH="arm64" ;;
+            armv7l)  HELM_ARCH="arm"   ;;
+            *)       HELM_ARCH=""      ;;
+        esac
+
+        if [ -z "${HELM_ARCH}" ]; then
+            echo "ERROR: Unsupported architecture $(uname -m) — cannot install Helm"
+        else
+            HELM_TARBALL="helm-${HELM_VERSION}-linux-${HELM_ARCH}.tar.gz"
+            HELM_TMP="$(mktemp -d)"
+            ( umask 077 && cd "${HELM_TMP}" && \
+              for i in 1 2 3; do
+                  curl -fsSL --max-time 120 --retry 3 "https://get.helm.sh/${HELM_TARBALL}"           -o "${HELM_TARBALL}" && \
+                  curl -fsSL --max-time 30  --retry 3 "https://get.helm.sh/${HELM_TARBALL}.sha256sum" -o "${HELM_TARBALL}.sha256sum" && break
+                  echo "  helm download attempt $i failed, retrying..."
+                  sleep 5
+              done && \
+              sha256sum -c "${HELM_TARBALL}.sha256sum" && \
+              tar -xzf "${HELM_TARBALL}" && \
+              install -m 0755 "linux-${HELM_ARCH}/helm" /usr/local/bin/helm
+            ) && echo "Helm ${HELM_VERSION} installed: $(helm version --short 2>/dev/null)" \
+              || echo "WARNING: Helm install failed (download or checksum verification error)"
+            rm -rf "${HELM_TMP}"
+        fi
     fi
 else
     echo "Helm already installed: $(helm version --short 2>/dev/null)"
