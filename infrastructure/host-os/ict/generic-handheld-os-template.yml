@@ -596,6 +596,8 @@ systemConfig:
     - librealsense2-gl
 
   additionalFiles:
+    - local: ../additionalfiles/ptl/01-network-manager-all.yaml
+      final: /etc/netplan/01-network-manager-all.yaml
     - local: ../additionalfiles/ptl/50-cloud-init.yaml
       final: /etc/netplan/50-cloud-init.yaml
 
@@ -614,16 +616,6 @@ systemConfig:
       hash_algo: sha512
 
   configurations:
-    # ----------------------------------------------------------------------------------
-    # Fix netplan: the additionalFiles drop-in hardcodes 'ens3' which doesn't
-    # match PTL hardware (eth0/eno1/enp*). Patch at build time to use a wildcard
-    # match and explicit networkd renderer.
-    # ----------------------------------------------------------------------------------
-    - cmd: "sed -i '/^  version: 2/a\\  renderer: networkd' /etc/netplan/50-cloud-init.yaml"
-    - cmd: "sed -i -e 's/^    ens3:$/    all-eth:/' -e '/^    all-eth:$/a\\      match:\\n        name: \"e*\"' /etc/netplan/50-cloud-init.yaml && chmod 600 /etc/netplan/50-cloud-init.yaml"
-    # Prevent cloud-init from regenerating the file on every boot
-    - cmd: "mkdir -p /etc/cloud/cloud.cfg.d && printf 'network: {config: disabled}\\n' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
-    # ----------------------------------------------------------------------------------
     # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
     # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
     # so later apt steps cannot re-pull it.
