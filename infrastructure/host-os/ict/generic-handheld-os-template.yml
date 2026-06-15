@@ -267,7 +267,7 @@ packageRepositories:
       # additional PTL packages
       - xdp-tools
       - rpc-go
-      - lms 
+      - lms
       - metee
       - libxdp-dev
       - libxdp1
@@ -375,6 +375,7 @@ systemConfig:
     - cron
     - ethtool
     - iproute2
+    - network-manager
     - libtbb12
     # PTL packages
     - libigfxcmrt-dev
@@ -550,7 +551,7 @@ systemConfig:
     - mesa-vulkan-drivers
     - xdp-tools
     - rpc-go
-    - lms 
+    - lms
     - metee
     - libxdp-dev
     - libxdp1
@@ -630,7 +631,7 @@ systemConfig:
     - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero_1.22.4+u24.04_amd64.deb"
     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero-devel_1.22.4+u24.04_amd64.deb"
-   
+
     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
     # Install NPU driver for PTL
     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
@@ -673,4 +674,3 @@ systemConfig:
     - cmd: "systemctl disable docker 2>/dev/null || true"
     # Pre-create docker data-root and daemon config (avoids first-boot delay)
     - cmd: "mkdir -p /opt/docker-data /etc/docker && echo '{\"data-root\": \"/opt/docker-data\"}' > /etc/docker/daemon.json"
-
