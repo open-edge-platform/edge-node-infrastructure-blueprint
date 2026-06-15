@@ -15,7 +15,7 @@ description: Build a host OS image using the ICT (Image Composer Tool) from a so
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
 - work_template: output template path to edit (default: `<target_template>` basename prefixed with `work-`)
-- target_template: source template path (default: `infrastructure/host-os/ict/ubuntu24-x86_64-minimal-ptl.yml`)
+- target_template: source template path (default: `infrastructure/host-os/ict/generic-handheld-os-template.yml`)
 - os_image_composer_repo: clone path for image-composer-tool (default: `<enib_home>/tools/image-composer-tool`)
 
 ## Preconditions
@@ -25,7 +25,7 @@ Run silently without user prompts:
 - [ ] Required tool check: `command -v ukify && dpkg -l mmdebstrap | grep '^ii'`
 - [ ] Source template exists: `test -f <enib_home>/<target_template>`
 - [ ] Working template path is not source template path.
-- [ ] **Sudo probe (MANDATORY before `sudo -E ./image-composer-tool build`):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry for `image-composer-tool` in `/etc/sudoers.d/`), then re-trigger the skill. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo probe (MANDATORY before `sudo -E ./image-composer-tool build`):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry for `image-composer-tool` in `/etc/sudoers.d/`), then re-trigger the skill. If `sudo -v` was already run but `sudo -n true` still fails, the user must make sudo timestamps global (tty_tickets issue): `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 Prompt only before destructive operations:
 - [ ] Prompt for `sudo` confirmation only before destructive operations: disk wipe, partition table changes, or build commands that overwrite the output directory. Do not prompt for non-destructive `sudo` commands such as `apt install`

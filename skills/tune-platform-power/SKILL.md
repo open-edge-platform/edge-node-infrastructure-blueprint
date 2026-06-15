@@ -51,7 +51,11 @@ Run silently without user prompts:
     - retry login with `-i <key>`; if it still fails, stop and report SSH auth error
 - [ ] Remote user has passwordless `sudo` (writes to sysfs require root):
   - `ssh ... '<ssh_user>@<ssh_host>' "sudo -n true"`
-  - if exit code is non-zero, stop and report that passwordless sudo is required (or instruct user to pre-authorize a sudo session)
+  - if exit code is non-zero, stop and instruct the user to configure NOPASSWD on the remote node by running:
+    ```
+    ssh -t <ssh_user>@<ssh_host> "echo '<ssh_user> ALL=(root) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/<ssh_user>-nopasswd && sudo chmod 0440 /etc/sudoers.d/<ssh_user>-nopasswd && sudo visudo -c"
+    ```
+    Then re-trigger the skill.
 - [ ] Target node is x86_64 with an Intel CPU (sanity check; non-fatal warning if not):
   - `ssh ... "uname -m && grep -m1 -o 'GenuineIntel' /proc/cpuinfo || true"`
 
@@ -131,8 +135,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
     - `balanced` → `EPP=balance_power`, `no_turbo=0`, `max_perf_pct=100`, `platform_profile=balanced`
     - `performance` → `scaling_governor=performance`, `EPP=performance`, `no_turbo=0`, `min_perf_pct>=50`, `platform_profile=performance`
   - GPU profile mapping (per Intel render card with vendor `0x8086`):
-    - `battery` → `gt_max_freq_mhz == gt_RPn_freq_mhz` (or xe equivalent)
-    - `balanced` → `gt_max_freq_mhz == gt_RP0_freq_mhz`
+    - `battery` → `gt_max_freq_mhz == 30% of gt_RP0_freq_mhz` (floor: RPn)
+    - `balanced` → `gt_max_freq_mhz == 50% of gt_RP0_freq_mhz` (floor: RPn)
     - `performance` / `graphical` → `gt_min_freq_mhz == gt_max_freq_mhz == gt_RP0_freq_mhz`
 - Knobs that were SKIPped (path missing / not writable) are reported but do not fail the run.
 
@@ -216,7 +220,14 @@ Render the report as the following tables.
 | `<check area>` | `<snippet>` | `<action>` |
 
 ## Troubleshooting Notes
-- If `sudo -n true` fails: ensure the remote user has a NOPASSWD sudoers entry for the tuner scripts, or run an interactive `sudo -v` against the host first within the same session.
+- If `sudo -n true` fails: configure passwordless sudo on the remote node by running interactively:
+  ```
+  ssh -t <ssh_user>@<ssh_host> "echo '<ssh_user> ALL=(root) NOPASSWD: ALL' | sudo tee /etc/sudoers.d/<ssh_user>-nopasswd && sudo chmod 0440 /etc/sudoers.d/<ssh_user>-nopasswd && sudo visudo -c"
+  ```
+  For a scoped entry (more secure), replace `ALL` with the specific script paths:
+  ```
+  ssh -t <ssh_user>@<ssh_host> "echo '<ssh_user> ALL=(root) NOPASSWD: /home/<ssh_user>/.cache/enib-power-tuning/tune-cpu-power.sh, /home/<ssh_user>/.cache/enib-power-tuning/tune-gpu.sh' | sudo tee /etc/sudoers.d/enib-power-tuning && sudo chmod 0440 /etc/sudoers.d/enib-power-tuning && sudo visudo -c"
+  ```
 - If many CPU knobs are SKIPped on `intel_pstate/*` paths: confirm the `intel_pstate` driver is active with `cat /sys/devices/system/cpu/intel_pstate/status` (expect `active`).
 - If `platform_profile` writes are SKIPped: confirm the firmware exposes choices with `cat /sys/firmware/acpi/platform_profile_choices`; some OEM firmware does not expose this interface.
 - If GPU writes are SKIPped on all paths: confirm an Intel render card is present (`lspci -nn | grep -Ei 'vga|display|3d' | grep -i intel`) and the active driver (`grep -H . /sys/class/drm/card*/device/driver/module/version 2>/dev/null || readlink /sys/class/drm/card*/device/driver`).

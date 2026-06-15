@@ -596,8 +596,6 @@ systemConfig:
     - librealsense2-gl
 
   additionalFiles:
-    - local: ../additionalfiles/ptl/01-network-manager-all.yaml
-      final: /etc/netplan/01-network-manager-all.yaml
     - local: ../additionalfiles/ptl/50-cloud-init.yaml
       final: /etc/netplan/50-cloud-init.yaml
 
@@ -616,6 +614,16 @@ systemConfig:
       hash_algo: sha512
 
   configurations:
+    # ----------------------------------------------------------------------------------
+    # Fix netplan: the additionalFiles drop-in hardcodes 'ens3' which doesn't
+    # match PTL hardware (eth0/eno1/enp*). Patch at build time to use a wildcard
+    # match and explicit networkd renderer.
+    # ----------------------------------------------------------------------------------
+    - cmd: "sed -i '/^  version: 2/a\\  renderer: networkd' /etc/netplan/50-cloud-init.yaml"
+    - cmd: "sed -i -e 's/^    ens3:$/    all-eth:/' -e '/^    all-eth:$/a\\      match:\\n        name: \"e*\"' /etc/netplan/50-cloud-init.yaml && chmod 600 /etc/netplan/50-cloud-init.yaml"
+    # Prevent cloud-init from regenerating the file on every boot
+    - cmd: "mkdir -p /etc/cloud/cloud.cfg.d && printf 'network: {config: disabled}\\n' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+    # ----------------------------------------------------------------------------------
     # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
     # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
     # so later apt steps cannot re-pull it.
@@ -654,6 +662,10 @@ systemConfig:
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
     - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
+    # ----------------------------------------------------------------------------------
+    # SOF (Sound Open Firmware) required by snd_sof_pci_intel_ptl
+    # ----------------------------------------------------------------------------------
+    - cmd: "mkdir -p /tmp/sof-bin && cd /tmp/sof-bin && wget -q https://github.com/thesofproject/sof-bin/releases/download/v2025.12.2/sof-bin-2025.12.2.tar.gz -O sof-bin.tar.gz && tar -xzf sof-bin.tar.gz && cd sof-bin-2025.12.2 && ./install.sh 2>&1 || echo Warning: SOF firmware install failed"
     # ----------------------------------------------------------------------------------
     # Pre-install K3s and Docker CE (both disabled by default)
     # On first boot, cloud-init reads host_type from /etc/cloud/config-file and
