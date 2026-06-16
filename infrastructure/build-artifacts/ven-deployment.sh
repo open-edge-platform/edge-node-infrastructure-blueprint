@@ -101,8 +101,7 @@ echo "Starting the Installation"
 echo ""
 echo "Please see the installation status on VNC viewer.Enter $host_ip:5999 on vnc viewer"
 # Added -cpu host,+vms It will support nested VM configuration as well
-# shellcheck disable=SC2115
-sudo -E qemu-system-x86_64  \
+if ! sudo -E qemu-system-x86_64  \
   -m 4G   -enable-kvm  \
   -cpu host,+vmx \
   -machine q35,accel=kvm \
@@ -111,9 +110,7 @@ sudo -E qemu-system-x86_64  \
   -drive file=ubuntu-disk.img,format=qcow2 \
   -device usb-ehci,id=ehci  \
   -device usb-storage,bus=ehci.0,drive=usb,removable=on  \
-  -drive file=/dev/nbd0,format=raw,id=usb,if=none 
-# shellcheck disable=SC2181
-if [ "$?" -ne 0 ]; then
+  -drive file=/dev/nbd0,format=raw,id=usb,if=none; then
     echo "Installation VM launch Failed,Please check!!"
 fi
 

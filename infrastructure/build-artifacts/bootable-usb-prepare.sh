@@ -135,7 +135,7 @@ START_MARKER="^services:"
 YAML_CONTENT=$(awk "/$START_MARKER/ {found=1} found" "$CONFIG_FILE")
 
 # Validate using Python
-echo "$YAML_CONTENT" | python3 -c '
+if ! echo "$YAML_CONTENT" | python3 -c '
 import sys, yaml
 
 try:
@@ -157,10 +157,7 @@ try:
 except yaml.YAMLError as e:
     print("Custom cloud-init YAML is invalid:\n", e)
     sys.exit(1)
-'
- #Catch the Error
- #shellcheck disable=SC2181
-if [ "$?" -ne 0 ]; then
+'; then
     echo "Custom cloud-init file is not valid,Please check!!"
     exit 1
 fi
