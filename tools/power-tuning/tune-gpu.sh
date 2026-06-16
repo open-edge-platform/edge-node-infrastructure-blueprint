@@ -17,8 +17,8 @@
 #
 # | Profile     | gt_min | gt_max | gt_boost | Intent (brief)                                                       |
 # |-------------|--------|--------|----------|----------------------------------------------------------------------|
-# | battery     | RPn    | RPn    | RPn      | Pin to lowest hw freq; iGPU spends max time in RC6                   |
-# | balanced    | RPn    | RP0    | RP0      | Kernel default range; on-demand scaling                              |
+# | battery     | RPn    | 30%RP0 | 30%RP0   | Cap at 30% of hw max; usable for compositing while saving power      |
+# | balanced    | RPn    | 50%RP0 | 50%RP0   | Cap at 50% of hw max; moderate power savings with headroom           |
 # | performance | RP0    | RP0    | RP0      | Pin to max; removes ramp latency under bursty render load            |
 # | graphical   | RP0    | RP0    | RP0      | Same as performance; pairs with short SR-IOV quanta below            |
 #
@@ -114,14 +114,18 @@ for card in /sys/class/drm/card*; do
     log "  i915 hw range: ${rpn:-?}-${rp0:-?} MHz"
     case "$PROFILE" in
       battery)
+        bat_max=$(( rp0 * 30 / 100 ))
+        [[ $bat_max -lt $rpn ]] && bat_max=$rpn
         write_to "$rpn" "$card/gt_min_freq_mhz"
-        write_to "$rpn" "$card/gt_max_freq_mhz"
-        [[ -e "$card/gt_boost_freq_mhz" ]] && write_to "$rpn" "$card/gt_boost_freq_mhz"
+        write_to "$bat_max" "$card/gt_max_freq_mhz"
+        [[ -e "$card/gt_boost_freq_mhz" ]] && write_to "$bat_max" "$card/gt_boost_freq_mhz"
         ;;
       balanced)
+        bal_max=$(( rp0 * 50 / 100 ))
+        [[ $bal_max -lt $rpn ]] && bal_max=$rpn
         write_to "$rpn" "$card/gt_min_freq_mhz"
-        write_to "$rp0" "$card/gt_max_freq_mhz"
-        [[ -e "$card/gt_boost_freq_mhz" ]] && write_to "$rp0" "$card/gt_boost_freq_mhz"
+        write_to "$bal_max" "$card/gt_max_freq_mhz"
+        [[ -e "$card/gt_boost_freq_mhz" ]] && write_to "$bal_max" "$card/gt_boost_freq_mhz"
         ;;
       performance|graphical)
         write_to "$rp0" "$card/gt_max_freq_mhz"
@@ -139,12 +143,16 @@ for card in /sys/class/drm/card*; do
     log "  xe freq: $(basename $(dirname $(dirname "$freq")))/$(basename $(dirname "$freq")) hw range: ${rpn:-?}-${rp0:-?} MHz"
     case "$PROFILE" in
       battery)
+        bat_max=$(( rp0 * 30 / 100 ))
+        [[ $bat_max -lt $rpn ]] && bat_max=$rpn
         write_to "$rpn" "$freq/min_freq"
-        write_to "$rpn" "$freq/max_freq"
+        write_to "$bat_max" "$freq/max_freq"
         ;;
       balanced)
+        bal_max=$(( rp0 * 50 / 100 ))
+        [[ $bal_max -lt $rpn ]] && bal_max=$rpn
         write_to "$rpn" "$freq/min_freq"
-        write_to "$rp0" "$freq/max_freq"
+        write_to "$bal_max" "$freq/max_freq"
         ;;
       performance|graphical)
         write_to "$rp0" "$freq/max_freq"
