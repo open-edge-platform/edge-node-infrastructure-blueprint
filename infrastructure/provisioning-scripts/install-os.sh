@@ -1221,7 +1221,7 @@ update_ssh_settings() {
 
     # SSH Configure
     if grep -q '^ssh_key=' "$CONFIG_FILE"; then
-	ssh_key=$(sed -n 's/^ssh_key="\?\(.*\)\?"$/\1/p' "$CONFIG_FILE")
+	ssh_key=$(sed -n 's/^ssh_key=//p' "$CONFIG_FILE" | tr -d '"')
 	user_name=$(awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" && $7 !~ /(nologin|false|sync)/ {print $1; exit}' /mnt/etc/passwd)
         # Write the SSH key to authorized_keys
         if [ -z "$ssh_key" ]; then

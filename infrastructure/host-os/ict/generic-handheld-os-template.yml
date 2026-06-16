@@ -620,6 +620,8 @@ systemConfig:
     # ----------------------------------------------------------------------------------
     - cmd: "mkdir -p /etc/cloud/cloud.cfg.d"
     - cmd: "printf 'datasource_list: [NoCloud, None]\\n' > /etc/cloud/cloud.cfg.d/99-datasource.cfg"
+    # Mask systemd-networkd-wait-online — NetworkManager-wait-online already provides network-online.target
+    - cmd: "systemctl mask systemd-networkd-wait-online.service"
     # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
     # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
     # so later apt steps cannot re-pull it.
