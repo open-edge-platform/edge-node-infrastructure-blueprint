@@ -557,6 +557,7 @@ systemConfig:
     - libxdp1
     - intel-media-va-driver-non-free
     - spice-client-gtk
+    - firmware-sof-signed
     - libdrm-tests
     - cloud-init
     - chrony
@@ -660,10 +661,6 @@ systemConfig:
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
     - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
     - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
-    # ----------------------------------------------------------------------------------
-    # SOF (Sound Open Firmware) required by snd_sof_pci_intel_ptl
-    # ----------------------------------------------------------------------------------
-    - cmd: "mkdir -p /tmp/sof-bin && cd /tmp/sof-bin && wget -q https://github.com/thesofproject/sof-bin/releases/download/v2025.12.2/sof-bin-2025.12.2.tar.gz -O sof-bin.tar.gz && tar -xzf sof-bin.tar.gz && cd sof-bin-2025.12.2 && ./install.sh 2>&1 || echo Warning: SOF firmware install failed"
     # ----------------------------------------------------------------------------------
     # Pre-install K3s and Docker CE (both disabled by default)
     # On first boot, cloud-init reads host_type from /etc/cloud/config-file and

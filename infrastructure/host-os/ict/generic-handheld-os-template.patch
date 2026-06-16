@@ -47,7 +47,14 @@
    # Intel overlay repository (aligned with installer script)
    - codename: "noble"
      url: "https://download.01.org/intel-linux-overlay/ubuntu"
-@@ -287,6 +273,35 @@
+@@ -281,12 +267,41 @@
+       # additional PTL packages
+       - xdp-tools
+       - rpc-go
+-      - lms 
++      - lms
+       - metee
+       - libxdp-dev
        - libxdp1
        - intel-media-va-driver-non-free
        - spice-client-gtk
@@ -83,7 +90,15 @@
  
  systemConfig:
    name: minimal
-@@ -485,7 +500,12 @@
+@@ -360,6 +375,7 @@
+     - cron
+     - ethtool
+     - iproute2
++    - network-manager
+     - libtbb12
+     # PTL packages
+     - libigfxcmrt-dev
+@@ -485,7 +501,12 @@
      - build-essential
      - apt-transport-https
      - default-jre
@@ -97,9 +112,18 @@
      - ffmpeg
      - git-lfs
      - gnuplot
-@@ -537,7 +557,43 @@
+@@ -530,20 +551,55 @@
+     - mesa-vulkan-drivers
+     - xdp-tools
+     - rpc-go
+-    - lms 
++    - lms
+     - metee
+     - libxdp-dev
+     - libxdp1
      - intel-media-va-driver-non-free
      - spice-client-gtk
++    - firmware-sof-signed
      - libdrm-tests
 -
 +    - cloud-init
@@ -142,7 +166,13 @@
  
    additionalFiles:
      - local: ../additionalfiles/ptl/01-network-manager-all.yaml
-@@ -553,7 +609,18 @@
+       final: /etc/netplan/01-network-manager-all.yaml
+-    - local: ../additionalfiles/ptl/50-cloud-init.yaml
+-      final: /etc/netplan/50-cloud-init.yaml
+ 
+   kernel:
+     version: "260427t075939z-r2"
+@@ -553,7 +609,25 @@
          - linux-image-6.18-intel_260427t075939z-r2
          - linux-headers-6.18-intel_260427t075939z-r2
  
@@ -153,6 +183,13 @@
 +      hash_algo: sha512
 +
    configurations:
++    # ----------------------------------------------------------------------------------
++    # Cloud-init: restrict to NoCloud datasource only
++    # ----------------------------------------------------------------------------------
++    - cmd: "mkdir -p /etc/cloud/cloud.cfg.d"
++    - cmd: "printf 'datasource_list: [NoCloud, None]\\n' > /etc/cloud/cloud.cfg.d/99-datasource.cfg"
++    # Mask systemd-networkd-wait-online — NetworkManager-wait-online already provides network-online.target
++    - cmd: "systemctl mask systemd-networkd-wait-online.service"
 +    # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
 +    # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
 +    # so later apt steps cannot re-pull it.
@@ -161,7 +198,16 @@
      # Install Intel Graphics Compiler and compute runtime packages for PTL
      - cmd: "mkdir -p /tmp/gpu-packages"
      - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.28.4+20760_amd64.deb"
-@@ -586,4 +653,20 @@
+@@ -563,7 +637,7 @@
+     - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
+     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero_1.22.4+u24.04_amd64.deb"
+     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero-devel_1.22.4+u24.04_amd64.deb"
+-   
++
+     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
+     # Install NPU driver for PTL
+     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
+@@ -586,4 +660,19 @@
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-perf_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-perf.deb"
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
@@ -183,4 +229,3 @@
 +    - cmd: "systemctl disable docker 2>/dev/null || true"
 +    # Pre-create docker data-root and daemon config (avoids first-boot delay)
 +    - cmd: "mkdir -p /opt/docker-data /etc/docker && echo '{\"data-root\": \"/opt/docker-data\"}' > /etc/docker/daemon.json"
-+
