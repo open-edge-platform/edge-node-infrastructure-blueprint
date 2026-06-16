@@ -599,8 +599,6 @@ systemConfig:
   additionalFiles:
     - local: ../additionalfiles/ptl/01-network-manager-all.yaml
       final: /etc/netplan/01-network-manager-all.yaml
-    - local: ../additionalfiles/ptl/50-cloud-init.yaml
-      final: /etc/netplan/50-cloud-init.yaml
 
   kernel:
     version: "260427t075939z-r2"
@@ -617,6 +615,11 @@ systemConfig:
       hash_algo: sha512
 
   configurations:
+    # ----------------------------------------------------------------------------------
+    # Cloud-init: restrict to NoCloud datasource only
+    # ----------------------------------------------------------------------------------
+    - cmd: "mkdir -p /etc/cloud/cloud.cfg.d"
+    - cmd: "printf 'datasource_list: [NoCloud, None]\\n' > /etc/cloud/cloud.cfg.d/99-datasource.cfg"
     # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
     # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
     # so later apt steps cannot re-pull it.
