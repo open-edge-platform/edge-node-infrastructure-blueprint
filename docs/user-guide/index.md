@@ -34,7 +34,6 @@ IoT processing, and real-time applications at the network edge.
 :hidden:
 
 Get Started <get-started.md>
-Package Curation and ICT Variants <package-curation-ict-variants.md>
 Container Device Interface Guide <container-device-interface-guide.md>
 Platform Capabilities <platform-capabilities.md>
 :::
