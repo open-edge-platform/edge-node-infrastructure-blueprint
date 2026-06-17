@@ -5,8 +5,6 @@ SPDX-License-Identifier: Apache-2.0
 
 # Container Device Interface (CDI) Usage Guide
 
-## Overview
-
 Container Device Interface (CDI) enables defining specifications that allow greater control on how devices are exposed to containers. Instead of running containers in `--privileged` mode, which exposes every host device, or manually bind-mounting `/dev/dri` paths, CDI lets you request devices by name — the runtime handles device nodes, permissions, and mounts automatically.
 
 CDI uses predefined YAML specification files in `/etc/cdi/` to describe the device files, mounts, and environment variables that are exposed to the container.
