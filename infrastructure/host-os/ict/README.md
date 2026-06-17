@@ -136,7 +136,7 @@ sudo -E ./image-composer-tool build my-ubuntu24.yml
 When the build completes, expect the following output on the console with build timings:
 
 ```bash
-2026-04-09T15:10:22.705+0530    INFO    display/display.go:21   Checking for image artifacts in: /home/intel/rranjan3/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal
+2026-04-09T15:10:22.705+0530    INFO    display/display.go:21   Checking for image artifacts in: /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:30   Found 2 total entries in directory
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:36   Checking file: minimal-desktop-ubuntu-24.04.raw.gz (isDir=false)
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:36   Checking file: spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json (isDir=false)
@@ -150,10 +150,10 @@ When the build completes, expect the following output on the console with build 
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:60
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:61     Generated Artifacts (including SBOM):
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:79       • minimal-desktop-ubuntu-24.04.raw.gz (2.62 GB)
-2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/intel/rranjan3/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
+2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:81
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:79       • spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json (1.37 MB)
-2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/intel/rranjan3/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json
+2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:81
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:84   ════════════════════════════════════════════════════════════════════════════
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:85
@@ -186,11 +186,43 @@ Expected artefacts:
 |------|-------------|
 | `minimal-desktop-ubuntu.raw.gz` | Compressed raw disk image (ready to flash) |
 
-To flash the image to a target device (confirm the device path before running):
-
-```bash
-gunzip -c minimal-desktop-ubuntu.raw.gz | sudo dd of=/dev/sdX bs=4M status=progress && sync
-```
-
 ## Troubleshoot
 
+### Package Not Found or Conflicting Versions
+
+If the build fails with errors like `failed: bad status: 404 Not Found` or conflicting versions, the package may not exist in the configured repositories or may have been renamed in Ubuntu 24.04.
+
+1. Confirm the package name is correct:
+
+   ```bash
+   apt-cache search <name>
+   apt-cache show <name>
+   ```
+
+2. Clean the ICT cache and temporary files, then rebuild:
+
+   ```bash
+   sudo ./image-composer-tool cache clean
+   sudo rm -rf tmp/
+   ```
+
+### Mirror Issues
+
+Standard Ubuntu mirrors may occasionally be unreliable or return stale metadata. If you encounter intermittent download failures or hash-sum mismatches during the build, update the `packageRepositories` section in your template to use other opensource mirrors. Example using the Kernel.org mirror:
+
+```yaml
+packageRepositories:
+  - codename: "noble"
+    url: "http://mirrors.edge.kernel.org/ubuntu/"
+    component: "main restricted universe multiverse"
+    priority: 500
+```
+
+> **Note:** Most full mirrors carry both `archive` and `security` content under the same URL. The official Canonical setup splits them across two hosts; community mirrors typically merge them.
+
+After updating the mirrors, clean and rebuild:
+
+```bash
+sudo ./image-composer-tool cache clean
+sudo rm -rf tmp/
+```
