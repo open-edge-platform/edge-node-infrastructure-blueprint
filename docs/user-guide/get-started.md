@@ -231,8 +231,7 @@ For details on exposing Intel® GPU or NPU to containers via CDI, see the
 - Docker build fails: Recheck the Docker daemon and CLI proxy settings, then restart the Docker daemon.
 - USB preparation fails: Verify the device path and available USB capacity.
 - `kubectl` issues: Confirm that the Kubernetes installation has completed and the node status is `Ready`.
-- GPU or NPU not detected: Re-run the Best-Known Configuration (BKC) installation and inspect `dmesg` for
-  driver load failures.
+- GPU or NPU not detected: inspect `dmesg` for driver load failures.
 - CDI GPU generator is not built because of the wrong Go programming language version:
   the build runs under `sudo`, which may find a different Go programming language
   version. Verify with `sudo go version` and create a symlink to the correct binary path
