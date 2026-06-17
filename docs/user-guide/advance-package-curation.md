@@ -229,9 +229,16 @@ packageRepositories:
     priority: 500
 ```
 
-> **Note:** Most full mirrors carry both `archive` and `security` content under the same URL. The official Canonical setup splits them across two hosts; community mirrors typically merge them.
+To find the fastest mirror for your region, you can optionally use `mirrorselect`:
 
-After updating the mirrors, clean and rebuild:
+```bash
+sudo snap install mirrorselect
+mirrorselect --country us
+```
+
+Replace `us` with your country code (for example, `de`, `in`, `sg`) and use the returned URL in `packageRepositories`.
+
+After updating the mirror, clean and rebuild:
 
 ```bash
 sudo ./image-composer-tool cache clean
