@@ -2,14 +2,16 @@
 SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
+# Advanced Image Customization (Using Image composer tool)
 
-# Package Curation and ICT Variants
+
+## Package Curation and ICT Variants
 
 This guide explains how to curate package lists with the `update-install-packages` skill and produce a new Image Composer Tool (ICT) image variant on top of the default template.
 
 Use this flow when you want to build a custom image flavor (for example, debug, media-heavy, or minimal runtime) without editing the baseline files manually each time.
 
-## What You Are Modifying
+### What You Are Modifying
 
 The package curation flow can update one or both of the following files:
 
@@ -18,7 +20,7 @@ The package curation flow can update one or both of the following files:
 
 The ICT-based template is the preferred advanced image build. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based (`generic-handheld-os-template.yml`) images.
 
-## End-to-End Flow
+### End-to-End Flow
 
 1. Start from the repository root and define your package delta (add or delete).
 2. Run the `update-install-packages` skill to apply package curation safely.
@@ -27,7 +29,7 @@ The ICT-based template is the preferred advanced image build. For consistency, i
 5. Validate and build the image using ICT.
 6. Record artifact path and package delta for reproducibility.
 
-## Run the Skill
+### Run the Skill
 
 If you are using Copilot Chat in agent mode, invoke the skill with a natural language prompt describing your intent. For example:
 
@@ -51,7 +53,7 @@ The skill is expected to:
 - return per-file change results (`added`, `deleted`, `already-present`, `not-found`)
 - validate YAML after updates
 
-## Build an ICT Variant from the Curated Baseline
+### Build an ICT Variant from the Curated Baseline
 
 After package curation succeeds, create a variant template from the default template:
 
@@ -70,7 +72,7 @@ Expected output artifact type:
 
 - compressed raw image (`.raw.gz`)
 
-## Safety and Rollback
+### Safety and Rollback
 
 Follow these rules for reliable curation:
 
@@ -80,29 +82,3 @@ Follow these rules for reliable curation:
 - do not request or store secrets in prompts or scripts
 
 If rollback is needed, restore backup files produced by the skill for each modified target file and re-run validation.
-
-## When to Increase Disk Size
-
-If large packages are added to `auto-install-pkgs.yaml`, review:
-
-- `infrastructure/host-os/prepare-host-img.sh`
-
-Increase `DISK_SIZE` only when the cumulative added package footprint is greater than 1 GB. For smaller additions, keep the existing disk size.
-
-## Kernel-Dependent Packages
-
-For packages with kernel dependencies (for example, performance tools or kernel-coupled drivers), update symlink handling in:
-
-- `infrastructure/installation-scripts/setup-kernel-depended-pkgs.sh`
-
-Do not run that script manually as part of package curation. It executes during provisioning.
-
-## Suggested Variant Strategy
-
-Use a small set of reusable variant goals and keep each package delta explicit:
-
-- `minimal-runtime`: remove non-essential debug and developer packages
-- `debug-observability`: add tracing, profiling, and diagnostics packages
-- `media-ai`: add media and AI framework packages needed by workloads
-
-This keeps image behavior predictable and makes future updates easier to review.
