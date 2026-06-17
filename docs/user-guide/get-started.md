@@ -116,7 +116,7 @@ The extracted files include:
 - `bootable-usb-prepare.sh`
 - `ven-deployment.sh`
 
-### 5. Configure and Prepare the USB Device
+### 2. Configure and Prepare the USB Device
 
 Required inputs:
 
