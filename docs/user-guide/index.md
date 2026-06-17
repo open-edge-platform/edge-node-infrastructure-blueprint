@@ -36,5 +36,7 @@ IoT processing, and real-time applications at the network edge.
 Get Started <get-started.md>
 Container Device Interface Guide <container-device-interface-guide.md>
 Platform Capabilities <platform-capabilities.md>
+Device Plugins Guide <device-plugins-guide.md>
+DL Streamer Pipelines Guide <dlstreamer-pipelines-guide.md>
 :::
 hide_directive-->
