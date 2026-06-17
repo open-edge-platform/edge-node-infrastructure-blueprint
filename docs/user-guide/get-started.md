@@ -68,8 +68,9 @@ For additional image customization, see the [Ubuntu Desktop Raw Image Generation
 
 #### Option 2 (Advanced): Build with Image Composer Tool Image
 
-> This path is intended for advanced users who need fine-grained control over disk layout, package repositories,
-> and image composition. Most users can start with **Option 1**.
+> This path is intended for advanced users who need fine-grained control over disk
+> layout, installed packages, and package repositories. Most users can start with
+> Option 1.
 
 To generate an image using Image Composer Tool, see the guide on
 [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md) .
