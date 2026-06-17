@@ -1,5 +1,6 @@
 # Edge-Node Infrastructure Blueprint
 
+::::{container} component_header_row
 <!--hide_directive
 <div class="component_card_widget">
   <a class="icon_github" href="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint">
@@ -8,15 +9,16 @@
 </div>
 hide_directive-->
 
+> **Attention:**
+> The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
+::::
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
-:::{attention}
-The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
-:::
-
-The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
+The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware 
+acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing 
+containerized and cloud-native applications to be deployed seamlessly on edge nodes.
 
 This blueprint helps you:
 
