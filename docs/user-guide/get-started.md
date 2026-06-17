@@ -5,14 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Edge Node Infrastructure Blueprint — Get Started
 
-## Related Guides
-
-| Topic | Guide |
-|---|---|
-| Host OS image generation from an Ubuntu ISO Image | [Ubuntu Desktop Raw Image Generation](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md) |
-| **Advanced**: Build the host OS image with the Image Composer Tool | [Building an Ubuntu OS version 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md) |
-| Exposing Intel GPU or NPU to containers via Container Device Interface (CDI) | [Intel CDI Usage Guide](./container-device-interface-guide.md) |
-| Writing and using AI agent skills for this blueprint | [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md) |
+![Setup overview](setup.svg)
 
 ## Scope
 
