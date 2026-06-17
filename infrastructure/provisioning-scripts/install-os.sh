@@ -7,8 +7,6 @@
 ### Global Variables ###
 usb_disk=""
 usb_devices=""
-# shellcheck disable=SC2034
-usb_count=""
 blk_devices=""
 os_disk=""
 OS_IMG_PART=5
@@ -1221,13 +1219,13 @@ update_ssh_settings() {
 
     # SSH Configure
     if grep -q '^ssh_key=' "$CONFIG_FILE"; then
-	ssh_key=$(sed -n 's/^ssh_key="\?\(.*\)\?"$/\1/p' "$CONFIG_FILE")
+	ssh_key=$(sed -n 's/^ssh_key=//p' "$CONFIG_FILE" | tr -d '"')
 	user_name=$(awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" && $7 !~ /(nologin|false|sync)/ {print $1; exit}' /mnt/etc/passwd)
         # Write the SSH key to authorized_keys
         if [ -z "$ssh_key" ]; then
             echo "No SSH Key provided skipping the ssh configuration"
         else
-            chroot /mnt /bin/bash <<EOT
+            if chroot /mnt /bin/bash <<EOT; then
         set -e
         # Configure the SSH for the user $user_name
         su - $user_name 
@@ -1242,8 +1240,6 @@ EOF
         #exit the su -$user_name
         exit
 EOT
-            # shellcheck disable=SC2181
-            if [ "$?" -eq 0 ]; then
                 success "SSH-KEY Configuration Success"
             else
                 failure "SSH-KEY Configuration Failure!!"
@@ -1424,12 +1420,10 @@ EOF
          mount --bind /proc /mnt/proc
          mount --bind /sys /mnt/sys
          # Enable the docker service first
-         chroot /mnt /bin/bash <<EOT
+         if chroot /mnt /bin/bash <<EOT; then
          set -e
          systemctl enable docker
 EOT
-         # shellcheck disable=SC2181
-         if [ "$?" -eq 0 ]; then
              success "Enabled the docker services"
          else
              failure "Failed to enable the docker services"
@@ -1456,7 +1450,7 @@ EOT
                bash -c 'echo "Environment=\"HTTPS_PROXY=${https_proxy_val}\"" >> $docker_proxy_file'
                bash -c 'echo "Environment=\"NO_PROXY=${no_proxy_val}\"" >> $docker_proxy_file'
          fi
-         chroot /mnt /bin/bash <<EOT
+         if chroot /mnt /bin/bash <<EOT; then
          set -e
          # Configure the docker proxy for the user $user_name
          su - $user
@@ -1479,8 +1473,6 @@ EOF
      # exit the su - $user
         exit
 EOT
-        # shellcheck disable=SC2181
-        if [ "$?" -eq 0 ]; then
             success "docker proxy services updated successfully"
         else
             failure "Failed to updated the docker proxy settings"

@@ -267,7 +267,7 @@ packageRepositories:
       # additional PTL packages
       - xdp-tools
       - rpc-go
-      - lms 
+      - lms
       - metee
       - libxdp-dev
       - libxdp1
@@ -375,6 +375,7 @@ systemConfig:
     - cron
     - ethtool
     - iproute2
+    - network-manager
     - libtbb12
     # PTL packages
     - libigfxcmrt-dev
@@ -550,12 +551,13 @@ systemConfig:
     - mesa-vulkan-drivers
     - xdp-tools
     - rpc-go
-    - lms 
+    - lms
     - metee
     - libxdp-dev
     - libxdp1
     - intel-media-va-driver-non-free
     - spice-client-gtk
+    - firmware-sof-signed
     - libdrm-tests
     - cloud-init
     - chrony
@@ -598,8 +600,6 @@ systemConfig:
   additionalFiles:
     - local: ../additionalfiles/ptl/01-network-manager-all.yaml
       final: /etc/netplan/01-network-manager-all.yaml
-    - local: ../additionalfiles/ptl/50-cloud-init.yaml
-      final: /etc/netplan/50-cloud-init.yaml
 
   kernel:
     version: "260427t075939z-r2"
@@ -612,10 +612,17 @@ systemConfig:
   users:
     - name: user
       password: $6$xXo2NxaLDQE6xrCa$lwcawer1BMsC63xx5jHHrVSI4625We6CMv0nzmflYiXVldJC/9gXFqYoe5KTu8lBnuc6W8MxE0eGLUUt1RiJw.
-      groups: ["sudo"]
+      groups: ["sudo", "video", "render"]
       hash_algo: sha512
 
   configurations:
+    # ----------------------------------------------------------------------------------
+    # Cloud-init: restrict to NoCloud datasource only
+    # ----------------------------------------------------------------------------------
+    - cmd: "mkdir -p /etc/cloud/cloud.cfg.d"
+    - cmd: "printf 'datasource_list: [NoCloud, None]\\n' > /etc/cloud/cloud.cfg.d/99-datasource.cfg"
+    # Mask systemd-networkd-wait-online — NetworkManager-wait-online already provides network-online.target
+    - cmd: "systemctl mask systemd-networkd-wait-online.service"
     # Purge systemd-boot — installed transitively. GRUB is the actual bootloader, so systemd-boot
     # is unused — but its postinst (`bootctl install`) fails inside the chroot. Force-purge to recover, then pin to -1
     # so later apt steps cannot re-pull it.
@@ -630,7 +637,7 @@ systemConfig:
     - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero_1.22.4+u24.04_amd64.deb"
     - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero-devel_1.22.4+u24.04_amd64.deb"
-   
+
     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
     # Install NPU driver for PTL
     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
@@ -669,4 +676,3 @@ systemConfig:
     - cmd: "systemctl disable docker 2>/dev/null || true"
     # Pre-create docker data-root and daemon config (avoids first-boot delay)
     - cmd: "mkdir -p /opt/docker-data /etc/docker && echo '{\"data-root\": \"/opt/docker-data\"}' > /etc/docker/daemon.json"
-

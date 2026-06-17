@@ -46,9 +46,18 @@ Prompt only for missing required inputs:
   - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host>`
   - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
 
-2. Run remote check for basic k3s pods and statuses.
+2. Detect host_type from remote config.
   - command:
-    - `kubectl get pods -A --no-headers || k3s kubectl get pods -A --no-headers`
+    - `grep -E '^host_type' /etc/cloud/config-file 2>/dev/null || echo 'host_type=unknown'`
+  - parse the output to extract the value (e.g. `kubernetes`, `container`, or `unknown`)
+  - store as `HOST_TYPE` for conditional branching in Steps 3 and 4
+
+3. **If HOST_TYPE=kubernetes**: Validate k3s pods and device plugins.
+  - command (try in order until one succeeds):
+    - `kubectl get pods -A --no-headers`
+    - `KUBECONFIG=~/.kube/config kubectl get pods -A --no-headers`
+    - `sudo -n kubectl get pods -A --no-headers`
+    - `sudo -n k3s kubectl get pods -A --no-headers`
   - required pod name prefixes and expected status:
     - `intel-gpu-plugin` in `default` namespace, `Running`, `READY 1/1`
     - `intel-npu-plugin` in `default` namespace, `Running`, `READY 1/1`
@@ -58,28 +67,41 @@ Prompt only for missing required inputs:
     - `nfd-gc` in `node-feature-discovery`, `Running`, `READY 1/1`
     - `nfd-master` in `node-feature-discovery`, `Running`, `READY 1/1`
     - `nfd-worker` in `node-feature-discovery`, `Running`, `READY 1/1`
-
-3. Validate `kubectl`, `k3s`, and Docker binaries and PATH.
-  - commands:
+  - also validate binaries:
     - `command -v kubectl`
     - `command -v k3s`
-    - `command -v docker`
     - `ls -l /usr/local/bin/kubectl /usr/local/bin/k3s 2>/dev/null || true`
-    - `ls -l /usr/local/bin/docker /usr/bin/docker 2>/dev/null || true`
-    - `systemctl is-enabled docker 2>/dev/null || true`
-    - `systemctl is-active docker 2>/dev/null || true`
-    - `docker --version 2>/dev/null || true`
-    - `echo "$PATH"`
+    - `systemctl is-enabled k3s 2>/dev/null || true`
+    - `systemctl is-active k3s 2>/dev/null || true`
   - expected:
     - `k3s` found in PATH
     - `kubectl` found in PATH (binary or symlink)
-    - `docker` found in PATH when the platform is expected to support container workloads
     - one of expected locations exists: `/usr/local/bin/kubectl`, `/usr/bin/kubectl`
     - one of expected locations exists: `/usr/local/bin/k3s`, `/usr/bin/k3s`
-    - one of expected locations exists: `/usr/local/bin/docker`, `/usr/bin/docker`
-    - Docker service state is reported as enabled/disabled and active/inactive
+    - k3s service is enabled and active
 
-4. Validate cloud-init completion.
+4. **If HOST_TYPE!=kubernetes** (container or unknown): Validate Docker, Docker Compose, and CDI.
+  - commands:
+    - `command -v docker`
+    - `docker --version 2>/dev/null || true`
+    - `docker compose version 2>/dev/null || true`
+    - `ls -l /usr/local/bin/docker /usr/bin/docker 2>/dev/null || true`
+    - `systemctl is-enabled docker 2>/dev/null || true`
+    - `systemctl is-active docker 2>/dev/null || true`
+    - `docker info 2>/dev/null | grep -E 'Server Version|Storage Driver|Cgroup|data-root' || true`
+    - `ls /etc/cdi/ 2>/dev/null || true`
+    - `ls /var/run/cdi/ 2>/dev/null || true`
+    - `cat /etc/cdi/*.json 2>/dev/null | python3 -c "import sys,json; [print(d.get('kind','?')) for d in json.load(sys.stdin).get('cdiDevices',json.load(open('/dev/stdin'))) if isinstance(d,dict)]" 2>/dev/null || ls /etc/cdi/ 2>/dev/null || true`
+    - `docker info 2>/dev/null | grep -i cdi || true`
+  - expected:
+    - `docker` found in PATH
+    - Docker version reported
+    - Docker Compose plugin available (`docker compose version` succeeds)
+    - Docker service is enabled and active
+    - CDI spec files present in `/etc/cdi/` or `/var/run/cdi/` (e.g. `intel-gpu.json`, `intel-npu.json`)
+    - CDI devices exposed to Docker runtime
+
+5. Validate cloud-init completion.
   - commands:
     - `cloud-init status --long || true`
     - `test -f /var/lib/cloud/instance/boot-finished && echo CLOUD_INIT_BOOT_FINISHED=1 || echo CLOUD_INIT_BOOT_FINISHED=0`
@@ -89,7 +111,7 @@ Prompt only for missing required inputs:
     - `/var/lib/cloud/instance/boot-finished` exists
     - no blocking cloud-init errors relevant to first boot provisioning
 
-5. Validate network connectivity and assigned IP.
+6. Validate network connectivity and assigned IP.
   - commands:
     - `ip -o -4 addr show scope global`
     - `ip route show default`
@@ -105,17 +127,14 @@ Prompt only for missing required inputs:
       - DNS/config issue: `DNS=fail`
     - if `NET_INTERNET=fail` and `DNS=ok`, do not hard-fail validation; report as "likely proxy required" with proxy evidence from Step 6
 
-6. Collect proxy values.
-  - commands:
-    - `grep -E '^(http_proxy|https_proxy|no_proxy|HTTP_PROXY|HTTPS_PROXY|NO_PROXY)=' /etc/environment || true`
-    - `test -f /etc/systemd/system/k3s.service.env && (sudo cat /etc/systemd/system/k3s.service.env 2>/dev/null || cat /etc/systemd/system/k3s.service.env 2>&1) || true`
-    - `test -f /etc/systemd/system/docker.service.d/proxy.conf && (sudo cat /etc/systemd/system/docker.service.d/proxy.conf 2>/dev/null || cat /etc/systemd/system/docker.service.d/proxy.conf 2>&1) || true`
+7. Collect proxy values (brief).
+  - command:
+    - `grep -hsE '^(https?_proxy|no_proxy)=' /etc/environment 2>/dev/null | head -5 || echo 'no proxy configured'`
   - expected:
-    - report exact current values from `/etc/environment` (guaranteed readable)
-    - report k3s.service.env values when readable; if permission denied, report that explicitly
-    - report docker proxy.conf values when readable; if permission denied, report that explicitly
+    - report proxy variables from `/etc/environment` if set; otherwise report "no proxy configured"
+    - do NOT dump k3s.service.env or docker proxy.conf unless network checks in Step 6 indicate proxy issues
 
-7. Inventory CPU/GPU/NPU devices.
+8. Inventory CPU/GPU/NPU devices.
   - commands:
     - `nproc`
     - `lscpu`
@@ -142,7 +161,7 @@ Prompt only for missing required inputs:
     - GPU presence determined from PCI and/or `/dev/dri`
     - NPU presence determined from PCI scan output
 
-8. If GPU is present, report GPU VF counts.
+9. If GPU is present, report GPU VF counts.
   - commands:
     - `for f in /sys/class/drm/card*/device/sriov_numvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
     - `for f in /sys/class/drm/card*/device/sriov_totalvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
@@ -150,17 +169,29 @@ Prompt only for missing required inputs:
     - report per-GPU `sriov_numvfs` and `sriov_totalvfs`
     - if GPU exists but no SR-IOV files are present, report as unsupported/not enabled.
 
+10. Check SR-IOV service if `enable_sriov` is set to true.
+  - first check:
+    - `grep -E '^enable_sriov' /etc/cloud/config-file 2>/dev/null || echo 'enable_sriov=unset'`
+  - if value is `true`, validate:
+    - `systemctl is-enabled intel-sriov-vf.service 2>/dev/null || echo 'not-found'`
+  - expected:
+    - if enabled: report `intel-sriov-vf.service` is enabled — VFs will be preserved across reboots
+    - if disabled/not-found: report service not enabled — VFs will NOT persist across reboots
+    - if `enable_sriov` is not `true`, SKIP this check
+
 ## Validation
 Validation section is criteria-only. Do not render the pass/fail results table here.
 - SSH connectivity check passes.
-- All required k3s pods listed in Step 2 are found in correct namespaces and healthy (`Running`, `1/1`).
-- `kubectl`, `k3s`, and Docker availability are reported with expected locations and service state.
+- `host_type` is detected and reported; conditional checks branch accordingly.
+- **If kubernetes**: All required k3s pods listed in Step 3 are found in correct namespaces and healthy (`Running`, `1/1`); `kubectl` and `k3s` binaries present.
+- **If container/unknown**: Docker and Docker Compose are available, Docker service active, CDI spec files present.
 - cloud-init completion indicators are successful.
 - Network check reports assigned IP and route; connectivity is classified as direct or proxy/restricted with explicit reason.
-- Proxy values are collected and reported from system files.
+- Proxy values are collected briefly from `/etc/environment`; expanded only if network issues detected.
 - CPU/GPU/NPU inventory is collected with clear present/absent status.
 - CPU codename labeling is verification-based and avoids false platform naming.
 - GPU VF data is reported when GPU exists.
+- SR-IOV service (`intel-sriov-vf.service`) is validated when `enable_sriov=true` in config-file.
 
 ## Rollback
 This is a read-only validation skill. No rollback required.
@@ -186,24 +217,25 @@ Render the report as the following tables.
 
 | Check Area | Status | Evidence | Notes |
 |---|---|---|---|
-| k3s pods | PASS/FAIL/WARN | key pod states from `kubectl get pods -A` | include namespace/name mismatches |
-| binaries and PATH | PASS/FAIL/WARN | `command -v` and path outputs | include missing binary locations |
-| docker availability | PASS/FAIL/WARN | `command -v docker`, `systemctl is-enabled/is-active` | include inactive/disabled reason |
+| host_type detection | PASS/FAIL/WARN | value from `/etc/cloud/config-file` | `kubernetes`, `container`, or `unknown` |
+| k3s pods (kubernetes only) | PASS/FAIL/WARN/SKIP | key pod states from `kubectl get pods -A` | skipped if host_type!=kubernetes |
+| k3s binaries (kubernetes only) | PASS/FAIL/WARN/SKIP | `command -v k3s`, `kubectl` | skipped if host_type!=kubernetes |
+| docker + compose (container only) | PASS/FAIL/WARN/SKIP | `docker --version`, `docker compose version` | skipped if host_type=kubernetes |
+| CDI specs (container only) | PASS/FAIL/WARN/SKIP | `/etc/cdi/`, `/var/run/cdi/` contents | skipped if host_type=kubernetes |
 | cloud-init | PASS/FAIL/WARN | `cloud-init status`, `boot-finished` marker | include relevant error lines |
 | network and IP | PASS/FAIL/WARN | IP/route, `NET_INTERNET`, `DNS`, `HTTPS_EGRESS` | classify restricted/proxy-likely cases |
-| proxy values | PASS/FAIL/WARN | `/etc/environment`, k3s/docker proxy files | report permission-denied explicitly |
+| proxy values | PASS/FAIL/WARN | `/etc/environment` summary | only expanded if network issues detected |
+| SR-IOV service | PASS/FAIL/WARN/SKIP | `intel-sriov-vf.service` state | skipped if enable_sriov!=true |
 | CPU/GPU/NPU inventory | PASS/FAIL/WARN | CPU topology, lspci, `/dev/dri` | codename must be verified or `unverified` |
 | GPU VF counts | PASS/FAIL/WARN | `sriov_numvfs`, `sriov_totalvfs` | unsupported/not-enabled if files missing |
 
 ### Observed Proxy Values
 
-| Variable | Source | Value |
-|---|---|---|
-| `http_proxy` | `/etc/environment` | `<value or unset>` |
-| `https_proxy` | `/etc/environment` | `<value or unset>` |
-| `no_proxy` | `/etc/environment` | `<value or unset>` |
-| k3s proxy env | `/etc/systemd/system/k3s.service.env` | `<values or permission-denied>` |
-| docker proxy | `/etc/systemd/system/docker.service.d/proxy.conf` | `<values or permission-denied>` |
+| Variable | Value |
+|---|---|
+| `http_proxy` | `<value or unset>` |
+| `https_proxy` | `<value or unset>` |
+| `no_proxy` | `<value or unset>` |
 
 ### GPU VF Counts
 

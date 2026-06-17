@@ -69,6 +69,86 @@ install_essential_tools() {
 	echo "Essential tools and dependencies installed."
 }
 
+install_gpu_npu_pkgs() {
+    echo "Installing NPU,GPU Packages.."
+    
+    # Create installation directory
+    INSTALL_DIR="/tmp/install_gpu_cpu"
+    mkdir -p "$INSTALL_DIR"
+    cd "$INSTALL_DIR"
+    
+    # Downloading GPU drivers
+    debpackage=(
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb"
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-opencl-2_2.28.4+20760_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/intel-ocloc_26.05.37020.3-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/intel-opencl-icd_26.05.37020.3-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb")
+    
+    # Download GPU packages 
+    for url in "${debpackage[@]}"; do
+		echo "Downloading: $url"
+		filename=$(basename "$url")
+		if wget "$url" -O "$filename"; then
+			echo "Successfully downloaded: $filename"
+		else
+			echo "ERROR: Failed to download $filename"
+			exit 1
+		fi
+	done
+    
+    # Downloading NPU drivers
+    echo "Downloading NPU driver package..."
+    npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.32.0/linux-npu-driver-v1.32.0.20260402-23905121947-ubuntu2404.tar.gz"
+    npu_file="linux-npu-driver-v1.32.0.20260402-23905121947-ubuntu2404.tar.gz"
+    
+    if wget "$npu_url" -O "$npu_file"; then
+		echo "Successfully downloaded NPU driver package"
+		if tar -xf "$npu_file"; then
+			echo "Successfully extracted NPU driver package"
+		else
+			echo "ERROR: Failed to extract NPU driver package"
+			exit 1
+		fi
+	else
+		echo "ERROR: Failed to download NPU driver package"
+		exit 1
+	fi
+    
+    # Verify all downloaded .deb files exist
+    if ! ls ./*.deb 1> /dev/null 2>&1; then
+		echo "ERROR: No .deb files found in $INSTALL_DIR"
+		exit 1
+	fi
+    
+    # Update package manager and install dependencies
+    sudo apt update
+    sudo apt install libtbb12 -y
+    
+    # Purge old packages if they exist
+    sudo dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
+    
+    # Install all downloaded .deb packages with error checking
+    echo "Installing downloaded packages..."
+    if sudo dpkg -i ./*.deb; then
+		echo "NPU,GPU Packages installed successfully"
+	else
+		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
+		sudo apt --fix-broken install -y || {
+			echo "ERROR: Failed to install packages"
+			exit 1
+		}
+	fi
+    
+    # Cleanup: 
+    rm -rf "$INSTALL_DIR"
+    
+    echo "Installation directory: $INSTALL_DIR"
+   
+}
+
 
 install_kernel() {
 	echo "Installing Linux kernel..."
@@ -94,6 +174,8 @@ main() {
     set_preferred_package_list
 
     install_essential_tools
+
+	install_gpu_npu_pkgs
 
     install_kernel
 
