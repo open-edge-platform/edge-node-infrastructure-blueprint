@@ -103,7 +103,7 @@ You can also manually copy an existing image to USB partition 5 when required by
 
 ## Phase 2: Prepare Bootable USB
 
-### 4. Extract Installation Files on the Developer System
+### 1. Extract Installation Files on the Developer System
 
 ```bash
 sudo tar -xzf usb-installation-files.tar.gz
