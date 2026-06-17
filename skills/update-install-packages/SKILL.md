@@ -11,6 +11,14 @@ description: Update Ubuntu package configuration files for package add/delete op
 - delete package from ict template
 - modify ubuntu package list
 - update-install-packages
+- add missing packages
+- install hardware packages
+- add hardware drivers
+- install device drivers
+- manage system packages
+- configure package list
+- add kernel drivers
+- install missing dependencies
 
 ## Required Inputs
 - enib_home: absolute path to this repository root
@@ -30,27 +38,32 @@ description: Update Ubuntu package configuration files for package add/delete op
 - [ ] Verify package availability in Ubuntu 24.04 repositories for each requested package.
 - [ ] Create backup copies before modifying configuration files.
 - [ ] Prompt for `sudo` confirmation only before privileged or destructive operations.
-- [ ] **Sudo probe (MANDATORY before any privileged step such as `sudo apt update`/`sudo apt install`):** run `sudo -n true`. If exit is non-zero, stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry in `/etc/sudoers.d/` for the specific binary), then re-trigger the skill. If `sudo -v` was already run but `sudo -n true` still fails, the user must make sudo timestamps global (tty_tickets issue): `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] Sudo probe (MANDATORY before any privileged step such as sudo apt update/sudo apt install): run sudo -n true. If exit is non-zero, stop and instruct the user to run sudo -v in their terminal (or add a scoped NOPASSWD entry in /etc/sudoers.d/ for the specific binary), then re-trigger the skill. If sudo -v was already run but sudo -n true still fails, the user must make sudo timestamps global (tty_tickets issue): echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c. See AGENTS.md. 
 
 ## Steps
 1. Collect required inputs:
   - `package_operation`, `packages_list`, and `target_config_file`.
   - Split and normalize `packages_list` into individual package names.
+  - Optionally collect hardware details (e.g., device name, model, vendor).
 2. Validate operation and package list:
   - Reject invalid operation/target values.
   - Reject invalid package name formats.
   - Verify package availability in Ubuntu 24.04 repositories.
-3. Run preconditions and create backups:
+3. If hardware details provided, search Ubuntu 24.04 repositories:
+  - Query repository metadata for corresponding userspace or kernel-space packages matching the hardware device.
+  - Return matched packages to user for confirmation before adding to `packages_list`.
+  - Merge confirmed packages with the original `packages_list`.
+4. Run preconditions and create backups:
   - Backup `infrastructure/host-os/auto-install-pkgs.yaml` and/or `infrastructure/host-os/ict/ubuntu24-x86_64-minimal-ptl.yml` before modification.
-4. Update target configuration files based on `target_config_file`:
+5. Update target configuration files based on `target_config_file`:
   - `auto-install-pkgs`: update `host-os/auto-install-pkgs.yaml`.
   - `ict-template`: update `host-os/ict/ubuntu24-x86_64-minimal-ptl.yml`.
   - `both`: update both files.
-5. If adding more packages in `host-os/auto-install-pkgs.yaml`, add only the cumulative package size to existing `DISK_SIZE` in `host-os/prepare-host-img.sh` when cumulative package size exceeds 1GB. Do not increment disk size for packages under 1GB (existing disk allocation already includes future headroom).
-6. For packages that depend on kernel (performance tools, kernel drivers, or userspace packages with kernel dependencies), create symbolic links to the custom Intel kernel inside `infrastructure/installation-scripts/setup-kernel-depended-pkgs.sh` as a workaround. Do not start `setup-kernel-depended-pkgs.sh` if updated as part of `auto-install-pkgs.yaml` and `ubuntu24-x86_64-minimal-ptl.yml`; this script will start during the provisioning process separately.
-7. Validate updated YAML syntax for modified files.
-8. Summarize package update results for each modified file.
-9. If user asks for artifact packaging, hand off to the dedicated packaging skill.
+6. If adding more packages in `host-os/auto-install-pkgs.yaml`, add only the cumulative package size to existing `DISK_SIZE` in `host-os/prepare-host-img.sh` when cumulative package size exceeds 1GB. Do not increment disk size for packages under 1GB (existing disk allocation already includes future headroom).
+7. For packages that depend on kernel (performance tools, kernel drivers, or userspace packages with kernel dependencies), create symbolic links to the custom Intel kernel inside `infrastructure/installation-scripts/setup-kernel-depended-pkgs.sh` as a workaround. Do not start `setup-kernel-depended-pkgs.sh` if updated as part of `auto-install-pkgs.yaml` and `ubuntu24-x86_64-minimal-ptl.yml`; this script will start during the provisioning process separately.
+8. Validate updated YAML syntax for modified files.
+9. Summarize package update results for each modified file.
+10. If user asks for artifact packaging, hand off to the dedicated packaging skill.
 
 ## Validation
 - Configuration update summary is complete for add/delete operations.
