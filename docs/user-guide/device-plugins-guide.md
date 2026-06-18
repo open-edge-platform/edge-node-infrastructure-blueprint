@@ -64,13 +64,13 @@ Expected output (example with SR-IOV VFs enabled):
 
 ```text
 Allocatable:
-  cpu:                       16
-  ephemeral-storage:         466528800812
-  gpu.intel.com/monitoring:  1
-  gpu.intel.com/xe:          7
-  memory:                    32474724Ki
-  npu.intel.com/accel:       1
-  pods:                      110
+  cpu:                       xx
+  ephemeral-storage:         xxx
+  gpu.intel.com/monitoring:  x
+  gpu.intel.com/xe:          x
+  memory:                    xxx
+  npu.intel.com/accel:       x
+  pods:                      xxx
 ```
 
 The `gpu.intel.com/xe` count reflects the number of SR-IOV Virtual Functions available for allocation.
