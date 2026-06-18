@@ -9,8 +9,6 @@ This guide walks you through provisioning an Intel edge node end-to-end: buildin
 
 ![Setup overview](setup.svg)
 
-## Overview
-
 The workflow involves two types of systems:
 
 | System | Role |
