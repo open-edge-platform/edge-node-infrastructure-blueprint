@@ -1277,13 +1277,13 @@ copy_scripts_to_target() {
 }
 
 clone_source_to_target() {
-    echo -e "${BLUE}Cloning edge-node-infrastructure-blueprint tools to target disk!!${NC}"
+    echo -e "${BLUE}Cloning edge-node-infrastructure-blueprint source code to target disk!!${NC}"
 
     local REPO_URL="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/"
     local TARGET_TOOLS_DIR="/mnt/opt/edge/developer"
 
     if ! command -v git &>/dev/null; then
-        echo "WARNING: git not found in hook OS — tools will not be cloned"
+        echo "WARNING: git not found in hook OS — source code will not be cloned"
         return 0
     fi
 
@@ -1304,7 +1304,7 @@ clone_source_to_target() {
         find "$TARGET_TOOLS_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
         success "edge-node-infrastructure-blueprint cloned to target /opt/edge/developer/"
     else
-        echo "WARNING: git clone failed — tools will not be available at /opt/edge/developer/"
+        echo "WARNING: git clone failed — source code will not be available at /opt/edge/developer/"
     fi
 
     umount /mnt
