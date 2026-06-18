@@ -26,8 +26,6 @@ The process is divided into three phases:
 
 ## Prerequisites
 
-### Hardware Requirements
-
 #### Developer System
 
 The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
@@ -48,7 +46,6 @@ The target system is the Intel edge node on which the provisioned OS and workloa
 |---|---|---|
 | Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
 | Intel Core Ultra X7 358H | 32 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra X7 358H | 64 GiB DDR5 | 512 GiB NVMe |
 | Intel Core Ultra 5 338H | 32 GiB DDR5 | 512 GiB NVMe |
 
 All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
