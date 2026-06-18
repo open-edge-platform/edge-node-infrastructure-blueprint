@@ -596,6 +596,19 @@ systemConfig:
     - librealsense2-utils
     - librealsense2-dev
     - librealsense2-gl
+    # -- MIPI Camera / IPU6 Support ---------------------------------------------
+    # Intel IPU6 (Integrated Image Processing Unit) driver for MIPI CSI-2 cameras
+    # DKMS ensures module rebuilds against the active Intel kernel
+    - intel-ipu6-dkms
+    # V4L (Video4Linux) utilities for camera device testing & configuration
+    - v4l-utils
+    # libcamera: modern camera stack for Linux (userspace library & tools)
+    - libcamera-tools
+    - libcamera0.3
+    # GStreamer plugin for libcamera integration (pipeline support)
+    - gstreamer1.0-libcamera
+    # USB I/O Bridge drivers for Intel MeteoLake with Lattice AIC (MIPI bridge)
+    - intel-usbio-dkms
 
   additionalFiles:
     - local: ../additionalfiles/ptl/01-network-manager-all.yaml

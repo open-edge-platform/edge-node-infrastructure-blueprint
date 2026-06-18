@@ -15,7 +15,7 @@ set -e
 
 # --- Configuration ---
 ISO_URL=""
-OUTPUT_IMG="ubuntu-desktop-24.04.raw.img"
+OUTPUT_IMG="custom_image.raw.img"
 USER_DATA=""
 INSTALLER_SCRIPT=""
 SEED_ISO="seed.iso"

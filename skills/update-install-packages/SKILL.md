@@ -35,7 +35,7 @@ description: Update Ubuntu package configuration files for package add/delete op
 - [ ] `target_config_file` is one of `auto-install-pkgs|ict-template|both`.
 - [ ] `packages_list` is not empty.
 - [ ] Validate each package name format (letters, digits, `.`, `+`, `-`) and reject invalid tokens.
-- [ ] Verify package availability in Ubuntu 24.04 repositories for each requested package.
+- [ ] **MANDATORY**: Verify package availability in Ubuntu 24.04 repositories for each requested package using `apt-cache show <package_name>`. If package not found, use `apt-cache search <keyword>` to find alternatives and present to user for selection.
 - [ ] Create backup copies before modifying configuration files.
 - [ ] Prompt for `sudo` confirmation only before privileged or destructive operations.
 - [ ] Sudo probe (MANDATORY before any privileged step such as sudo apt update/sudo apt install): run sudo -n true. If exit is non-zero, stop and instruct the user to run sudo -v in their terminal (or add a scoped NOPASSWD entry in /etc/sudoers.d/ for the specific binary), then re-trigger the skill. If sudo -v was already run but sudo -n true still fails, the user must make sudo timestamps global (tty_tickets issue): echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c. See AGENTS.md. 
@@ -48,7 +48,8 @@ description: Update Ubuntu package configuration files for package add/delete op
 2. Validate operation and package list:
   - Reject invalid operation/target values.
   - Reject invalid package name formats.
-  - Verify package availability in Ubuntu 24.04 repositories.
+  - **CRITICAL**: Verify package availability in Ubuntu 24.04 repositories using `apt-cache show <package_name>`.
+  - For `add` operations: **MANDATORY** - Query Ubuntu 24.04 apt repositories using `apt-cache show <package_name>` to confirm each package exists before adding to target_config_file. If a package is not found, suggest alternative package names using `apt-cache search <keyword>` and present options to the user. Reject any packages not found in official Ubuntu 24.04 repositories after validation.
 3. If hardware details provided, search Ubuntu 24.04 repositories:
   - Query repository metadata for corresponding userspace or kernel-space packages matching the hardware device.
   - Return matched packages to user for confirmation before adding to `packages_list`.
@@ -64,6 +65,7 @@ description: Update Ubuntu package configuration files for package add/delete op
 8. Validate updated YAML syntax for modified files.
 9. Summarize package update results for each modified file.
 10. If user asks for artifact packaging, hand off to the dedicated packaging skill.
+
 
 ## Validation
 - Configuration update summary is complete for add/delete operations.
@@ -95,6 +97,10 @@ Return:
 - troubleshooting hints when package update fails (for example validation, permissions, or repository metadata issues)
 
 ## Troubleshooting Notes
+- **Package Not Found**: If `apt-cache show <package>` returns nothing, the package name is incorrect or the package doesn't exist. Use `apt-cache search <keyword>` to find the correct package name. Common issues:
+  - Versioned library packages: `libcamera0` → `libcamera0.2`
+  - Different naming conventions: check for suffixes like `-dev`, `-tools`, or version numbers
+  - Package might be in a different repository (Intel overlay, third-party PPA)
 - If package validation fails, confirm package names against Ubuntu 24.04 repository metadata and retry.
 - If YAML validation fails, restore from backup and reapply package updates with corrected formatting.
 - If file update fails, verify write permissions for target files and backup paths.
