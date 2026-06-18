@@ -7,11 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Collecting a Platform Report with system-info.sh
 
-<<<<<<< HEAD
-`system-info.sh` is a diagnostic script for Intel Panther Lake (PTL) systems provisioned using Infrastructure Blueprint. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
-=======
-## Operating System and Kernel
->>>>>>> origin/main
+`system-info.sh` is a diagnostic script for Intel® Panther Lake (PTL) systems provisioned using Infrastructure Blueprint. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
 
 ### Summary of Tools
 
@@ -40,7 +36,6 @@ The script produces the following sections. Use this table to navigate the outpu
 
 | Section | What it covers |
 |---|---|
-<<<<<<< HEAD
 | **SYSTEM INFO** | Script version, hostname, kernel, OS, uptime, `hostnamectl` output |
 | **PANTHER LAKE PLATFORM CHECK** | CPUID validation (family/model/stepping), microcode, Secure Boot state, PTL-relevant firmware blobs (`xe`, `huc`, `gsc`, `vpu_50xx`) |
 | **CPU INFO** | `lscpu` full output, hybrid P/E/LP-E core topology and capacities, per-CPU frequency table, `intel_pstate` governor/HWP settings, cache hierarchy (L1/L2/L3), ISA flags (AVX, AVX-VNNI, AES, SHA, etc.), hardware vulnerability mitigations, live CPU usage, top 5 CPU-consuming processes, `turbostat` summary |
@@ -50,18 +45,12 @@ The script produces the following sections. Use this table to navigate the outpu
 | **INTEL GPU INFO** | PCI VGA devices, `/sys/class/drm` device details (vendor/device/revision, GT0/GT1 frequencies), `xe` kernel module info, `intel_gpu_top` utilisation sample, OpenGL/Mesa renderer, Vulkan info, VA-API profiles and entrypoints (`vainfo`) |
 | **INTEL NPU INFO** | PCI accelerator device (`8086:b03e`), `/sys/class/accel` details, `intel_vpu` driver version and firmware version, NPU firmware blobs, relevant `dmesg` messages |
 | **INTEL COMPUTE / AI RUNTIMES** | OpenCL platform/device details (`clinfo`) — EUs, device IP, USM capabilities; Level Zero library inventory; OpenVINO version and available device list (`CPU`, `GPU.0`–`GPU.7`, `NPU`); oneAPI/DPC++ runtime library paths |
-| **INTEL USERSPACE PACKAGES (dpkg)** | Installed Intel packages grouped by: CPU/platform/monitoring, GPU/media/display, NPU/AI/OpenVINO/oneAPI, kernel + firmware |
+| **INTEL USERSPACE PACKAGES (dpkg)** | Installed Intel packages grouped by: CPU/platform/monitoring, GPU/media/display, NPU/AI/OpenVINO/oneAPI, kernel and firmware |
 | **THERMALS, POWER, FANS** | `lm-sensors` output, thermal zone temperatures, cooling device states, RAPL powercap zones (long-term/short-term power limits), battery/power supply state |
 | **FIRMWARE / BIOS / SECURITY** | SMBIOS CPU and board details (`dmidecode`), UEFI boot confirmation, TPM state, `fwupd` firmware versions for CPU microcode, display controller, NVMe SSD, system firmware, BootGuard |
-| **PCI / USB DEVICE SUMMARY** | Full Intel PCI device list (BDF, class, device ID), all PCI devices, USB bus/device topology |
+| **PCI / USB DEVICE SUMMARY** | Full Intel® PCI device list (BDF, class, device ID), all PCI devices, USB bus/device topology |
 | **DMESG: LAST 30 INTEL-RELATED LINES** | Filtered dmesg lines for `xe`, `intel_vpu`, and related Intel driver messages |
 | **RECOMMENDED PACKAGES FOR INTEL PTL** | `apt install` commands grouped by: kernel/firmware, core diagnostics, GPU/media, OpenCL/Level Zero, NPU/OpenVINO, useful extras |
-=======
-| Base OS | Ubuntu OS version 24.04 (`minimal-desktop-ubuntu`) |
-| Kernel | Intel mainline-tracking 6.18 (`6.18.23-intel+260427T075939Z-r2`) from Intel Linux overlay |
-| Kernel command line | `xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192` |
-| Extra modules | `intel_vpu`, `uas` |
->>>>>>> origin/main
 
 
 ## Provisioned System Profile
@@ -72,122 +61,52 @@ The following tables describe what is expected to be present on a system that ha
 
 | Component | Detail |
 |---|---|
-<<<<<<< HEAD
-| Platform | Intel Panther Lake Client Platform |
+| Platform | Intel® Panther Lake Client Platform |
 | ISA extensions | SSE4.2, AVX, AVX2, AVX-VNNI, AES-NI, SHA-NI, VAES, VPCLMULQDQ, GFNI, MOVDIRI, MOVDIR64B (no AVX-512 / AMX) |
 | CPU governor | `intel_pstate` / `powersave`; HWP active, turbo enabled; |
-| OS | Ubuntu 24.04.4 LTS (`minimal-desktop-ubuntu`) |
-| Kernel | `linux-image-6.18-intel 260427T075939Z-r2`; cmdline: `xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192` |
-| iGPU | `xe` driver 1.1.0; device `8086:b08f`; 8 PFs, 7 SR-IOV VFs; persisted via `intel-sriov-vf.service` |
+| OS | Ubuntu OS Version 24.04 LTS (`minimal-desktop-ubuntu`) |
+| Kernel | `linux-image-6.18-intel 260427T075939Z-r2`; command line: `xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192` |
+| iGPU | `xe` driver 1.1.0; device `8086:b08f`; 8 Physical Functions (PFs), 7 SR-IOV Virtual Functions (VFs); persisted via `intel-sriov-vf.service` |
 | iGPU firmware | `ptl_guc_70.bin.zst`, `ptl_huc.bin.zst`, `ptl_gsc_1.bin.zst` |
 | NPU (NPU 5) | `intel_vpu` 1.0.0 (in-kernel); firmware `vpu_50xx_v1.bin` (Mar 2026); `intel-level-zero-npu 1.32.0` |
-| Ethernet | Intel I226-V (`8086:57b4`); `igc` driver; managed via netplan/NetworkManager |
+| Ethernet | Intel® I226-V (`8086:57b4`); `igc` driver; managed via netplan/NetworkManager |
 | Firmware | `PTLPFWI1.R00.3393.D60.2511181224` (2025-11-18); Secure Boot disabled (Setup Mode) |
 
-### AI & Compute Environment
-=======
-| iGPU (Xe) | Intel® Graphics Compiler version 2.28.4, Compute Runtime version 26.05.37020.3, Level Zero version 1.22.4 |
-| iGPU media | `intel-media-va-driver-non-free`, `libvpl2` (oneVPL H.264/HEVC/AV1) |
-| NPU | `linux-npu-driver v1.32.0` (compiler, firmware, level-zero NPU) |
-| SR-IOV virtual functions (VFs) | `xe.max_vfs=7`; auto-provision via `enable_sriov=true` in config-file; persisted across reboot via `intel-sriov-vf.service` |
-| USB camera | Intel® RealSense™ SDK (`librealsense2-dkms`, `-utils`, `-dev`, `-gl`) |
-| Wi-Fi or Ethernet connectivity | Kernel-provided (`iwlwifi` or `igc`); NetworkManager via netplan |
-| Intel® Active Management Technology (Intel® AMT) and Intel vPro® technology | `rpc-go`, `lms`, `metee` |
-
-## AI and Media Stack
->>>>>>> origin/main
+### AI and Compute Environment
 
 | Component | Detail |
 |---|---|
-<<<<<<< HEAD
-| OpenVINO | `2025.4.1-20426` runtime & toolkit; inference targets: `CPU`, `GPU.0`–`GPU.7`, `NPU` (Intel AI Boost) |
-| OpenCL | OpenCL 3.0 via `intel-opencl-icd 26.05.37020.3`; device IP `0x7800004` (Xe3); DP4A + DPAS; USM supported |
-| Level Zero | `level-zero 1.22.4` + `level-zero-devel`; `libze_intel_gpu` + `libze_intel_npu` loaded |
-| oneDNN | `intel-oneapi-dnnl 2026.0.0-688` + `-devel` |
+| OpenVINO™ Runtime and OpenVINO™ toolkit | `2025.4.1-20426` runtime and toolkit; inference targets: `CPU`, `GPU.0`–`GPU.7`, `NPU` (Intel® AI Boost) |
+| OpenCL | OpenCL 3.0 via `intel-opencl-icd 26.05.37020.3`; device IP `0x7800004` (Xe3); DP4A and DPAS; USM supported |
+| Level Zero | `level-zero 1.22.4` and `level-zero-devel`; `libze_intel_gpu` and `libze_intel_npu` loaded |
+| oneAPI Deep Neural Network Library (oneDNN) | `intel-oneapi-dnnl 2026.0.0-688` and `-devel` |
 | oneAPI TBB | `intel-oneapi-tbb 2023.0.0-724` |
 | VA-API / media | iHD driver `25.4.6`; `intel-media-va-driver-non-free`; `libvpl2 2.16.0` (oneVPL); decode: H.264, HEVC, VP9, AV1, VVC, MPEG-2, JPEG; encode: H.264, HEVC, VP9, AV1, JPEG |
-| GStreamer | Full plugin set (base, good, bad, ugly, OpenCV, RTSP, Qt5) |
-| Mesa | `mesa-vulkan-drivers 25.3.4`, `mesa-va-drivers 25.2.8` |
-| CDI | GPU spec generator (Go, built from source) at `/opt/edge/scripts/cdi/`; NPU CDI generator script |
-| Developer tools | `edge-node-infrastructure-blueprint` repo at `/opt/edge/developer/`; `system-info.sh` at `/opt/edge/developer/tools/system-info/` |
-=======
-| OpenVINO™ Runtime and OpenVINO™ toolkit | release 2025.x runtime and toolkit via `apt.repos.intel.com/openvino/2025` |
-| oneAPI Deep Neural Network Library (oneDNN) | `intel-oneapi-dnnl` and `-devel` |
-| Level Zero | Runtime and development headers (GPU and NPU) |
 | GStreamer framework | Full plugin set that comprises base, good, bad, ugly, OpenCV, RTSP, and Qt5 |
+| Mesa | `mesa-vulkan-drivers 25.3.4`, `mesa-va-drivers 25.2.8` |
 | Container Device Interface (CDI) | GPU specification generator written in Go programming language and built from source; NPU generator script |
->>>>>>> origin/main
+| Developer tools | `edge-node-infrastructure-blueprint` repo at `/opt/edge/developer/`; `system-info.sh` at `/opt/edge/developer/tools/system-info/` |
 
 ### Services
 
 | Service | Detail |
 |---|---|
-<<<<<<< HEAD
-| NTP | `chrony` installed and enabled; configurable via `/etc/chrony/chrony.conf` |
-| PTP | `linuxptp` available for precision time protocol |
-| Container runtime | Docker CE + containerd + Buildx + Compose plugin (active when `host_type=container`) |
-| Kubernetes | K3s single-node server (active when `host_type=kubernetes`); traefik disabled |
-| SR-IOV | `intel-sriov-vf.service` — provisions and persists 7 GPU VFs across reboots |
-| CPU power profiling | `linux-cpupower 6.18.23-intel`, `powertop 2.15`; power tuning scripts (`battery`, `balanced`, `performance`, `graphical` profiles) |
-| GPU monitoring | `intel-gpu-tools 1.28` (`intel_gpu_top`) |
-| Network diagnostics | `iperf3`, `linuxptp`, `tcpdump` |
-=======
-| Container runtime | Docker CE, containerd, Buildx and the Compose plugin (host_type=container) |
-| Kubernetes server | Kubernetes single-node server (host_type=kubernetes); traefik disabled |
-| Helm tool | version 3.17.2 |
-| Intel® device plugins | Node Feature Discovery (NFD), GPU plugin, and NPU plugin (manifests and operator) |
-| SR-IOV accelerated containers | VF provisioning and CDI specifications for GPU passthrough to containers |
-| NPU accelerated containers | CDI NPU generator and Intel NPU device plugin |
-
-## Performance and Profiling Tools
-
-| Capability | Detail |
-|---|---|
-| CPU profiling | `linux-perf`, `linux-cpupower`, `msr-tools`, `pcm`, `rtla` |
-| GPU monitoring | `intel-gpu-tools` (`intel_gpu_top`) |
-| Power monitoring and tuning | `powertop`, `pcm`; tuning scripts (`battery`, `balanced`, `performance`, `graphical` profiles) |
-| Benchmarking | `sysbench`, `stress-ng`, `fio`, `glmark2` |
-| Network performance and profiling | `iperf3`, `linuxptp`, `tcpdump` |
-
-## Time Synchronization
-
-| Capability | Detail |
-|---|---|
-| Network Time Protocol (NTP) | `chrony` installed; configurable via `/etc/chrony/chrony.conf` |
+| Network Time Protocol (NTP) | `chrony` installed and enabled; configurable via `/etc/chrony/chrony.conf` |
 | Precision Time Protocol (PTP) | `linuxptp` available for precision time protocol |
->>>>>>> origin/main
+| Container runtime | Docker CE, containerd, Buildx and the Compose plugin (active when `host_type=container`) |
+| Kubernetes sever | K3s single-node server (active when `host_type=kubernetes`); traefik disabled |
+| SR-IOV | `intel-sriov-vf.service` — provisions and persists 7 GPU VFs across reboots |
+| Power monitoring and tuning | `powertop`, `pcm`; power tuning scripts (`battery`, `balanced`, `performance`, `graphical` profiles) |
+| GPU monitoring | `intel-gpu-tools 1.28` (`intel_gpu_top`) |
+| Network performance and profiling | `iperf3`, `linuxptp`, `tcpdump` |
 
 ### Orchestration
 
 | Component | Detail |
 |---|---|
-<<<<<<< HEAD
-| Host type dispatch | `kubernetes`: K3s + Helm + device plugins; `container`: Docker + containerd |
-| Helm | v3.x — deployed via `get-helm-3` during provisioning |
-| Intel Device Plugins | Node Feature Discovery (NFD), GPU plugin, NPU plugin — deployed as Helm charts |
-| SR-IOV accelerated containers | VF provisioning + CDI GPU specs → passthrough to containers via device plugin |
-| NPU accelerated containers | CDI NPU generator + Intel NPU device plugin for workload scheduling to NPU |
+| Host type dispatch | `kubernetes`: K3s and Helm and device plugins; `container`: Docker and containerd |
+| Helm tool | version 3.x — deployed via `get-helm-3` during provisioning |
+| Intel® device plugins | Node Feature Discovery (NFD), GPU plugin, NPU plugin — deployed as Helm charts |
+| SR-IOV accelerated containers | VF provisioning and CDI GPU specifications help enable passthrough to containers via device plugin |
+| NPU accelerated containers | CDI NPU generator and Intel® NPU device plugin for workload scheduling to NPU |
 | Provisioning scripts | `/opt/edge/scripts/` — `kubernetes-provision.sh`, `container-provision.sh`, `setup-kernel-depended-pkgs.sh` |
-=======
-| Installable USB image | A HookOS-based installer that writes the image to target storage; fully automated via `config-file` |
-| Image Composer Tool image build | The Image Composer Tool produces a `.raw.gz` file from the YAML template |
-| Curated image build | Uses the Ubuntu autoinstall flow, driven by the `auto-install-pkgs.yaml` configuration |
-| USB artifact packaging | The `build-installation-artifacts.sh` script packages USB installation artifacts into the `usb-installation-files.tar.gz` archive |
-
-## Host Type Dispatch
-
-| `host_type` | Services enabled | Provisioning script |
-|---|---|---|
-| `kubernetes` |  Kubernetes is enabled, Docker is disabled | The `kubernetes-provision.sh` script provisions Helm tool, NFD, device plugins, and SR-IOV |
-| `container` | Docker enabled, Kubernetes disabled | `container-provision.sh` |
-
-
-
-## Coding Agent Support
-
-| Capability | Detail |
-|---|---|
-| GitHub Copilot | `.github/copilot-instructions.md` and 5 skills |
-| Claude Code | `CLAUDE.md` and `AGENTS.md` context catalog |
-| Skills | `create-image`, `create-usb-installation-files`, `validate-platform-config`, `tune-platform-power`, `update-install-packages` |
->>>>>>> origin/main
