@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Collecting a Platform Report with system-info.sh
 
-`system-info.sh` is a diagnostic script for Intel Panther Lake (PTL) systems on Ubuntu/Linux. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
+`system-info.sh` is a diagnostic script for Intel Panther Lake (PTL) systems provisioned using Infrastructure Blueprint. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
 
 ### Requirements
 

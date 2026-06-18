@@ -197,7 +197,30 @@ autoinstall:
             echo "Failure to download the debian files"
         fi
 
-        # 13 Self-destruct
+	# 13 Install packages from /usr/local/packages.conf
+        echo "Installing packages from /usr/local/packages.conf..."
+        if [ -f /usr/local/packages.conf ]; then
+           sudo apt update
+            awk '
+            /^[[:space:]]*#/ { next }
+            /^[[:space:]]*-/ {
+                sub(/^[[:space:]]*-[[:space:]]*/, "")
+                sub(/[[:space:]]*#.*/, "")
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+                if (length($0) > 0)
+                    print
+            }
+            ' /usr/local/packages.conf | while read -r PKG; do
+                if apt-cache show "$PKG" >/dev/null 2>&1; then
+                    echo "Installing $PKG"
+                    sudo apt install -y "$PKG"
+                else
+                    echo "Skipping unknown package: $PKG"
+                fi
+            done
+        fi
+
+        # 14 Self-destruct
         systemctl disable first-boot-fix.service
         rm -f /etc/systemd/system/first-boot-fix.service
         rm -rf /etc/proxy.env
