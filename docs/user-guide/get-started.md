@@ -24,7 +24,7 @@ The process is divided into three phases:
 
 ## Prerequisites
 
-#### Developer System
+### Developer System
 
 The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
 
@@ -36,7 +36,7 @@ The developer system is used to build installation artifacts and prepare the boo
 | Storage | 100 GiB free disk space (for image build workspace) |
 | Network | Internet access (or configured proxy) to fetch packages and ISOs |
 
-#### Target (Host) System
+### Target (Host) System
 
 The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
 
