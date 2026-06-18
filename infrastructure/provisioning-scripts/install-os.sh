@@ -1276,6 +1276,41 @@ copy_scripts_to_target() {
     return 0
 }
 
+clone_source_to_target() {
+    echo -e "${BLUE}Cloning edge-node-infrastructure-blueprint source code to target disk!!${NC}"
+
+    local REPO_URL="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/"
+    local TARGET_TOOLS_DIR="/mnt/opt/edge/developer"
+
+    if ! command -v git &>/dev/null; then
+        echo "WARNING: git not found in hook OS — source code will not be cloned"
+        return 0
+    fi
+
+    check_mnt_mount_exist
+    mount "$os_disk$os_rootfs_part" /mnt
+
+    mkdir -p "$TARGET_TOOLS_DIR"
+
+    env http_proxy="${http_proxy:-}" \
+        https_proxy="${https_proxy:-}" \
+        HTTP_PROXY="${HTTP_PROXY:-}" \
+        HTTPS_PROXY="${HTTPS_PROXY:-}" \
+        no_proxy="${no_proxy:-}" \
+        NO_PROXY="${NO_PROXY:-}" \
+        git clone --depth 1 "$REPO_URL" "$TARGET_TOOLS_DIR"
+
+    if [ $? -eq 0 ]; then
+        find "$TARGET_TOOLS_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+        success "edge-node-infrastructure-blueprint cloned to target /opt/edge/developer/"
+    else
+        echo "WARNING: git clone failed — source code will not be available at /opt/edge/developer/"
+    fi
+
+    umount /mnt
+    return 0
+}
+
 # Dynamically update the cloud-init file based on User configuration and host type
 custom_cloud_init_updates() {
     echo -e "${BLUE}Updating the cloud-init file !${NC}"
@@ -1580,6 +1615,8 @@ platform_config_manager() {
     fi
 
     copy_scripts_to_target || return 1
+
+    clone_source_to_target || return 1
 
     install_cloud_init_file || return 1
 

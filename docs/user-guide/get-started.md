@@ -5,18 +5,50 @@ SPDX-License-Identifier: Apache-2.0
 
 # Edge Node Infrastructure Blueprint — Get Started
 
+This guide walks you through provisioning an Intel edge node end-to-end: building installation artifacts on a developer system, writing them to a bootable USB, installing the OS on the target system, and validating the bring-up.
+
 ![Setup overview](setup.svg)
 
-## Scope
+The workflow involves two types of systems:
 
-- Developer system: The host machine used to generate installation artifacts.
-- Target system: The edge machine used for application deployment.
+| System | Role |
+|---|---|
+| **Developer system** | Builds the OS image and USB installation artifacts |
+| **Target (host) system** | The Intel edge node that will be provisioned and run workloads |
 
-## Phase 1: Build Artifacts on the Developer System
+The process is divided into three phases:
 
-### 1. Prerequisites
+1. **Phase 1** — Build bootable USB artifacts on the developer system
+2. **Phase 2** — Prepare and boot from the USB on the target system
+3. **Phase 3** — Validate bring-up and confirm services are running
 
-#### Go Toolchain
+## Prerequisites
+
+#### Developer System
+
+The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
+
+| Component | Minimum |
+|---|---|
+| OS | Ubuntu 22.04 LTS or Ubuntu 24.04 LTS (x86-64) |
+| CPU | Any modern x86-64 processor with virtualisation support |
+| Memory | 16 GiB RAM |
+| Storage | 100 GiB free disk space (for image build workspace) |
+| Network | Internet access (or configured proxy) to fetch packages and ISOs |
+
+#### Target (Host) System
+
+The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
+
+| CPU | Memory | Storage |
+|---|---|---|
+| Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra X7 358H | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra 5 338H | 32 GiB DDR5 | 512 GiB NVMe |
+
+All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
+
+### Go Toolchain
 
 You will need Go programming language version 1.22 or later to build the Intel CDI GPU specification generator, which is compiled and embedded into the HookOS image before the OS build starts.
 
@@ -33,14 +65,16 @@ go version  # should report Go programming language version 1.22 or later
 > - Keep the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` values consistent across all proxy configuration files.
 > - The build flow has been verified on Ubuntu OS versions 22.04 and 24.04.
 
-### 2. Clone the Repository
+## Phase 1: Build Artifacts on the Developer System
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
 cd edge-node-infrastructure-blueprint
 ```
 
-### 3. Build Bootable USB Artifacts
+### 2. Build Bootable USB Artifacts
 
 From the repository root, run one of the following build modes.
 
