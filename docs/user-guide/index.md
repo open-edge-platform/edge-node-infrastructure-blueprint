@@ -36,6 +36,7 @@ IoT processing, and real-time applications at the network edge.
 :hidden:
 
 Get Started <get-started.md>
+Advanced Image Customization (Using Image Composer Tool) <advance-package-curation.md>
 Container Device Interface Guide <container-device-interface-guide.md>
 Platform Capabilities <platform-capabilities.md>
 Device Plugins Guide <device-plugins-guide.md>
