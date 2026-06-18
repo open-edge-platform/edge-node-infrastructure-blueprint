@@ -36,7 +36,7 @@ usage() {
     echo "Usage: $0 <usb> <usb-bootable-files.tar.gz> <config-file>"
     echo "Example: $0 /dev/sda usb-bootable-files.tar.gz config-file"
     echo "or to copy with existing image"
-    echo "Example: $0 /dev/sda usb-bootable-files.tar.gz config-file Ubunut-image.gz"
+    echo "Example: $0 /dev/sda usb-bootable-files.tar.gz config-file custom_image.gz"
     exit 1
 }
 
