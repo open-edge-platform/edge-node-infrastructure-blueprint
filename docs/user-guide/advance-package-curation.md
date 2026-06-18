@@ -2,75 +2,15 @@
 SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
+# Advanced Image Customization (Using Image Composer Tool)
 
-# Building an Ubuntu OS Version 24.04 Image with Image Composer Tool
+The [Image Composer Tool (ICT)](https://github.com/open-edge-platform/image-composer-tool) is a command-line tool for building custom Linux images from pre-built packages. You define the target OS, packages, kernel, and disk layout in a YAML template, run one command, and get a bootable RAW or ISO image. ICT supports multiple distributions including Ubuntu, Azure Linux, and Red Hat compatible distros on x86_64.
 
-This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
- Intel® Core™ Ultra processor platforms using
-[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
-and the provided template
-[`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml).
+## Build and Verify Default Template
 
----
+Refer to the detailed [ICT QuickStart](https://github.com/open-edge-platform/image-composer-tool/tree/main#quick-start) to build the `image-composer-tool` binary.
 
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Clone the Repository](#clone-the-repository)
-3. [Install the Tool](#install-the-tool)
-4. [Install Image Composition Prerequisites](#install-image-composition-prerequisites)
-5. [Configure the Template](#configure-the-template)
-6. [Validate the Template](#validate-the-template)
-7. [Build the Image](#build-the-image)
-8. [Build Output](#build-output)
-
----
-
-## Prerequisites
-
-| Requirement | Version and/or Notes |
-|-------------|----------------|
-| Build host OS | Ubuntu OS version 24.04 (recommended) |
-| Go toolchain | Version 1.24.0 or later — [installation guide](https://go.dev/doc/manage-install) |
-
----
-
-## Clone the Repository
-
-```bash
-git clone https://github.com/open-edge-platform/image-composer-tool.git
-cd image-composer-tool
-```
-
----
-
-## Install the Tool
-
-Produces `./image-composer-tool` in the repo root:
-
-```bash
-go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
-```
-
----
-
-## Install Image Composition Prerequisites
-
-These packages are required before composing any image:
-
-```bash
-sudo apt install systemd-ukify mmdebstrap
-```
-
-Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/main/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
-
-> **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
-> issues. Ensure you have version 1.4.3 or later. On Ubuntu OS version 23.04 or later, the
-> repository version is sufficient.
-
----
-
-## Configure the Template
+### Configure the Template
 
 Copy the upstream template to a working location and edit it for your
 environment:
@@ -81,12 +21,9 @@ cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ub
 
 Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
 
-Key fields to review and update before building:
+You can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package Curation and Template Customization](#package-curation-and-template-customization) section.
 
-### User Credentials
-
-Replace the default `user` user `password` hash with your own
-SHA-512 hashed password, and update the SSH `authorized_keys` entries:
+For a quick trial, you only need to update the user credentials for the target system before building. Replace the default `user` user `password` hash with your own SHA-512 hashed password, and update the SSH `authorized_keys` entries:
 
 ```yaml
 users:
@@ -106,9 +43,7 @@ mkpasswd --method=sha-512 'your-password-here'
 
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 
----
-
-## Validate the Template
+### Validate the Template
 
 Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
@@ -117,9 +52,7 @@ build (fast, no root required):
 ./image-composer-tool validate my-ubuntu24.yml
 ```
 
----
-
-## Build the Image
+### Build the Image
 
 Run the build with elevated privileges so that the tool can manage loop devices
 and chroot environments. Pass `-E` to preserve your proxy and environment
@@ -129,9 +62,7 @@ variables:
 sudo -E ./image-composer-tool build my-ubuntu24.yml
 ```
 
----
-
-## Build Output
+### Build Output
 
 When the build completes, expect the following output on the console with build timings:
 
@@ -185,6 +116,86 @@ Expected artefacts:
 | File | Description |
 |------|-------------|
 | `minimal-desktop-ubuntu.raw.gz` | Compressed raw disk image (ready to flash) |
+
+
+## Package Curation and Template Customization
+
+This section explains how to curate package lists with the `update-install-packages` skill and produce a new Image Composer Tool (ICT) image variant on top of the default template.
+
+Use this flow when you want to build a custom image flavor (for example, debug, media-heavy, or minimal runtime) without editing the baseline files manually each time.
+
+### What You Are Modifying
+
+The package curation flow can update one or both of the following files:
+
+- `infrastructure/host-os/auto-install-pkgs.yaml`
+- `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+
+The ICT-based template is the preferred advanced image build method. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based (`generic-handheld-os-template.yml`) images.
+
+### End-to-End Flow
+
+1. Start from the repository root and define your package delta (add or delete).
+2. Run the `update-install-packages` skill to apply package curation safely.
+3. Validate YAML and backups created by the skill.
+4. Copy the default ICT template into a working template for your variant.
+5. Validate and build the image using ICT.
+6. Record artifact path and package delta for reproducibility.
+
+### Run the Skill
+
+If you are using Copilot Chat in agent mode, invoke the skill with a natural language prompt describing your intent. For example:
+
+```text
+Add htop, jq, and iperf3 to the ict-template in /home/user/edge-node-infrastructure-blueprint
+```
+
+```text
+Delete mosquitto and mosquitto-clients from both auto-install-pkgs and the ict-template.
+```
+
+```text
+Add sysbench and stress-ng to auto-install-pkgs only for a debug image variant.
+```
+
+The skill is expected to:
+
+- validate package name format
+- verify package availability in Ubuntu 24.04 repositories
+- optionally search repositories for packages matching hardware details (device name, model, or vendor) and confirm matches before adding
+- create backups before file changes
+- return per-file package change results (`added`, `deleted`, `already-present`, `not-found`)
+- validate YAML syntax after updates
+
+### Build an ICT Variant from the Curated Baseline
+
+After package curation succeeds, create a variant template from the default template:
+
+```bash
+cp infrastructure/host-os/ict/generic-handheld-os-template.yml \
+   infrastructure/host-os/ict/my-variant-template.yml
+```
+
+For detailed validation and build instructions, refer to [Building an Ubuntu OS Version 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md). That guide covers:
+
+- template validation
+- image build process
+- troubleshooting and build output artifacts
+
+Expected output artifact type:
+
+- compressed raw image (`.raw.gz`)
+
+### Safety and Rollback
+
+Follow these rules for reliable curation:
+
+- do not edit the only source copy without backup
+- stop on any precondition or YAML validation failure
+- restore from backup if update or validation fails
+- do not request or store secrets in prompts or scripts
+
+If rollback is needed, restore backup files produced by the skill for each modified target file and re-run validation.
 
 ## Troubleshoot
 

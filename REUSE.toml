@@ -11,6 +11,7 @@ path = [
     "**/*.md",
     "**/go.mod*",
     "**/*.png",
+    "**/*.svg",
     "**/*.txt",
     "**/go.sum",
     "VERSION",
