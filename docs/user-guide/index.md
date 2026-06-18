@@ -41,6 +41,5 @@ Container Device Interface Guide <container-device-interface-guide.md>
 Platform Capabilities <platform-capabilities.md>
 Device Plugins Guide <device-plugins-guide.md>
 DL Streamer Pipelines Guide <dlstreamer-pipelines-guide.md>
-DL Streamer Coding Agent Guide <dlstreamer-coding-agent-guide.md>
 :::
 hide_directive-->

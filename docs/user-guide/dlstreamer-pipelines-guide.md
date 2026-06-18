@@ -276,6 +276,14 @@ kubectl logs dlstreamer-gpu
 
 ---
 
+## Advanced: AI-Assisted Pipeline Generation
+
+For complex pipelines, you can use the **DL Streamer Coding Agent** — a Claude Code skill that generates complete, working DL Streamer applications from plain-English descriptions. Instead of manually wiring GStreamer elements, describe what you want and the agent builds, validates, and runs the app for you.
+
+See the [DL Streamer Coding Agent Guide](dlstreamer-coding-agent-guide.md) for usage details, example prompts, and supported use cases.
+
+---
+
 ## References
 
 - [DL Streamer Repository](https://github.com/open-edge-platform/dlstreamer)
