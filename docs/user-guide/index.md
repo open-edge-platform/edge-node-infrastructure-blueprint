@@ -39,5 +39,6 @@ Get Started <get-started.md>
 Advanced Image Customization (Using Image Composer Tool) <advance-package-curation.md>
 Container Device Interface Guide <container-device-interface-guide.md>
 Platform Capabilities <platform-capabilities.md>
+Edge Workloads and Benchmarks Guide <edge-benchmarking-guide.md>
 :::
 hide_directive-->
