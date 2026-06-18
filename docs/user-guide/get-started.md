@@ -5,12 +5,24 @@ SPDX-License-Identifier: Apache-2.0
 
 # Edge Node Infrastructure Blueprint — Get Started
 
+This guide walks you through provisioning an Intel edge node end-to-end: building installation artifacts on a developer system, writing them to a bootable USB, installing the OS on the target system, and validating the bring-up.
+
 ![Setup overview](setup.svg)
 
-## Scope
+## Overview
 
-- Developer system: The host machine used to generate installation artifacts.
-- Target system: The edge machine used for application deployment.
+The workflow involves two types of systems:
+
+| System | Role |
+|---|---|
+| **Developer system** | Builds the OS image and USB installation artifacts |
+| **Target (host) system** | The Intel edge node that will be provisioned and run workloads |
+
+The process is divided into three phases:
+
+1. **Phase 1** — Build bootable USB artifacts on the developer system
+2. **Phase 2** — Prepare and boot from the USB on the target system
+3. **Phase 3** — Validate bring-up and confirm services are running
 
 ## Prerequisites
 
