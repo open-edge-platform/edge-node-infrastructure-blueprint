@@ -34,9 +34,10 @@ Use it when you need to:
 
 ## How to run
 
-From the folder containing the script (recommend sudo for a more complete report):
+Step into the target system. From the folder containing the script (recommend sudo for a more complete report):
 
 ```bash
+cd /opt/edge/developer/tools/system-info
 sudo ./system-info.sh
 ```
 
