@@ -12,11 +12,36 @@ SPDX-License-Identifier: Apache-2.0
 - Developer system: The host machine used to generate installation artifacts.
 - Target system: The edge machine used for application deployment.
 
-## Phase 1: Build Artifacts on the Developer System
+## Prerequisites
 
-### 1. Prerequisites
+### Hardware Requirements
 
-#### Go Toolchain
+#### Developer System
+
+The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
+
+| Component | Minimum |
+|---|---|
+| OS | Ubuntu 22.04 LTS or Ubuntu 24.04 LTS (x86-64) |
+| CPU | Any modern x86-64 processor with virtualisation support |
+| Memory | 16 GiB RAM |
+| Storage | 100 GiB free disk space (for image build workspace) |
+| Network | Internet access (or configured proxy) to fetch packages and ISOs |
+
+#### Target (Host) System
+
+The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
+
+| CPU | Memory | Storage |
+|---|---|---|
+| Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra X7 358H | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra X7 358H | 64 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra 5 338H | 32 GiB DDR5 | 512 GiB NVMe |
+
+All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
+
+### Go Toolchain
 
 You will need Go programming language version 1.22 or later to build the Intel CDI GPU specification generator, which is compiled and embedded into the HookOS image before the OS build starts.
 
@@ -33,14 +58,16 @@ go version  # should report Go programming language version 1.22 or later
 > - Keep the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` values consistent across all proxy configuration files.
 > - The build flow has been verified on Ubuntu OS versions 22.04 and 24.04.
 
-### 2. Clone the Repository
+## Phase 1: Build Artifacts on the Developer System
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
 cd edge-node-infrastructure-blueprint
 ```
 
-### 3. Build Bootable USB Artifacts
+### 2. Build Bootable USB Artifacts
 
 From the repository root, run one of the following build modes.
 
