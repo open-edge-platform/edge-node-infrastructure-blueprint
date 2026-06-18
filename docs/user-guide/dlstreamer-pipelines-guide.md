@@ -291,3 +291,11 @@ See the [DL Streamer Coding Agent Guide](dlstreamer-coding-agent-guide.md) for u
 - [DL Streamer Elements Reference](https://github.com/open-edge-platform/dlstreamer/blob/main/docs/user-guide/elements/elements.md)
 - [DL Streamer Samples](https://github.com/open-edge-platform/dlstreamer/tree/main/samples)
 - [Container Device Interface Guide](container-device-interface-guide.md) — CDI setup for GPU/NPU access
+
+<!--hide_directive
+:::{toctree}
+:hidden:
+
+DL Streamer Coding Agent Guide <dlstreamer-coding-agent-guide.md>
+:::
+hide_directive-->
