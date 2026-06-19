@@ -68,10 +68,21 @@ fi
 
 echo "Using container runtime: $RUNTIME"
 
-# Build the container image if it does not exist yet
+# Build the container image if it does not exist yet.
+# Proxy build-args are forwarded so apt-get can reach the internet
+# when the host is behind a corporate firewall.
 if ! $RUNTIME image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo "Building $IMAGE_NAME (first run only)..."
-    $RUNTIME build -f "$SCRIPT_DIR/Dockerfile.usb-prepare" -t "$IMAGE_NAME" "$SCRIPT_DIR"
+    $RUNTIME build \
+        --build-arg HTTP_PROXY="${HTTP_PROXY:-}" \
+        --build-arg HTTPS_PROXY="${HTTPS_PROXY:-}" \
+        --build-arg NO_PROXY="${NO_PROXY:-}" \
+        --build-arg http_proxy="${http_proxy:-}" \
+        --build-arg https_proxy="${https_proxy:-}" \
+        --build-arg no_proxy="${no_proxy:-}" \
+        -f "$SCRIPT_DIR/Dockerfile.usb-prepare" \
+        -t "$IMAGE_NAME" \
+        "$SCRIPT_DIR"
 fi
 
 # Pass all script arguments through; mount the working directory and the USB device

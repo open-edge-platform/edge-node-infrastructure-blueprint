@@ -3,6 +3,15 @@
 
 FROM ubuntu:24.04
 
+# Accept proxy settings as build arguments so apt can reach the internet
+# behind a corporate firewall. Passed automatically by run-usb-prepare.sh.
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         bash \
