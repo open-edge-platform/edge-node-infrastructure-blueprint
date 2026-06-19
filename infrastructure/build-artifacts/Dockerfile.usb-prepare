@@ -31,9 +31,4 @@ RUN apt-get update && \
 
 WORKDIR /work
 
-# Embed the script so data files can be mounted at /work without needing
-# bootable-usb-prepare.sh to be present in the user's working directory.
-COPY bootable-usb-prepare.sh /usr/local/bin/bootable-usb-prepare.sh
-RUN chmod +x /usr/local/bin/bootable-usb-prepare.sh
-
-ENTRYPOINT ["bash", "/usr/local/bin/bootable-usb-prepare.sh"]
+ENTRYPOINT ["bash", "bootable-usb-prepare.sh"]
