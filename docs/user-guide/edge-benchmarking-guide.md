@@ -23,6 +23,7 @@ Use this guide after provisioning an edge node with the Infrastructure Blueprint
 ## Prerequisites
 
 - [Edge Node Infrastructure Blueprint](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint) deployed.
+- During target system installation, set `host_type=container` in the `config-file`.
 - Network connectivity for model and media downloads.
 
 ### Verify Hardware Readiness
