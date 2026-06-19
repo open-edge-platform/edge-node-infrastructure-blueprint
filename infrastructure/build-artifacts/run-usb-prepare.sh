@@ -85,10 +85,19 @@ if ! $RUNTIME image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
         "$SCRIPT_DIR"
 fi
 
-# Pass all script arguments through; mount the working directory and the USB device
+# Pass all script arguments through; mount the working directory and the USB device.
+# -it allocates a pseudo-TTY and connects stdin so progress bar and read prompts work.
+# Proxy env vars are forwarded at runtime so the inner script's proxy check passes.
 $RUNTIME run --rm \
     --privileged \
+    -it \
     --device="$USB_DEVICE" \
+    --env HTTP_PROXY="${HTTP_PROXY:-}" \
+    --env HTTPS_PROXY="${HTTPS_PROXY:-}" \
+    --env NO_PROXY="${NO_PROXY:-}" \
+    --env http_proxy="${http_proxy:-}" \
+    --env https_proxy="${https_proxy:-}" \
+    --env no_proxy="${no_proxy:-}" \
     -v "$SCRIPT_DIR":/work \
     "$IMAGE_NAME" \
     "$@"
