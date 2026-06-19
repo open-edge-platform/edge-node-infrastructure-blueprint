@@ -24,7 +24,7 @@ CUSTOM_FILES_SIZE="100%"
 OS_PART=5
 CUSTOM_FILES_PART=6
 BAR_WIDTH=50        
-TOTAL_USB_PREPARATION_STEPS=6 
+TOTAL_USB_PREPARATION_STEPS=7
 USB_PREPARE_STEP=0
 LOG_FILE="bootable_usb_setup_log.txt"
 MAX_STATUS_MESSAGE_LENGTH=28
@@ -200,6 +200,31 @@ prepare_usb_setup() {
     popd > /dev/null || exit 1
 }
 
+# Clone the infrastructure blueprint repo and package it as developer-src.tar.gz
+# inside usb_files/ so it can be copied to the USB and extracted on the target.
+download_developer_src() {
+    local REPO_URL="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/"
+    local TARBALL="${SCRIPT_DIR}/usb_files/developer-src.tar.gz"
+
+    if [ -f "$TARBALL" ]; then
+        echo "developer-src.tar.gz already present, skipping clone"
+        return 0
+    fi
+
+    echo "Cloning infrastructure blueprint repository..."
+    local tmpdir
+    tmpdir=$(mktemp -d)
+    if git clone --depth 1 "$REPO_URL" "${tmpdir}/developer-src"; then
+        tar -czf "$TARBALL" -C "$tmpdir" developer-src
+        rm -rf "$tmpdir"
+        echo "Created developer-src.tar.gz"
+    else
+        rm -rf "$tmpdir"
+        echo "WARNING: git clone failed — /opt/edge/developer will not be available on target"
+    fi
+    return 0
+}
+
 # Wipeoff the USB before install 
 wipe_disk() {
     echo "Wipe of the disk"
@@ -334,6 +359,16 @@ copy_files() {
     else
         return 1
     fi
+    if [[ -f "${SCRIPT_DIR}/usb_files/developer-src.tar.gz" ]]; then
+        echo "Copying developer source tarball to USB..."
+        copy_to_partition "$CUSTOM_FILES_PART" "${SCRIPT_DIR}/usb_files/developer-src.tar.gz" "/mnt"
+        retVal=$?
+        if [[ "$retVal" -eq 0 ]]; then
+            echo "Successfully copied developer source"
+        else
+            echo "WARNING: Failed to copy developer-src.tar.gz — /opt/edge/developer will not be available on target"
+        fi
+    fi
 }
 
 main() {
@@ -348,40 +383,47 @@ main() {
     USB_PREPARE_STEP=$((USB_PREPARE_STEP+1))
     show_progress_bar "$USB_PREPARE_STEP" "Preparing USB Setup Done"
 
-    # Step 2: Wipe off the USB disk before install 
+    # Step 2: Download developer source repository
     USB_PREPARE_STEP=2
+    show_progress_bar "$USB_PREPARE_STEP" "Downloading developer source"
+    if ! download_developer_src >> "$LOG_FILE" 2>&1; then
+        echo -e "${RED}\nWARNING: Download of developer source failed. More details see $LOG_FILE ${NC}"
+    fi
+
+    # Step 3: Wipe off the USB disk before install
+    USB_PREPARE_STEP=3
     show_progress_bar "$USB_PREPARE_STEP" "Wipeoff the USB device "
     if ! wipe_disk  >> "$LOG_FILE" 2>&1; then 
         echo -e "${RED}\nERROR: Wipeoff USB device failed. Aborting. More details see $LOG_FILE ${NC}"
         exit 1
     fi
 
-    # Step 3: Flash the ISO to USB 
-    USB_PREPARE_STEP=3
+    # Step 4: Flash the ISO to USB
+    USB_PREPARE_STEP=4
     show_progress_bar "$USB_PREPARE_STEP" "Flashing ISO Image to USB"
     if ! flash_iso  >> "$LOG_FILE" 2>&1; then
         echo -e "${RED}\nWARNING: Flashing ISO image failed. More details see $LOG_FILE ${NC}"
 	exit 1
     fi
 
-    # Step 4: Create the USB partitions for storing OS && K8S scripts 
-    USB_PREPARE_STEP=4
+    # Step 5: Create the USB partitions for storing OS && K8S scripts
+    USB_PREPARE_STEP=5
     show_progress_bar "$USB_PREPARE_STEP" "Creating USB Partitions"
     if ! partitions_setup  >> "$LOG_FILE" 2>&1; then 
         echo -e "${RED}\nWARNING: Creating USB Partitions failed. More details see $LOG_FILE ${NC}"
 	exit 1
     fi
 
-    # Step 5: Copy the OS && K8S files to USB 
-    USB_PREPARE_STEP=5
+    # Step 6: Copy the OS && K8S files to USB
+    USB_PREPARE_STEP=6
     show_progress_bar "$USB_PREPARE_STEP" "Copying OS,Custom files to USB"
     if ! copy_files  >> "$LOG_FILE" 2>&1; then 
         echo -e "${RED}\nWARNING: Copying files to USB failed. More details see $LOG_FILE ${NC}"
 	exit 1
     fi
 
-    # Step 6: sync the USB device 
-    USB_PREPARE_STEP=6
+    # Step 7: sync the USB device
+    USB_PREPARE_STEP=7
     show_progress_bar "$USB_PREPARE_STEP" ""
     sync
 
