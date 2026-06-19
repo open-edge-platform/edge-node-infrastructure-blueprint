@@ -26,6 +26,7 @@ RUN apt-get update && \
         python3 \
         python3-yaml \
         mount \
+        udev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work
