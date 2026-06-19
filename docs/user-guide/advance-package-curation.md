@@ -29,18 +29,18 @@ to build the `image-composer-tool` binary.
 
 ### Configure the template
 
-Copy the upstream template to a working location and edit it for your
-environment:
+Copy the upstream template to the Image Composer Tool home directory where you must have the `image-composer-tool` binary.
 
 ```bash
+cd image-composer-tool/
 cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
 ```
 
 Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
 
-You can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package Curation and Template Customization](#package-curation-and-template-customization) section.
+Now, you can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package curation and template customization](#package-curation-and-template-customization) section.
 
-For a quick trial, you only need to update the user credentials for the target system before building. Replace the default `user` user `password` hash with your own SHA-512 hashed password, and update the SSH `authorized_keys` entries:
+For a quick trial, you only need to update the user credentials for the target system before building. Replace the default `user` user `password` hash with your own SHA-512 hashed password:
 
 ```yaml
 users:
@@ -132,7 +132,7 @@ Expected artefacts:
 
 | File | Description |
 |------|-------------|
-| `minimal-desktop-ubuntu.raw.gz` | Compressed raw disk image (ready to flash) |
+| `minimal-desktop-ubuntu-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
 
 
 ## Package a pre-built image into artifacts
