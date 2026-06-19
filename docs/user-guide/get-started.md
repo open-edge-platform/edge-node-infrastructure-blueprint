@@ -101,7 +101,6 @@ Option 1.
 
 To generate an image using Image Composer Tool, refer to:
 
-* [Image Composer Tool documentation](https://github.com/open-edge-platform/image-composer-tool)
 * [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md).
 
 
@@ -115,6 +114,11 @@ make build MODE=reuse-image
 ```
 You can also manually copy an existing image to USB partition 5 when required by your process.
 
+#### Build output
+
+With any of the above build options, expect the following output:
+
+- `usb-installation-files.tar.gz` in `infrastructure/build-artifacts/out`
 
 ## Phase 2: Prepare Bootable USB
 
