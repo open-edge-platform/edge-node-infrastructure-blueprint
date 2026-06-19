@@ -36,10 +36,11 @@ IoT processing, and real-time applications at the network edge.
 :hidden:
 
 Get Started <get-started.md>
-Advanced Image Customization (Using Image Composer Tool) <advance-package-curation.md>
+Advanced Image Customization <advance-package-curation.md>
 Container Device Interface Guide <container-device-interface-guide.md>
 Infrastructure Blueprint Capabilities <platform-capabilities.md>
 Device Plugins Guide <device-plugins-guide.md>
 DL Streamer Pipelines Guide <dlstreamer-pipelines-guide.md>
+AI Agent Integration and Developer Experience <agent-skills-usage.md>
 :::
 hide_directive-->
