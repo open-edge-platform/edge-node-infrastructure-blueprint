@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+FROM ubuntu:24.04
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        bash \
+        parted \
+        gdisk \
+        util-linux \
+        e2fsprogs \
+        coreutils \
+        bc \
+        tar \
+        python3 \
+        python3-yaml \
+        mount \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /work
+
+ENTRYPOINT ["bash", "bootable-usb-prepare.sh"]
