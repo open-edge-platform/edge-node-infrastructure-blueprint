@@ -22,21 +22,8 @@ Use this guide after provisioning an edge node with the Infrastructure Blueprint
 
 ## Prerequisites
 
-### Hardware Requirements
-
-- Intel Core Ultra processor with integrated GPU
-- NPU (optional, detected via `/dev/accel/accel*`)
-- 16 GB or more system memory
-- 128 GB storage (16 GB minimum without GenAI models)
-- Network connectivity for model and media downloads
-
-### Software Requirements
-
-- Ubuntu 24.04.4 LTS (kernel 6.16+)
-- Docker version 20.10 or higher
-- Python 3.10 or higher with venv support
-- GPU with VA-API media support
-- Edge Node Infrastructure Blueprint deployed (recommended)
+- [Edge Node Infrastructure Blueprint](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint) deployed.
+- Network connectivity for model and media downloads.
 
 ### Verify Hardware Readiness
 
