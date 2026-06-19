@@ -197,7 +197,7 @@ autoinstall:
             echo "Failure to download the debian files"
         fi
 
-	# 13 Install packages from /usr/local/packages.conf
+        # 13 Install packages from /usr/local/packages.conf
         echo "Installing packages from /usr/local/packages.conf..."
         if [ -f /usr/local/packages.conf ]; then
            sudo apt update
