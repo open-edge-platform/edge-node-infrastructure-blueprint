@@ -43,7 +43,7 @@ readonly -a CDI_FILES_LIST=(
 )
 
 ## Packages to install in Alpine
-readonly PACKAGES="busybox util-linux linux-lts e2fsprogs e2fsprogs-static dosfstools parted sgdisk bc lvm2  bash blkid e2fsprogs-extra cryptsetup iproute2 kmod net-tools pciutils eudev efibootmgr dialog"
+readonly PACKAGES="busybox util-linux linux-lts e2fsprogs e2fsprogs-static dosfstools parted sgdisk bc lvm2  bash blkid e2fsprogs-extra cryptsetup iproute2 kmod net-tools pciutils eudev efibootmgr dialog git"
 
 ## Functions
 

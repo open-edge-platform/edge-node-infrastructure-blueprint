@@ -1276,11 +1276,13 @@ copy_scripts_to_target() {
     return 0
 }
 
+# Clone the infrastructure blueprint repository to the target disk at /opt/edge/developer.
+# Internet access is required during provisioning. Proxy settings are forwarded if configured.
 clone_source_to_target() {
-    echo -e "${BLUE}Cloning edge-node-infrastructure-blueprint source code to target disk!!${NC}"
+    echo -e "${BLUE}Cloning edge-node-infrastructure-blueprint to target disk!!${NC}"
 
     local REPO_URL="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/"
-    local TARGET_TOOLS_DIR="/mnt/opt/edge/developer"
+    local TARGET_DIR="/mnt/opt/edge/developer"
 
     if ! command -v git &>/dev/null; then
         echo "WARNING: git not found in hook OS — source code will not be cloned"
@@ -1290,7 +1292,7 @@ clone_source_to_target() {
     check_mnt_mount_exist
     mount "$os_disk$os_rootfs_part" /mnt
 
-    mkdir -p "$TARGET_TOOLS_DIR"
+    mkdir -p "$TARGET_DIR"
 
     env http_proxy="${http_proxy:-}" \
         https_proxy="${https_proxy:-}" \
@@ -1298,13 +1300,13 @@ clone_source_to_target() {
         HTTPS_PROXY="${HTTPS_PROXY:-}" \
         no_proxy="${no_proxy:-}" \
         NO_PROXY="${NO_PROXY:-}" \
-        git clone --depth 1 "$REPO_URL" "$TARGET_TOOLS_DIR"
+        git clone --depth 1 "$REPO_URL" "$TARGET_DIR"
 
     if [ $? -eq 0 ]; then
-        find "$TARGET_TOOLS_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-        success "edge-node-infrastructure-blueprint cloned to target /opt/edge/developer/"
+        find "$TARGET_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
+        success "Repository cloned to target /opt/edge/developer/"
     else
-        echo "WARNING: git clone failed — source code will not be available at /opt/edge/developer/"
+        echo "WARNING: git clone failed — /opt/edge/developer will not be populated"
     fi
 
     umount /mnt
