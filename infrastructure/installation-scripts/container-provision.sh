@@ -55,6 +55,9 @@ if ! docker info >/dev/null 2>&1; then
 fi
 echo "Docker is running: $(docker version --format '{{.Server.Version}}' 2>/dev/null)"
 
+# Write permission for user for non sudo access
+chmod 666 /var/run/docker.sock
+
 # ── Smoke test: pull and run hello-world ─────────────────────────────────
 echo "Running docker hello-world smoke test..."
 docker pull hello-world || true
