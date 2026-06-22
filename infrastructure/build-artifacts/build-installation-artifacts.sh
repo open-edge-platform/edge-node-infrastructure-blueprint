@@ -72,6 +72,33 @@ fi
 popd > /dev/null || exit 1
 }
 
+ 
+check-alpine-parttions() {
+#!/bin/bash
+
+# Define the target ISO file
+ISO_FILE="alpine-os.iso"
+
+ISO_FILE=$1
+
+
+# Extract the partition count
+# We run fdisk, search for lines matching the ISO name followed by a number, and count them.
+PARTITION_COUNT=$(sudo fdisk -l "$ISO_FILE" 2>/dev/null | grep -Ec "^${ISO_FILE}[0-9]+")
+# Validate if it has exactly 4 partitions
+echo "Checking partitions for $ISO_FILE..."
+echo "Found $PARTITION_COUNT partition(s)."
+
+if [ "$PARTITION_COUNT" -eq 4 ]; then
+    echo "Success: The ISO has exactly 4 partitions!"
+    return 0
+    
+else
+    echo "Failure: Expected 4 partitions, but found $PARTITION_COUNT."
+    exit 1
+fi
+}
+
 # Create alpine-iso
 create-alpine-os-iso(){
 #Check hook_x86_64.tar.gz file  present under build directory
@@ -81,7 +108,12 @@ if [[ ! -e "../micro-os/build/output/initramfs" && ! -e "../micro-os/build/outpu
 else
     # Install the required tool
     sudo apt update
-    sudo apt install grub2-common xorriso mtools dosfstools -y > /dev/null
+    if sudo apt install grub2-common xorriso mtools dosfstools grub-efi-amd64-bin pigz -y > /dev/null; then
+        echo "All packages installed successfully!"
+    else
+        echo "Error: Failed to install required packages. Exiting."
+        exit 1
+    fi
     # Cleanup the files if exist
     if [ -d out ]; then
         rm -rf out
@@ -115,6 +147,10 @@ EOF
 
     if [ "$?" -eq 0 ]; then
         echo "ISO created successfully under $(pwd)"
+
+	# Check the alpine-os.iso has the correct partition structure or not.
+	check-alpine-parttions alpine-os.iso
+	
     else
         echo "ISO creation failed,please check!!"
         popd >/dev/null || exit 1
