@@ -79,7 +79,7 @@ fi
 
 #  Install dependency pkgs ---
 echo "Installing dependencies..."
-sudo apt update && sudo apt install -y qemu-system-x86 qemu-utils xorriso cloud-image-utils wget dosfstools e2fsprogs parted coreutils > /dev/null 2>&1 
+sudo apt update && sudo apt install -y qemu-system-x86 qemu-utils xorriso cloud-image-utils wget dosfstools e2fsprogs parted coreutils pigz > /dev/null 2>&1 
 
 ISO_FILE=$(basename "$ISO_URL")
 
