@@ -108,7 +108,7 @@ if [[ ! -e "../micro-os/build/output/initramfs" && ! -e "../micro-os/build/outpu
 else
     # Install the required tool
     sudo apt update
-    if sudo apt install grub2-common xorriso mtools dosfstools grub-efi-amd64-bin pigz -y > /dev/null; then
+    if sudo apt install grub2-common xorriso mtools dosfstools grub-efi-amd64-bin pigz parted -y > /dev/null; then
         echo "All packages installed successfully!"
     else
         echo "Error: Failed to install required packages. Exiting."
