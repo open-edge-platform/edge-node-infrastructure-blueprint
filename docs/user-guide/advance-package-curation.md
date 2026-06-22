@@ -160,6 +160,9 @@ Build output:
 
 - `usb-installation-files.tar.gz` in `infrastructure/build-artifacts/out`
 
+Once `usb-installation-files.tar.gz` is ready, continue with
+[Phase 2: Prepare Bootable USB](./get-started.md#phase-2-prepare-bootable-usb) in the Get Started guide
+for the remaining steps: configuring the USB device, writing the artifacts, and booting the target system.
 
 ## Package curation and template customization
 
