@@ -79,7 +79,7 @@ Install WSL on Windows from PowerShell (run as Administrator)
 # Check available ubuntu distros
 wsl --list --online
 # Install the required ubuntu using any of the following commands
-wsl --install -d <Ubuntu-2x.04>
+wsl --install -d <Ubuntu-24.04>
 # or
 wsl --install -d <Ubuntu-22.04>
 
