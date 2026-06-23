@@ -41,7 +41,7 @@ autoinstall:
     - name: user
       shell: /bin/bash
       passwd: $6$i2P96xaVS20An4xS$wf.l8QHtdl6yPjU.Y3H0WDPQRnHqmw5vj75gShMmytqUoxz0VrkPeUy5CWDDW/oRH7q6tJhWLoAqITx/muOXK1
-      groups: [adm,sudo]
+      groups: [adm,sudo,video,render,audio]
       lock-passwd: false
       sudo: ALL=(ALL) NOPASSWD:ALL
     # Update the list of packages as per your requirement
