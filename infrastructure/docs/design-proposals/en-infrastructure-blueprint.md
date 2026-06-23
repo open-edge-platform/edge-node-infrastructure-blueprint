@@ -68,7 +68,7 @@ Intel-provided drivers and user-space packages exposing platform capabilities to
 2. Create bootable USB image
 3. Provision the edge node through USB
 4. Verify Docker container or K8S deployment modes
-5. Verify automated application deployments (SceneScape, PDD, etc.)
+5. Verify automated application deployments (Scenescape, PDD, etc.)
 6. KPI measurements
 ```
 

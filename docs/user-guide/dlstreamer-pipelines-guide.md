@@ -153,6 +153,7 @@ Results are saved to `/tmp/results/output.json` on the host.
 ### Use a Local Video File
 
 To use a local video instead of a remote URL, two things change from the examples above:
+
 1. Add a volume mount for your video directory: `-v /path/to/videos:/videos`
 2. Use `filesrc location=/videos/my-video.mp4` as the source element instead of `urisourcebin ... uri=<URL>`
 

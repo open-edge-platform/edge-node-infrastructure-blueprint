@@ -25,23 +25,23 @@ Note that few skills like `validate-platform-config` and `tune-platform-power` r
 
 ### Example Prompts
 
-```
+```text
 Build an OS image for my Intel Core Ultra system.
 ```
 
-```
+```text
 Create a bootable USB artifact using the ICT image at /path/to/image.raw.gz.
 ```
 
-```
+```text
 Validate the provisioned node at 192.168.1.10 — check pods, drivers, proxy settings, and GPU VFs.
 ```
 
-```
+```text
 Switch the node at 192.168.1.10 to the balanced power profile.
 ```
 
-```
+```text
 Add sysbench and stress-ng to ict-template only for a debug image variant.
 ```
 

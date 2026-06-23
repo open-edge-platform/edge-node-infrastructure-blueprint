@@ -160,7 +160,7 @@ make report
 make serve
 ```
 
-The report is accessible at <http://localhost:8000> and includes per-model throughput and latency charts, device comparisons, power efficiency rankings, and stream density results.
+The report is accessible at `http://localhost:8000` and includes per-model throughput and latency charts, device comparisons, power efficiency rankings, and stream density results.
 
 Check which configurations have completed:
 
