@@ -67,70 +67,9 @@ go version  # should report Go programming language version 1.22 or later
 
 ## Phase 1: Build Artifacts on the Developer System
 
-For the developer system, we recommend using Ubuntu 22.04 or Ubuntu 24.04 LTS. The host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
+For the developer system, we recommend using Ubuntu 22.04 or Ubuntu 24.04 LTS. The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
 
-Follow the steps below to set up Windows WSL
-
-### Install and Configure WSL Ubuntu
-
-Install WSL on Windows from PowerShell (run as Administrator)
-
-```bash
-# Check available ubuntu distros
-wsl --list --online
-# Install the required ubuntu using any of the following commands
-wsl --install -d <Ubuntu-24.04>
-# or
-wsl --install -d <Ubuntu-22.04>
-
-# Reboot the windows system
-```
-
-Setup the Ubuntu for build
-
-```bash
-# Launch the Ubuntu shell
-wsl
-# Configure proxy environment variables according to your network setup
-# Use "" if the proxy is not required in your network
-sudo vi /etc/environment
-http_proxy="http://proxy-server-ip:port"
-https_proxy="http://proxy-server-ip:port"
-no_proxy=".internal,127.0.0.1,::1,localhost"
-HTTP_PROXY="http://proxy-server-ip:port"
-HTTPS_PROXY="http://proxy-server-ip:port"
-NO_PROXY=".internal,127.0.0.1,::1,localhost"
-
-# Append the following lines to ~/.bashrc
-export PATH=$PATH:/usr/local/go/bin
-export http_proxy="http://proxy-server-ip:port"
-export https_proxy="http://proxy-server-ip:port"
-export no_proxy=".internal,127.0.0.1,::1,localhost"
-export HTTP_PROXY="http://proxy-server-ip:port"
-export HTTPS_PROXY="http://proxy-server-ip:port"
-export NO_PROXY=".internal,127.0.0.1,::1,localhost"
-
-# Configure apt proxy variables according to your network setup
-sudo vi /etc/apt/apt.conf.d/apt.conf
-Acquire::http::proxy "http://proxy-server-ip:port";
-Acquire::https::proxy "http://proxy-server-ip:port";
-
-# Exit the ubuntu shell and reconnect to continue
-exit
-wsl
-
-# Update and upgrade the apt packages
-sudo apt update
-sudo apt upgrade -y
-sudo apt install -y make
-
-# Install go lang tools required for build
-wget https://go.dev/dl/go1.26.4.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.26.4.linux-amd64.tar.gz
-
-# Now the system is ready to build
-```
+For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](./windows-wsl-guide.md).
 
 ### 1. Clone the Repository
 

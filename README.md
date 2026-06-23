@@ -24,6 +24,10 @@ The solution bridges the gap between edge hardware capabilities and application 
 
 ### 1. Prerequisites
 
+For the developer system, we recommend using Ubuntu 24.04 or Ubuntu 22.04 LTS. The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
+
+For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/windows-wsl-guide.md).
+
 #### Go Toolchain
 
 Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
