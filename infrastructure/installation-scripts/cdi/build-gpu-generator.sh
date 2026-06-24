@@ -14,6 +14,8 @@
 
 set -euo pipefail
 
+export PATH=$PATH:/usr/local/go/bin
+
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 OUTPUT="$SCRIPT_DIR/intel-cdi-specs-generator-gpu"
 TAG="gpu-v0.10.1"
@@ -109,7 +111,7 @@ echo "Syncing vendor..."
 go mod vendor 2>&1 | tail -3
 
 echo "Building..."
-CGO_ENABLED=1 GOOS=linux GOARCH=amd64 \
+GOOS=linux GOARCH=amd64 \
   go build -a -ldflags "-s -w" \
   -mod vendor -o "$OUTPUT" ./cmd/cdi-specs-generator
 
