@@ -306,7 +306,7 @@ packageRepositories:
 systemConfig:
   name: minimal
   description: Minimal desktop ubuntu image for PTL
-
+  hostname: minimal-desktop-ubuntu
   bootloader:
     bootType: efi
     provider: grub

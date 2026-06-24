@@ -28,6 +28,10 @@ For the developer system, we recommend using Ubuntu 24.04 or Ubuntu 22.04 LTS. T
 
 For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/windows-wsl-guide.md).
 
+> **BIOS requirement:** The image build uses QEMU to run the Ubuntu installer inside a virtual machine.
+> Hardware virtualisation (**Intel VT-x**) must be enabled in the developer system BIOS before running the build.
+> To verify it is enabled, run `grep -m1 -c 'vmx' /proc/cpuinfo` — a value of `1` or higher confirms VT-x is active.
+
 #### Go Toolchain
 
 Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
@@ -125,9 +129,10 @@ Required inputs:
 - Configuration File (`config-file`): User-customizable settings that include the following:
    - Proxy configurations
    - SSH public key (`id_rsa.pub`)
+   - Workload orchestration preference (host_type)
    - Single Root I/O Virtualization (SRIOV) toggle
    - Additional system parameters
-   - Installation Mode (Attended or Unattended) 
+   - Installation Mode (Attended or Unattended)
 
 #### Installation Mode Details
 
