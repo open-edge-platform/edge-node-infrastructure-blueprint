@@ -80,7 +80,7 @@ Acquire::https::proxy "http://proxy-server-ip:port";
 
 ### 3.2: The system is connected through a VPN (automated proxy using mirrored mode).
 
-If you are on VPN (GlobalConnect) and WSL2 cannot connect to the internet
+If you are on VPN and WSL2 cannot connect to the internet
 (e.g., `apt update` fails or proxy is unreachable), enable **mirrored networking mode**.
 
 This makes WSL2 share Windows' network stack directly so VPN routing applies to WSL2 too.
@@ -129,9 +129,7 @@ sudo apt install -y make
 
 ## Step 4: Clone the Repository and Build Artifacts
 
-Follow the main [README.md](../README.md) starting from **Phase 1, Step 1** for:
-- Cloning the repository
-- Running `make build MODE=image-from-iso ...`
+The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Get Started guide](./get-started.md#phase-1-build-artifacts-on-the-developer-system) to clone the repository and run `make build MODE=image-from-iso ...`.
 
 Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 5 below to attach your USB drive to WSL2.
 

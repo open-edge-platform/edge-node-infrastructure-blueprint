@@ -99,6 +99,26 @@ The following tables describe what is expected to be present on a system that ha
 | GPU monitoring | `intel-gpu-tools 1.28` (`intel_gpu_top`) |
 | Network performance and profiling | `iperf3`, `linuxptp`, `tcpdump` |
 
+### Kernel Performance and Debug Tooling
+
+User-space tools sourced from the Intel® Linux overlay (`linux-tools/`) and aligned with the installed kernel `linux-image-6.18-intel` build. They provide tracing, profiling, BPF, CPU power control, and related diagnostics tied to the running kernel.
+
+| Package | Detail |
+|---|---|
+| `bpftool` | Inspect and manage eBPF programs, maps, links, and BTF metadata loaded in the kernel |
+| `hyperv-daemons` | Microsoft Hyper-V integration daemons (KVP, VSS, fcopy) for running the image as a Hyper-V guest |
+| `intel-sdsi` | Intel® Software Defined Silicon (SDSi) provisioning and feature-activation utility |
+| `libcpupower1` | Shared runtime library used by `cpupower` and other CPU frequency / idle tools |
+| `libcpupower-dev` | Development headers for `libcpupower` to build custom CPU power tooling |
+| `linux-bpf-dev` | Kernel BPF UAPI headers required to compile BPF programs against this kernel |
+| `linux-config-6.18` | Exact `.config` used to build the installed `6.18-intel` kernel |
+| `linux-cpupower` | `cpupower` CLI for CPU frequency governors, idle states, and turbo / HWP control |
+| `linux-kbuild` | Kernel build infrastructure (scripts, host tools) needed for out-of-tree module builds |
+| `linux-misc-tools` | Miscellaneous in-tree user-space tools (e.g. `x86_energy_perf_policy`, `tmon`, `bootconfig`, `gpio`/`iio`/`pci`/`spi`/`usb`/`wmi` utilities) |
+| `linux-perf` | `perf` profiler for hardware counters, sampling, tracing, and flame-graph workflows |
+| `rtla` | Real-Time Linux Analysis tool for latency tracing (`osnoise`, `timerlat`, `hwnoise`) |
+| `usbip` | USB-over-IP client/server for exporting and attaching USB devices across the network |
+
 ### Orchestration
 
 | Component | Detail |
