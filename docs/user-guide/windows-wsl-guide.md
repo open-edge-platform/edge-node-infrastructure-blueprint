@@ -1,5 +1,7 @@
-# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
+<!--
+SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+-->
 
 # Windows WSL Guide: Setup Developer Linux build system with Windows Subsystem Linux (WSL2)
 
