@@ -43,6 +43,7 @@ GPU and NPU Device Plugins <device-plugins-guide.md>
 AI Agent Integration <agent-skills-usage.md>
 DL Streamer Pipelines Guide <dlstreamer-pipelines-guide.md>
 Edge Workloads and Benchmarks Guide <edge-benchmarking-guide.md>
+Windows WSL Guide <windows-wsl-guide.md>
 
 :::
 hide_directive-->
