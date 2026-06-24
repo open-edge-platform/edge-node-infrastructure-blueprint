@@ -24,6 +24,24 @@ The process is divided into three phases:
 
 ## Prerequisites
 
+#### Docker Setup
+
+Docker Engine is required because the build workflow uses Docker images and containers.
+
+Install Docker Engine for your Linux distribution using the official Docker documentation:
+- Linux install overview: https://docs.docker.com/engine/install/
+- Debian: https://docs.docker.com/engine/install/debian/
+- Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+- RHEL: https://docs.docker.com/engine/install/rhel/
+- Fedora: https://docs.docker.com/engine/install/fedora/
+
+Configure Docker for non-root usage and service startup after installation:
+- https://docs.docker.com/engine/install/linux-postinstall/
+
+If you are behind a proxy, configure Docker daemon proxy settings:
+- https://docs.docker.com/config/daemon/systemd/
+
+
 ### Developer System
 
 The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
@@ -48,18 +66,6 @@ The target system is the Intel edge node on which the provisioned OS and workloa
 
 All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
 
-### Go Toolchain
-
-You will need Go programming language version 1.22 or later to build the Intel CDI GPU specification generator, which is compiled and embedded into the HookOS image before the OS build starts.
-
-```bash
-# Install Go programming language version 1.22 or later, for example, version 1.24.2
-wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
-export PATH=/usr/local/go/bin:$PATH  # add to ~/.bashrc to persist
-go version  # should report Go programming language version 1.22 or later
-```
-
 > **Notes**:
 >
 > - Keep the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` values consistent across all proxy configuration files.
@@ -82,15 +88,27 @@ From the repository root, run one of the following build modes.
 > `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings,
 > pass `skip-proxy=true` to the make command.
 
-#### Option 1 (Recommended): Build from ISO
+#### Option 1 (Recommended): Build from a Standard 24.04 Minimal desktop image
 
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image
-file. For additional image customization, see the
-[Ubuntu Desktop Raw Image Generation guide](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md).
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
+
+To build the Ubuntu image with required tools and packages:
+
+> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile` with your new password using:
+> ```bash
+> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
+> ```
 
 ```bash
-make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
+make build
 ```
+
+Or explicitly specify the standard mode:
+
+```bash
+make build MODE=standard-image
+```
+
 
 #### Option 2 (Advanced): Build with Image Composer Tool Image
 

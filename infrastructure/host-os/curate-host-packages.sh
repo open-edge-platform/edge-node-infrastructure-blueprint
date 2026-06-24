@@ -2,9 +2,11 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-set -e 
+set -e
 set -x
 
+echo "http_proxy=$http_proxy"
+echo "https_proxy=$https_proxy"
 
 #======================================================
 #  Edge Node Infrastructure Setup Script
@@ -13,18 +15,19 @@ set -x
 # for edge node infrastructure development.
 #======================================================
 
+
 install_depended_packages() {
 	echo "Updating apt and installing initial packages..."
-	sudo apt update
-	sudo apt upgrade -y
-	sudo apt install ethtool libbpf1 wayland-protocols -y
+	apt update
+	apt upgrade -y
+	apt install wget ethtool libbpf1 wayland-protocols -y
 	echo "Initial packages installed."
 }
 
 create_ppa_sources_list() {
 	echo "Creating Intel PTL PPA sources list..."
-	sudo mkdir -p /etc/apt/sources.list.d
-	sudo bash -c 'cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
+	mkdir -p /etc/apt/sources.list.d
+	bash -c 'cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
 deb https://download.01.org/intel-linux-overlay/ubuntu noble main non-free multimedia kernels
 deb-src https://download.01.org/intel-linux-overlay/ubuntu noble main non-free multimedia kernels
 EOF'
@@ -40,7 +43,7 @@ download_and_install_gpg_key() {
 	# Compare fingerprints
 	if [ "$ACTUAL_FINGERPRINT" = "$EXPECTED_FINGERPRINT" ]; then
         echo "Fingerprint matches! Safe to install."
-        sudo cp /tmp/ptl.gpg /etc/apt/trusted.gpg.d/ptl.gpg
+        cp /tmp/ptl.gpg /etc/apt/trusted.gpg.d/ptl.gpg
 	else
 		echo "ERROR: Fingerprint does not match! Aborting installation."
 		echo "Expected: $EXPECTED_FINGERPRINT"
@@ -63,10 +66,156 @@ EOF'
 
 install_essential_tools() {
 	echo "Installing essential tools and dependencies..."
-	sudo apt update
+	apt update
 	export DEBIAN_FRONTEND=noninteractive
-	sudo apt install -y libigfxcmrt-dev libigfxcmrt7 nano ocl-icd-libopencl1 curl openssh-server net-tools gir1.2-gst-plugins-bad-1.0 gir1.2-gst-plugins-base-1.0 gir1.2-gstreamer-1.0 gir1.2-gst-rtsp-server-1.0 gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-opencv gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-apps gstreamer1.0-plugins-base gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-pulseaudio gstreamer1.0-qt5 gstreamer1.0-rtsp gstreamer1.0-tools gstreamer1.0-x intel-media-va-driver-non-free libdrm-amdgpu1 libdrm-common libdrm-dev libdrm-intel1 libdrm-nouveau2 libdrm-radeon1 libdrm-tests libdrm2 libgstrtspserver-1.0-dev libgstrtspserver-1.0-0 libgstreamer-gl1.0-0 libgstreamer-opencv1.0-0 libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-bad1.0-dev libgstreamer-plugins-base1.0-0 libgstreamer-plugins-base1.0-dev libgstreamer1.0-0 libgstreamer1.0-dev libigdgmm-dev libigdgmm12 libmfx-gen1.2 libtpms-dev libtpms0 libva-dev libva-drm2 libva-glx2 libva-wayland2 libva-x11-2 libva2 libwayland-bin libwayland-client0 libwayland-cursor0 libwayland-dev libwayland-doc libwayland-egl-backend-dev libwayland-egl1 libwayland-server0 linux-firmware mesa-utils mesa-vulkan-drivers libvpl-dev libvpl-tools libmfx-gen-dev onevpl-tools ovmf ovmf-ia32 qemu-block-extra qemu-guest-agent qemu-system qemu-system-arm qemu-system-common qemu-system-data qemu-system-gui qemu-system-mips qemu-system-misc qemu-system-ppc qemu-system-s390x qemu-system-sparc qemu-system-x86 qemu-user qemu-user-binfmt qemu-utils va-driver-all vainfo weston xserver-xorg-core libvirt0 libvirt-clients libvirt-daemon libvirt-daemon-config-network libvirt-daemon-config-nwfilter libvirt-daemon-driver-lxc libvirt-daemon-driver-qemu libvirt-daemon-driver-storage-gluster libvirt-daemon-driver-storage-iscsi-direct libvirt-daemon-driver-storage-rbd libvirt-daemon-driver-storage-zfs libvirt-daemon-driver-vbox libvirt-daemon-driver-xen libvirt-daemon-system libvirt-daemon-system-systemd libvirt-dev libvirt-doc libvirt-login-shell libvirt-sanlock libvirt-wireshark libnss-libvirt swtpm swtpm-tools bmap-tools adb autoconf automake libtool cmake g++ gcc git intel-gpu-tools libssl3 libssl-dev make mosquitto mosquitto-clients build-essential apt-transport-https default-jre docker-compose ffmpeg git-lfs gnuplot lbzip2 libglew-dev libglm-dev libsdl2-dev mc openssl pciutils python3-pandas python3-pip python3-seaborn terminator wmctrl gdbserver iperf3 msr-tools powertop linuxptp lsscsi tpm2-tools tpm2-abrmd binutils cifs-utils i2c-tools xdotool gnupg lsb-release qemu-system-modules-opengl socat virt-viewer spice-client-gtk util-linux-extra dbus-x11 sg3-utils rpm --allow-downgrades
+	apt install -y --no-install-recommends libigfxcmrt-dev libigfxcmrt7 nano ocl-icd-libopencl1 curl openssh-server net-tools gir1.2-gst-plugins-bad-1.0 gir1.2-gst-plugins-base-1.0 gir1.2-gstreamer-1.0 gir1.2-gst-rtsp-server-1.0 gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-opencv gstreamer1.0-plugins-bad gstreamer1.0-plugins-bad-apps gstreamer1.0-plugins-base gstreamer1.0-plugins-base-apps gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-pulseaudio gstreamer1.0-qt5 gstreamer1.0-rtsp gstreamer1.0-tools gstreamer1.0-x intel-media-va-driver-non-free libdrm-amdgpu1 libdrm-common libdrm-dev libdrm-intel1 libdrm-nouveau2 libdrm-radeon1 libdrm-tests libdrm2 libgstrtspserver-1.0-dev libgstrtspserver-1.0-0 libgstreamer-gl1.0-0 libgstreamer-opencv1.0-0 libgstreamer-plugins-bad1.0-0 libgstreamer-plugins-bad1.0-dev libgstreamer-plugins-base1.0-0 libgstreamer-plugins-base1.0-dev libgstreamer1.0-0 libgstreamer1.0-dev libigdgmm-dev libigdgmm12 libmfx-gen1.2 libva-dev libva-drm2 libva-glx2 libva-wayland2 libva-x11-2 libva2 libwayland-bin libwayland-client0 libwayland-cursor0 libwayland-dev libwayland-doc libwayland-egl-backend-dev libwayland-egl1 libwayland-server0 linux-firmware mesa-utils mesa-vulkan-drivers libvpl-dev libvpl-tools libmfx-gen-dev onevpl-tools va-driver-all vainfo weston intel-gpu-tools libssl3 ffmpeg git-lfs lbzip2 openssl python3-pandas python3-pip python3-seaborn msr-tools powertop linuxptp lsscsi lsb-release vim chrony firmware-sof-signed iputils-ping tcpdump file less build-essential  rpm --allow-downgrades
+	
+	systemctl --root=/ disable systemd-timesyncd || true
+	systemctl --root=/ mask    systemd-timesyncd || true
+	systemctl --root=/ enable ssh || true
+	systemctl --root=/ enable  chrony || true  
 	echo "Essential tools and dependencies installed."
+}
+
+enable_display_manager() {
+	echo "Enabling display manager for desktop environment..."
+	apt install -y gdm3 || apt install -y lightdm
+	systemctl --root=/ enable gdm3 2>/dev/null || systemctl --root=/ enable lightdmG
+	echo "Display manager enabled."
+}
+
+install_cloud_init() {
+	echo "Installing and configuring cloud-init"
+	export DEBIAN_FRONTEND=noninteractive
+
+	apt update
+	apt install -y cloud-init
+
+	echo "Configuring cloud-init for local-only operation..."
+
+	# Remove any previous custom configs
+	rm -f /etc/cloud/cloud.cfg.d/99-*.cfg
+
+	# Use only the None datasource
+	cat >/etc/cloud/cloud.cfg.d/99-datasource.cfg <<'EOF'
+datasource_list: [ None ]
+EOF
+
+	# Local cloud-init configuration
+	cat >/etc/cloud/cloud.cfg.d/99-local.cfg <<'EOF'
+#cloud-config
+
+preserve_hostname: true
+manage_etc_hosts: true
+system_upgrade: false
+
+runcmd:
+  - echo "Cloud-init provisioning completed" > /var/log/cloud-init-local.log
+final_message: 'Cloud-init local configuration completed at $TIMESTAMP'
+EOF
+
+	# ds-identify configuration
+	cat >/etc/cloud/ds-identify.cfg <<'EOF'
+policy: enabled
+EOF
+
+	echo "Enabling cloud-init services..."
+
+	systemctl --root=/ enable cloud-init-local.service || true
+	systemctl --root=/ enable cloud-init.service || true
+	systemctl --root=/ enable cloud-config.service || true
+	systemctl --root=/ enable cloud-final.service || true
+
+	echo "Cleaning cloud-init state..."
+
+	cloud-init clean --logs || true
+	echo "policy: enabled" > /etc/cloud/ds-identify.cfg
+	echo "datasource: NoCloud" >> /etc/cloud/ds-identify.cfg
+	rm -rf /var/lib/cloud/*
+
+	echo "Cloud-init installation complete."
+
+}
+
+install_docker() {
+	echo "Installing Docker..."
+	apt update
+	apt install -y ca-certificates curl gnupg
+
+	install -m 0755 -d /etc/apt/keyrings
+
+	curl -fsSL --connect-timeout 10 --max-time 60 https://download.docker.com/linux/ubuntu/gpg \
+		| gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+	chmod a+r /etc/apt/keyrings/docker.gpg
+
+	echo \
+		"deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+		"$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+		tee /etc/apt/sources.list.d/docker.list > /dev/null
+	apt update
+	apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+	systemctl --root=/ enable docker || true
+	echo "Docker installed and running."
+}	
+instal_k3s() {
+	echo "Installing k3s..."
+	for i in 1 2 3; do
+		curl -sfL --max-time 120 --retry 3 \
+			https://get.k3s.io -o /tmp/k3s-install.sh && break
+		echo "  k3s download attempt $i failed, retrying..."
+		sleep 10
+	done
+
+	chmod +x /tmp/k3s-install.sh
+
+	INSTALL_K3S_EXEC="server --disable=traefik" \
+		INSTALL_K3S_SKIP_ENABLE=true \
+		INSTALL_K3S_SKIP_START=true \
+		sh /tmp/k3s-install.sh
+
+	systemctl --root=/ enable k3s || true
+	
+	echo "k3s installed successfully."
+}
+install_helm() {
+	echo "Installing Helm..."
+	curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    chmod 700 get_helm.sh
+    ./get_helm.sh
+	rm get_helm.sh
+	echo "Helm installed successfully."
+}
+
+install_realsense_pkgs(){
+	echo "Installing Intel RealSense packages..."
+	# ref: https://docs.ros.org/en/iron/p/librealsense2/user_docs/distribution_linux.html
+	mkdir -p /etc/apt/keyrings
+	KEY_ID=$(curl -sSf "https://librealsense.intel.com/Debian/apt-repo/dists/$(lsb_release -cs)/InRelease" \
+		| gpg --status-fd 1 --verify 2>/dev/null | grep "NO_PUBKEY" | awk '{print $3}')
+	curl -sSf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY_ID}" \
+		| gpg --dearmor | tee /etc/apt/keyrings/librealsense.gpg > /dev/null
+	chmod 644 /etc/apt/keyrings/librealsense.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/librealsense.gpg] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" \
+		| tee /etc/apt/sources.list.d/librealsense.list
+	apt-get update
+	DEBIAN_FRONTEND=noninteractive apt-get install -y \
+		librealsense2-dkms librealsense2 librealsense2-utils librealsense2-dev librealsense2-gl
+
+	echo "Intel RealSense packages installed successfully."
+}
+install_performance_tools() {
+	echo "Installing performance analysis tools..."
+	wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/
+	if [ $? -eq 0 ]; then
+		echo "Successfully downloaded the debian files"
+		apt install -y  -f --fix-broken -o Dpkg::Options::="--force-overwrite" /tmp/*.deb
+		apt install -f
+	else
+		echo "Failure to download the debian files"
+	fi
+	echo "Performance analysis tools installed successfully."
 }
 
 install_gpu_npu_pkgs() {
@@ -124,19 +273,19 @@ install_gpu_npu_pkgs() {
 	fi
     
     # Update package manager and install dependencies
-    sudo apt update
-    sudo apt install libtbb12 -y
+    apt update
+    apt install libtbb12 -y
     
     # Purge old packages if they exist
-    sudo dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
+    dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
     
     # Install all downloaded .deb packages with error checking
     echo "Installing downloaded packages..."
-    if sudo dpkg -i ./*.deb; then
+    if dpkg -i ./*.deb; then
 		echo "NPU,GPU Packages installed successfully"
 	else
 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
-		sudo apt --fix-broken install -y || {
+		apt --fix-broken install -y || {
 			echo "ERROR: Failed to install packages"
 			exit 1
 		}
@@ -152,19 +301,25 @@ install_gpu_npu_pkgs() {
 
 install_kernel() {
 	echo "Installing Linux kernel..."
-	sudo apt install linux-image-6.18-intel linux-headers-6.18-intel -y
+	apt install linux-image-6.18-intel linux-headers-6.18-intel -y
+	KERNEL_VERSION=$(ls /lib/modules/ | grep intel | head -n 1)
+	if [ -z "$KERNEL_VERSION" ]; then
+    	echo "ERROR: No Intel kernel found in /lib/modules!"
+    		exit 1
+	fi
+	echo "Found Kernel Version: $KERNEL_VERSION"
+
+	echo "=== Step 4: Generating Initramfs Ramdisk ==="
+	update-initramfs -c -k "$KERNEL_VERSION"
+
+	echo "=== Step 5: Creating Generic Boot Symlinks ==="
+	ln -sf "vmlinuz-$KERNEL_VERSION" /boot/vmlinuz-intel
+	ln -sf "initrd.img-$KERNEL_VERSION" /boot/initrd.img-intel
 	echo "Linux kernel installed."
 }
 
-update_grub_configuration() {
-	echo "Updating GRUB configuration..."
-	sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"/GRUB_CMDLINE_LINUX_DEFAULT="quiet splash xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192"/' /etc/default/grub
-	sudo update-grub
-	echo "GRUB configuration updated."
-}
-
 main() {
-	
+
     install_depended_packages
 
     create_ppa_sources_list
@@ -175,12 +330,24 @@ main() {
 
     install_essential_tools
 
-	install_gpu_npu_pkgs
+	enable_display_manager
+
+
+	install_cloud_init
+
+	install_docker
+
+	instal_k3s
+
+	install_helm
+
+	install_realsense_pkgs
+
+    install_gpu_npu_pkgs
 
     install_kernel
 
-    update_grub_configuration
-	
+	install_performance_tools
 }
 
 main "$@"

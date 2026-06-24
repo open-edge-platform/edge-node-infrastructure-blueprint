@@ -5,14 +5,39 @@
 SHELL := bash -eu -o pipefail
 
 # Find all shell scripts
-SH_FILES := $(shell find . -type f -name '*.sh')
+SH_FILES := $(shell find . -type f -name '*.sh' 2>/dev/null)
+
+BASE_IMAGE := edge-base-builder:ubuntu24.04
+BUILD_ARTIFACTS_IMAGE := build-edge-blueprint-artifacts:latest
+MICRO_OS_IMAGE := micro-os-builder:ubuntu24.04
+HOST_OS_IMAGE := host-os-builder:ubuntu24.04
+
+MODE     ?= standard-image
+ICT_IMG  ?=
+
+export DOCKER_BUILDKIT=1
+export DOCKER_CLI_EXPERIMENTAL=enabled
 
 PROXY_FILE := proxy.env
 ETC_ENV    := /etc/environment
-# Environment variables for build commands.skip-proxy to bypass proxy checks, useful for CI environments where proxy settings are not needed.
+# Environment variables for build commands.skip-proxy to bypass proxy checks
 # If proxy settings are detected under proxy.env, they will be loaded into ENV_PROXIES
 # if not, ENV_PROXIES will be updated from /etc/environment. 
 # if neither have valid proxy settings, the user will be prompted to proceed without proxy or abort the build.
+check-docker:
+	@# Help: Check if Docker is installed and functional
+	@echo "Checking if Docker is installed..."
+	@if ! command -v docker &> /dev/null; then \
+		echo "ERROR: Docker is not installed. Please install Docker and try again."; \
+		exit 1; \
+	fi
+	@echo "Docker found. Testing Docker with hello-world image..."
+	@if ! docker pull hello-world; then \
+		echo "ERROR: Failed to pull hello-world image. Docker may not be properly configured. check proxy settings or Docker daemon."; \
+		exit 1; \
+	fi
+	@echo "Docker is installed and functional. Proceeding with next steps..."
+
 check-proxy:
 	@if [ "$(skip-proxy)" = "true" ]; then \
 		echo "Proxy explicitly skipped by user."; \
@@ -27,22 +52,20 @@ check-proxy:
 			echo "$(PROXY_FILE) contains empty values. Checking $(ETC_ENV)..."; \
 			\
 			# Extract proxy values directly from /etc/environment if it exists \
-			SYS_HTTP=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTP_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
-			SYS_HTTPS=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTPS_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
-			SYS_NO=$$( [ -f $(ETC_ENV) ] && grep -E -i "^NO_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" ); \
+			SYS_HTTP=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTP_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" || true ); \
+			SYS_HTTPS=$$( [ -f $(ETC_ENV) ] && grep -E -i "^HTTPS_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" || true ); \
+			SYS_NO=$$( [ -f $(ETC_ENV) ] && grep -E -i "^NO_PROXY=" $(ETC_ENV) | head -n1 | cut -d'=' -f2 | tr -d '"' | tr -d "'" || true ); \
 			\
 			if [ -n "$$SYS_HTTP" ] && [ -n "$$SYS_HTTPS" ]; then \
 				echo "System proxies found in $(ETC_ENV)! Syncing them into $(PROXY_FILE)..."; \
-				echo "HTTP_PROXY=\"$$SYS_HTTP\"" > $(PROXY_FILE); \
-				echo "HTTPS_PROXY=\"$$SYS_HTTPS\"" >> $(PROXY_FILE); \
-				echo "NO_PROXY=\"$$SYS_NO\"" >> $(PROXY_FILE); \
-				echo "http_proxy=\"$$SYS_HTTP\"" >> $(PROXY_FILE); \
-				echo "https_proxy=\"$$SYS_HTTPS\"" >> $(PROXY_FILE); \
-				echo "no_proxy=\"$$SYS_NO\"" >> $(PROXY_FILE); \
+				sudo chown "$$(id -u):$$(id -g)" $(PROXY_FILE) 2>/dev/null || true; \
+				printf 'HTTP_PROXY="%s"\nHTTPS_PROXY="%s"\nNO_PROXY="%s"\nhttp_proxy="%s"\nhttps_proxy="%s"\nno_proxy="%s"\n' \
+					"$$SYS_HTTP" "$$SYS_HTTPS" "$$SYS_NO" \
+					"$$SYS_HTTP" "$$SYS_HTTPS" "$$SYS_NO" > $(PROXY_FILE); \
 			else \
 				# Both proxy.env and /etc/environment are empty \
 				echo "No proxy configurations found in $(PROXY_FILE) or $(ETC_ENV)."; \
-				echo -n "Do you want to proceed without a proxy? [y/N]: " && read ans; \
+				read -p "Do you want to proceed without a proxy? [y/N]: " ans < /dev/tty; \
 				if [ "$$ans" != "y" ] && [ "$$ans" != "Y" ]; then \
 					echo "Build aborted. Please populate $(PROXY_FILE) or configure system proxies."; \
 					exit 1; \
@@ -56,13 +79,56 @@ check-proxy:
 all: 
 	@# Help: Runs build, lint, test stages
 	build lint test 	
-	
-build: check-proxy
-	@# Help: Runs build stage
+
+# Prepare base image with common dependencies
+build-base:
+	@echo "Building base image: $(BASE_IMAGE)"
+	@set -a; . $(PROXY_FILE) 2>/dev/null || true; set +a; \
+	docker build \
+		--build-arg http_proxy="$${http_proxy:-}" \
+		--build-arg https_proxy="$${https_proxy:-}" \
+		--build-arg no_proxy="$${no_proxy:-}" \
+		--build-arg HTTP_PROXY="$${HTTP_PROXY:-}" \
+		--build-arg HTTPS_PROXY="$${HTTPS_PROXY:-}" \
+		--build-arg NO_PROXY="$${NO_PROXY:-}" \
+		-f infrastructure/enib-base-container/Dockerfile \
+		-t $(BASE_IMAGE) \
+		infrastructure/enib-base-container
+
+build: check-proxy check-docker build-base
 	@echo "---MAKEFILE BUILD---"
-	@echo "Preparing USB Installation Artifacts $@"
-	echo $@
-	cd infrastructure/build-artifacts && . ../../$(PROXY_FILE) 2>/dev/null && sudo -E ./build-installation-artifacts.sh "$(MODE)" "$(ISO_URL)" "$(ICT_IMG)" && cd ../..
+	@echo "Preparing USB Installation Artifacts (containerized in Ubuntu 24.04)"
+	@set -a; . $(PROXY_FILE) 2>/dev/null || true; set +a; \
+	cd $(dir $(abspath $(firstword $(MAKEFILE_LIST)))) && \
+	echo "Building orchestrator image: $(BUILD_ARTIFACTS_IMAGE)"; \
+	docker build \
+		--build-arg http_proxy="$${http_proxy:-}" \
+		--build-arg https_proxy="$${https_proxy:-}" \
+		--build-arg no_proxy="$${no_proxy:-}" \
+		--build-arg HTTP_PROXY="$${HTTP_PROXY:-}" \
+		--build-arg HTTPS_PROXY="$${HTTPS_PROXY:-}" \
+		--build-arg NO_PROXY="$${NO_PROXY:-}" \
+		-f infrastructure/build-artifacts/Dockerfile \
+		-t $(BUILD_ARTIFACTS_IMAGE) \
+		. && \
+	docker run --rm \
+		--privileged \
+		--network host \
+		-e http_proxy="$${http_proxy:-}" \
+		-e https_proxy="$${https_proxy:-}" \
+		-e no_proxy="$${no_proxy:-}" \
+		-e HTTP_PROXY="$${HTTP_PROXY:-}" \
+		-e HTTPS_PROXY="$${HTTPS_PROXY:-}" \
+		-e NO_PROXY="$${NO_PROXY:-}" \
+		-e MICRO_OS_REBUILD="$${MICRO_OS_REBUILD:-false}" \
+		-e HOST_OS_REBUILD="$${HOST_OS_REBUILD:-false}" \
+		-e HOST_REPO_ROOT="$$PWD" \
+		-e HOST_UID="$$(id -u)" \
+		-e HOST_GID="$$(id -g)" \
+		-v "$$PWD":/workspace \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		$(BUILD_ARTIFACTS_IMAGE) \
+		"$(MODE)" "$(ICT_IMG)"
 	@echo "---END MAKEFILE Build---"
 
 lint: shellcheck
@@ -81,11 +147,23 @@ shellcheck:
 clean:
 	@# Help: Runs clean stage
 	@echo "---MAKEFILE CLEAN---"
-	echo $@
-	cd infrastructure/build-artifacts && sudo rm -rf out/ && cd ../..
-	cd infrastructure/host-os && sudo umount iso_mount  && sudo rm -rf iso_mount ubuntu-desktop-24.04* && cd ../..
-	cd infrastructure/micro-os && sudo rm -rf out/ && cd ../..
+	docker run --rm --privileged \
+		--entrypoint /bin/bash \
+		-v "$$PWD":/workspace \
+		$(BUILD_ARTIFACTS_IMAGE) \
+		bash -c "rm -rf /workspace/infrastructure/build-artifacts/out /workspace/infrastructure/host-os/*.raw.img* /workspace/infrastructure/host-os/build /workspace/infrastructure/micro-os/build" || true
+	docker rmi -f $(BUILD_ARTIFACTS_IMAGE) 2>/dev/null || true
+	docker rmi -f $(MICRO_OS_IMAGE) 2>/dev/null || true
+	docker rmi -f $(HOST_OS_IMAGE) 2>/dev/null || true
+	sudo rm -rf infrastructure/build-artifacts/out infrastructure/host-os/build infrastructure/micro-os/output
 	@echo "---END MAKEFILE CLEAN---"
+
+clean-all: clean
+	@# Help: Clean all including base image (use when base dependencies change)
+	@echo "Removing base image: $(BASE_IMAGE)"
+	docker rmi -f $(BASE_IMAGE) 2>/dev/null || true
+	docker builder prune -f
+	@echo "---END CLEAN ALL---"
 	
 coverage:
 	@# Help: Runs coverage stage

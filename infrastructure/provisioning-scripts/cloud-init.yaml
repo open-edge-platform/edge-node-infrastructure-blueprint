@@ -3,13 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # shellcheck disable=all
 
-# NTP Time Sync Configuration
-ntp:
-  enabled: true
-  ntp_client: systemd-timesyncd
-  servers:
-    - time.google.com
-
 growpart:
   mode: auto
   devices: ['/']

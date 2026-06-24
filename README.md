@@ -24,6 +24,24 @@ The solution bridges the gap between edge hardware capabilities and application 
 
 ### 1. Prerequisites
 
+#### Docker Setup
+
+Docker Engine is required because the build workflow uses Docker images and containers.
+
+Install Docker Engine for your Linux distribution using the official Docker documentation:
+- Linux install overview: https://docs.docker.com/engine/install/
+- Debian: https://docs.docker.com/engine/install/debian/
+- Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+- RHEL: https://docs.docker.com/engine/install/rhel/
+- Fedora: https://docs.docker.com/engine/install/fedora/
+
+Configure Docker for non-root usage and service startup after installation:
+- https://docs.docker.com/engine/install/linux-postinstall/
+
+If you are behind a proxy, configure Docker daemon proxy settings:
+- https://docs.docker.com/config/daemon/systemd/
+
+
 #### Go Toolchain
 
 Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
@@ -54,15 +72,26 @@ From the repository root, run one of the following build modes.
 > Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 > For air-gapped deployments: run `infrastructure/installation-scripts/download-resources.sh` before building, to bundle Intel's device-plugin manifests and container images into the installation artifacts.
 
-#### Option 1: Build from ISO Image File
+#### Option 1: Build from a Standard 24.04 Minimal desktop image
 
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image file:
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
+
+To build the Ubuntu image with required tools and packages:
+
+> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile` with your new password using:
+> ```bash
+> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
+> ```
 
 ```bash
-make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
+make build
 ```
 
-For additional image customization, see `infrastructure/host-os/readme.md`.
+Or explicitly specify the standard mode:
+
+```bash
+make build MODE=standard-image
+```
 
 #### Option 2: Build with Image Composer Tool Image
 
