@@ -52,9 +52,10 @@ cd edge-workloads-and-benchmarks
 
 ### Install Prerequisites and Download Collateral
 
-Driver and tooling prerequisites are already installed by the Infrastructure Blueprint provisioning step, so skip `make prereqs`. Download the benchmark collateral and validate the environment:
+GPU and NPU drivers are already installed by the Infrastructure Blueprint provisioning step, so disable their installation by passing `INCLUDE_GPU=False INCLUDE_NPU=False` to `make prereqs`. Then download the benchmark collateral and validate the environment:
 
 ```bash
+make prereqs INCLUDE_GPU=False INCLUDE_NPU=False
 make collateral INCLUDE_GENAI=True
 make check
 ```
