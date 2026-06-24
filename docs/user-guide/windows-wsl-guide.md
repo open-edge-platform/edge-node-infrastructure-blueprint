@@ -3,6 +3,12 @@ SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
 
+<!--hide_directive
+```{eval-rst}
+:orphan:
+```
+hide_directive-->
+
 # Windows WSL Guide: Setup Developer Linux build system with Windows Subsystem Linux (WSL2)
 
 This guide explains how to prepare a Windows machine using Windows Subsystem for Linux 2 (WSL2) with Ubuntu 24.04.
@@ -39,7 +45,7 @@ This opens a Ubuntu 24.04 terminal. All subsequent steps run inside this termina
 
 ---
 
-## Step 3: Network configuration 
+## Step 3: Network configuration
 
 Depending on the Windows development system's network connectivity, the networking settings must be configured accordingly.
 
