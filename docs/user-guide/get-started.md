@@ -67,6 +67,10 @@ go version  # should report Go programming language version 1.22 or later
 
 ## Phase 1: Build Artifacts on the Developer System
 
+For the developer system, we recommend using Ubuntu 24.04 or Ubuntu 22.04 LTS. The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
+
+For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](./windows-wsl-guide.md).
+
 ### 1. Clone the Repository
 
 ```bash
