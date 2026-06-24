@@ -30,8 +30,8 @@ CDI uses predefined YAML specification files in `/etc/cdi/` to describe the devi
 
 In Edge Node Infrastructure Blueprint images, the CDI specification generation service is **automatically started on first boot**. The service includes:
 
-- **GPU specifications**: Generated using the official `intel-cdi-specs-generator-gpu` binary from [Intel® Resource Drivers for Kubernetes
-](https://github.com/intel/intel-resource-drivers-for-kubernetes)
+- **GPU specifications**: Generated using the official `intel-cdi-specs-generator-gpu` binary
+  from [Intel® Resource Drivers for Kubernetes](https://github.com/intel/intel-resource-drivers-for-kubernetes)
 - **NPU specifications**: Generated using the custom `intel-cdi-npu-generator.sh` bash script
 
 The CDI generation service is pre-configured with:

@@ -7,13 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 
 This guide walks you through provisioning an Intel edge node end-to-end: building installation artifacts on a developer system, writing them to a bootable USB, installing the OS on the target system, and validating the bring-up.
 
-![Setup overview](setup.svg)
+![Setup overview](./_assets/setup.svg)
 
 The workflow involves two types of systems:
 
-| System | Role |
-|---|---|
-| **Developer system** | Builds the OS image and USB installation artifacts |
+| System                   | Role                                                           |
+| ------------------------ | -------------------------------------------------------------- |
+| **Developer system**     | Builds the OS image and USB installation artifacts             |
 | **Target (host) system** | The Intel edge node that will be provisioned and run workloads |
 
 The process is divided into three phases:
@@ -28,23 +28,23 @@ The process is divided into three phases:
 
 The developer system is used to build installation artifacts and prepare the bootable USB. The build flow has been verified on:
 
-| Component | Minimum |
-|---|---|
-| OS | Ubuntu 22.04 LTS or Ubuntu 24.04 LTS (x86-64) |
-| CPU | Any modern x86-64 processor with virtualisation support |
-| Memory | 16 GiB RAM |
-| Storage | 100 GiB free disk space (for image build workspace) |
-| Network | Internet access (or configured proxy) to fetch packages and ISOs |
+| Component | Minimum                                                          |
+| --------- | ---------------------------------------------------------------- |
+| OS        | Ubuntu 22.04 LTS or Ubuntu 24.04 LTS (x86-64)                    |
+| CPU       | Any modern x86-64 processor with virtualisation support          |
+| Memory    | 16 GiB RAM                                                       |
+| Storage   | 100 GiB free disk space (for image build workspace)              |
+| Network   | Internet access (or configured proxy) to fetch packages and ISOs |
 
 ### Target (Host) System
 
 The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
 
-| CPU | Memory | Storage |
-|---|---|---|
+| CPU                       | Memory      | Storage      |
+| ------------------------- | ----------- | ------------ |
 | Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra X7 358H | 32 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra 5 338H | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
 
 All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
 
@@ -86,7 +86,6 @@ From the repository root, run one of the following build modes.
 > `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings,
 > pass `skip-proxy=true` to the make command.
 
-
 #### Option 1 (Recommended): Build from ISO
 
 Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image
@@ -105,8 +104,7 @@ Option 1.
 
 To generate an image using Image Composer Tool, refer to:
 
-* [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md).
-
+- [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md).
 
 #### Developer Incremental Build
 
@@ -116,6 +114,7 @@ For reusable ICT images, use `MODE=image-from-tool` with `ICT_IMG` instead of `M
 ```bash
 make build MODE=reuse-image
 ```
+
 You can also manually copy an existing image to USB partition 5 when required by your process.
 
 #### Build output
@@ -166,7 +165,7 @@ If installation fails or you need to troubleshoot, run the installer in interact
 
 This launches the installer in interactive debug mode for troubleshooting and manual configuration.
 
-> **Note**: Proxy configuration is optional in unrestricted network environments.
+> **Note:** Proxy configuration is optional in unrestricted network environments.
 
 Run the following command:
 
@@ -255,7 +254,7 @@ For details on exposing Intel® GPU or NPU to containers via CDI, see the
 
 ## Next Steps
 
-- Leverage [Advanced Image Customization](./advance-package-curation.md) if you want to build a custom image flavor.
+- Use [Advanced Image Customization](./advance-package-curation.md) if you want to build a custom image flavor.
 - Run repeatable workflows through natural language using the agent skills described in the
   [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md)
   section.

@@ -52,7 +52,6 @@ The script produces the following sections. Use this table to navigate the outpu
 | **DMESG: LAST 30 INTEL-RELATED LINES** | Filtered dmesg lines for `xe`, `intel_vpu`, and related Intel driver messages |
 | **RECOMMENDED PACKAGES FOR INTEL PTL** | `apt install` commands grouped by: kernel/firmware, core diagnostics, GPU/media, OpenCL/Level Zero, NPU/OpenVINO, useful extras |
 
-
 ## Provisioned System Profile
 
 The following tables describe what is expected to be present on a system that has been provisioned using the Infrastructure Blueprint. They cover the four key layers of a provisioned edge node: the underlying platform components, the AI and compute environment, the system services, and the orchestration stack.

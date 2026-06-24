@@ -17,10 +17,9 @@ distros on x86_64.
 This article will show you how to:
 
 - [Build and verify the default template](#build-and-verify-the-default-template)
-- [Package a pre-built image into artifacts](#package-a-pre-built-image-into-artifacts)
+- [Package the image into artifacts](#package-the-image-into-artifacts)
 - [Package curation and template customization](#package-curation-and-template-customization)
 - [Troubleshoot the process](#troubleshoot)
-
 
 ## Build and verify the default template
 
@@ -124,7 +123,7 @@ When the build completes, expect the following output on the console with build 
 
 The output artefacts are written to:
 
-```
+```text
 ./workspace/ubuntu-ubuntu24-x86_64/imagebuild/<config-name>/
 ```
 
@@ -133,7 +132,6 @@ Expected artefacts:
 | File | Description |
 |------|-------------|
 | `minimal-desktop-ubuntu-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
-
 
 ## Package the image into artifacts
 

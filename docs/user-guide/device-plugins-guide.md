@@ -212,7 +212,8 @@ spec:
               gpu.intel.com/xe: "1"
 ```
 
-The scheduler only places pods on nodes that have available GPU or NPU resources. If the node has 7 SR-IOV VFs, up to 7 pods can each receive one GPU device.
+The scheduler only places pods on nodes that have available GPU or NPU resources. If the node
+has 7 SR-IOV VFs, up to 7 pods can each receive one GPU device.
 
 ---
 
@@ -250,6 +251,7 @@ kubectl describe pod <pod-name>
 ```
 
 Common causes:
+
 - **Insufficient resources**: All GPU/NPU devices are already allocated to other pods
 - **No matching node**: The node does not have the requested hardware
 - **Plugin not running**: The device plugin pod crashed or was not installed
