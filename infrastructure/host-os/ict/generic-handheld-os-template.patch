@@ -47,7 +47,7 @@
    # Intel overlay repository (aligned with installer script)
    - codename: "noble"
      url: "https://download.01.org/intel-linux-overlay/ubuntu"
-@@ -281,12 +267,41 @@
+@@ -281,17 +267,46 @@
        # additional PTL packages
        - xdp-tools
        - rpc-go
@@ -90,6 +90,12 @@
  
  systemConfig:
    name: minimal
+   description: Minimal desktop ubuntu image for PTL
+-
++  hostname: minimal-desktop-ubuntu
+   bootloader:
+     bootType: efi
+     provider: grub
 @@ -360,6 +375,7 @@
      - cron
      - ethtool

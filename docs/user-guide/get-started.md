@@ -36,6 +36,10 @@ The developer system is used to build installation artifacts and prepare the boo
 | Storage   | 100 GiB free disk space (for image build workspace)              |
 | Network   | Internet access (or configured proxy) to fetch packages and ISOs |
 
+> **BIOS requirement:** The image build uses QEMU to run the Ubuntu installer inside a virtual machine.
+> Hardware virtualisation (**Intel VT-x**) must be enabled in the developer system BIOS before running the build.
+> To verify it is enabled, run `grep -m1 -c 'vmx' /proc/cpuinfo` — a value of `1` or higher confirms VT-x is active.
+
 ### Target (Host) System
 
 The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
@@ -147,6 +151,7 @@ Required inputs:
 - Configuration File (`config-file`): User-customizable settings that include the following:
   - Proxy configurations
   - SSH public key (`id_rsa.pub`)
+  - Workload orchestration preference (host_type)
   - Single Root I/O Virtualization (SRIOV) toggle
   - Additional system parameters
   - Installation Mode (Attended or Unattended)
