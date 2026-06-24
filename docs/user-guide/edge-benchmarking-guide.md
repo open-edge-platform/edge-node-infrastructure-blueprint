@@ -52,8 +52,9 @@ cd edge-workloads-and-benchmarks
 
 ### Install Prerequisites and Download Collateral
 
+Driver and tooling prerequisites are already installed by the Infrastructure Blueprint provisioning step, so skip `make prereqs`. Download the benchmark collateral and validate the environment:
+
 ```bash
-make prereqs
 make collateral INCLUDE_GENAI=True
 make check
 ```
