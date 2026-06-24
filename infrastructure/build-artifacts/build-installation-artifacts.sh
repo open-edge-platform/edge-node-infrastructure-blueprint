@@ -19,6 +19,14 @@ echo "Started Alpine OS build!!,it will take some time"
 
 pushd ../micro-os/ || exit 1
 
+sudo apt update
+if sudo apt install cpio -y > /dev/null; then
+    echo "cpio package installed successfully!"
+else
+    echo "Error: Failed to install cpio package. Exiting."
+    exit 1
+fi
+
 if bash build-alpine-os.sh; then
     echo "Alpine OS Build Successful"
 else
