@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-.PHONY: all build lint shellcheck clean coverage license list help
+.PHONY: all build build-cdi-generator lint shellcheck clean coverage license list help
 SHELL := bash -eu -o pipefail
 
 # Find all shell scripts
@@ -57,7 +57,25 @@ all:
 	@# Help: Runs build, lint, test stages
 	build lint test 	
 	
-build: check-proxy
+build-cdi-generator:
+	@# Help: Build CDI GPU spec generator binary (requires Go 1.22+)
+	@echo "---MAKEFILE BUILD CDI GENERATOR---"
+	@CDI_BINARY="infrastructure/installation-scripts/cdi/intel-cdi-specs-generator-gpu"; \
+	if [ -x "$$CDI_BINARY" ]; then \
+		echo "CDI GPU generator already built, skipping"; \
+	elif ! command -v go >/dev/null 2>&1; then \
+		echo "WARNING: Go 1.22+ not found — skipping CDI GPU generator build. GPU CDI support will not be available."; \
+	else \
+		echo "Building CDI GPU spec generator (one-time)..."; \
+		if bash infrastructure/installation-scripts/cdi/build-gpu-generator.sh; then \
+			echo "CDI GPU generator built successfully"; \
+		else \
+			echo "WARNING: CDI GPU generator build failed. GPU CDI support will not be available."; \
+		fi; \
+	fi
+	@echo "---END MAKEFILE BUILD CDI GENERATOR---"
+
+build: check-proxy build-cdi-generator
 	@# Help: Runs build stage
 	@echo "---MAKEFILE BUILD---"
 	@echo "Preparing USB Installation Artifacts $@"

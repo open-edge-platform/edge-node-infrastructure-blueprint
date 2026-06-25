@@ -37,25 +37,6 @@ popd > /dev/null || exit 1
 
 }
 
-# TODO: Move CDI binary build to Host OS preparation stage — temporary solution
-# Build the CDI GPU spec generator binary if not already present (requires Go 1.22+)
-build-cdi-generator(){
-
-CDI_BINARY="../installation-scripts/cdi/intel-cdi-specs-generator-gpu"
-if [ -x "$CDI_BINARY" ]; then
-    echo "CDI GPU generator already built, skipping"
-elif ! command -v go >/dev/null 2>&1; then
-    echo "WARNING: Go 1.22+ not found — skipping CDI GPU generator build. GPU CDI support will not be available."
-else
-    echo "Building CDI GPU spec generator (one-time)..."
-    if bash ../installation-scripts/cdi/build-gpu-generator.sh; then
-        echo "CDI GPU generator built successfully"
-    else
-        echo "WARNING: CDI GPU generator build failed. GPU CDI support will not be available."
-    fi
-fi
-
-}
 
 # Download Ubuntu image and store it under out directory
 download-Ubuntu_img(){
@@ -270,8 +251,6 @@ case "$MODE" in
         exit 1
         ;;
 esac 
-
-build-cdi-generator
 
 build-alpine-os
 
