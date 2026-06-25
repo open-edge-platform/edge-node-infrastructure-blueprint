@@ -114,7 +114,7 @@ clean:
 	@echo "Removing build artefacts..."
 	@sudo -n rm -rf infrastructure/build-artifacts/out/
 	@sudo -n rm -rf infrastructure/host-os/build/
-	@sudo -n rm -rf infrastructure/host-os/ubuntu-desktop-24.04*
+	@sudo -n rm -rf infrastructure/host-os/custom_image*
 	@sudo -n rm -rf infrastructure/micro-os/build/ infrastructure/micro-os/output/
 	@echo "---END MAKEFILE CLEAN---"
 	
