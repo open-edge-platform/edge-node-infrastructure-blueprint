@@ -252,10 +252,6 @@ For details on exposing Intel® GPU or NPU to containers via CDI, see the
 - USB preparation fails: Verify the device path and available USB capacity.
 - `kubectl` issues: Confirm that the Kubernetes installation has completed and the node status is `Ready`.
 - GPU or NPU not detected: Inspect `dmesg` for driver load failures.
-- CDI GPU generator is not built because of the wrong Go programming language version:
-  the build runs under `sudo`, which may find a different Go programming language
-  version. Verify with `sudo go version` and create a symlink to the correct binary path
-  for `/usr/local/bin/go` if needed.
 
 ## Next Steps
 
