@@ -21,6 +21,9 @@ INSTALLER_SCRIPT=""
 SEED_ISO="seed.iso"
 DISK_SIZE="25G"
 TEMP_USER_DATA=""
+PID_FILE=".prepare-host-img.qemu.pid"
+QEMU_PID=""
+LOOP_DEV=""
 
 
 # Check root
@@ -40,9 +43,27 @@ cleanup() {
     if [ -n "$TEMP_USER_DATA" ] && [ -f "$TEMP_USER_DATA" ]; then
         rm -f "$TEMP_USER_DATA"
     fi
+
+    if [ -n "$QEMU_PID" ] && kill -0 "$QEMU_PID" 2>/dev/null; then
+        kill "$QEMU_PID" 2>/dev/null || true
+        wait "$QEMU_PID" 2>/dev/null || true
+    fi
+
+    if [ -f "$PID_FILE" ]; then
+        rm -f "$PID_FILE"
+    fi
+
+    if mountpoint -q ./iso_mount 2>/dev/null; then
+        sudo umount -l ./iso_mount 2>/dev/null || true
+    fi
+    rmdir ./iso_mount 2>/dev/null || true
+
+    if [ -n "$LOOP_DEV" ]; then
+        sudo losetup -d "$LOOP_DEV" 2>/dev/null || true
+    fi
 }
 
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 while getopts "i:c:s:h:" option
 do
@@ -179,6 +200,8 @@ qemu-system-x86_64 \
     -no-reboot  >error.log 2>&1 &
 
 QEMU_INSTALL_PID=$!
+QEMU_PID=$QEMU_INSTALL_PID
+printf '%s\n' "$QEMU_INSTALL_PID" > "$PID_FILE"
 spin_chars=( '|' '/' '-' '\' )
 spin_idx=0
 while kill -0 $QEMU_INSTALL_PID 2>/dev/null; do
@@ -187,6 +210,8 @@ while kill -0 $QEMU_INSTALL_PID 2>/dev/null; do
     sleep 0.5
 done
 wait $QEMU_INSTALL_PID
+QEMU_PID=""
+rm -f "$PID_FILE"
 echo -e "\rInstalling... Done!                  "
 
 sync
@@ -210,6 +235,7 @@ qemu-system-x86_64 \
 
 # Capture the Process ID of QEMU
 QEMU_PID=$!
+printf '%s\n' "$QEMU_PID" > "$PID_FILE"
 
 spin_chars=( '|' '/' '-' '\' )
 spin_idx=0
@@ -219,6 +245,8 @@ while kill -0 $QEMU_PID 2>/dev/null; do
     sleep 0.5
 done
 wait $QEMU_PID
+QEMU_PID=""
+rm -f "$PID_FILE"
 echo "\rPackage installation... Done!                  "
 
 # Label the partitions for generated Image
@@ -242,6 +270,7 @@ sudo parted "${LOOP_DEV}" name 2 rootfs
 
 # Detach loop device
 sudo losetup -d "$LOOP_DEV"
+LOOP_DEV=""
 
 # Cleanup ---
 rm vmlinuz initrd "$SEED_ISO" meta-data
