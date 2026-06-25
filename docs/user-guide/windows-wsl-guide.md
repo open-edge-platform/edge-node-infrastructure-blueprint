@@ -219,4 +219,4 @@ usbipd detach -b 1-13
 | Build fails with KVM error | WSL2 does not support KVM by default; ensure you are on a machine where nested virtualization is enabled in Windows settings |
 | USB drive not visible in WSL2 (`lsblk`) | Ensure `usbipd attach -w -b <BUSID>` was run in PowerShell as Administrator |
 | `usbipd bind` fails | Run PowerShell as Administrator |
-| `usbipd attach` fails | Unplug and plug the USB drive and retry the stesp lis/bin/attach |
+| `usbipd attach` fails | Unplug and plug the USB drive and retry the stesp list/bind/attach |
