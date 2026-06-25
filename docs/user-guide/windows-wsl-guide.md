@@ -53,7 +53,7 @@ Depending on the Windows development system's network connectivity, the networki
 
 ### 3.1.1: Configure proxy environment variables according to your network setup.
 
-Use "" if the proxy is not required in your network
+**Note**: Use "" if the proxy is not required in your network for all the proxy environment variables.
 
 ```bash
 # Append the proxy environment variables to /etc/environment
@@ -219,3 +219,4 @@ usbipd detach -b 1-13
 | Build fails with KVM error | WSL2 does not support KVM by default; ensure you are on a machine where nested virtualization is enabled in Windows settings |
 | USB drive not visible in WSL2 (`lsblk`) | Ensure `usbipd attach -w -b <BUSID>` was run in PowerShell as Administrator |
 | `usbipd bind` fails | Run PowerShell as Administrator |
+| `usbipd attach` fails | Unplug and plug the USB drive and retry the steps list/bind/attach |
