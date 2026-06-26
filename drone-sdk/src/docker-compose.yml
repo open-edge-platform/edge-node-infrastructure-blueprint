@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# drone-sdk — PX4 SITL + Gazebo + MAVLink companion bridge
+#
+# Proxy: set HTTP_PROXY / HTTPS_PROXY in .env (leave empty for home networks).
+# GPU:   Intel DRI devices are mapped so the Gazebo renderer uses the iris GPU
+#        driver instead of software rendering.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: drone-sdk
+
+services:
+
+  px4-gazebo:
+    build:
+      context: ./px4-gazebo
+      dockerfile: Dockerfile
+      args:
+        http_proxy:  ${HTTP_PROXY:-}
+        https_proxy: ${HTTPS_PROXY:-}
+        no_proxy:    ${NO_PROXY:-localhost,127.0.0.0/8}
+    container_name: px4-gazebo
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      # Run Gazebo as a headless physics server.
+      # The GUI client connects separately via: gz sim -g
+      HEADLESS: "1"
+
+      # GPU rendering via Intel Mesa (iris driver).
+      # If your machine has no Intel GPU, uncomment these two lines to fall
+      # back to CPU-based software rendering (slower but always works):
+      #LIBGL_ALWAYS_SOFTWARE: "1"
+      #GALLIUM_DRIVER: "llvmpipe"
+
+      PX4_HOME_LAT:          ${PX4_HOME_LAT:-47.397742}
+      PX4_HOME_LON:          ${PX4_HOME_LON:-8.545594}
+      PX4_HOME_ALT:          ${PX4_HOME_ALT:-488.0}
+      PX4_SIM_SPEED_FACTOR:  ${PX4_SIM_SPEED_FACTOR:-1}
+
+    # Pass all DRI GPU nodes into the container.
+    # Mapping the whole directory avoids hardcoding card0/renderD128 which vary
+    # across machines (multi-GPU, iGPU+dGPU, different enumeration order).
+    # Remove this block entirely if your machine has no /dev/dri directory.
+    devices:
+      - /dev/dri
+    group_add:
+      - video   # /dev/dri/card0   — resolved inside container
+      - render  # /dev/dri/renderD128 — resolved inside container
+
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x px4 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 120s
+
+  mavlink-bridge:
+    build:
+      context: ./mavlink-bridge
+      dockerfile: Dockerfile
+      args:
+        http_proxy:  ${HTTP_PROXY:-}
+        https_proxy: ${HTTPS_PROXY:-}
+        no_proxy:    ${NO_PROXY:-localhost,127.0.0.0/8}
+    container_name: mavlink-bridge
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PX4_MAVLINK_PORT: "14540"
+      API_HOST: "0.0.0.0"
+      API_PORT: ${API_PORT:-8080}
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:${API_PORT:-8080}/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      px4-gazebo:
+        condition: service_healthy
