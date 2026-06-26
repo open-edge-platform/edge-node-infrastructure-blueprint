@@ -129,7 +129,7 @@ sudo apt install -y make
 
 ## Step 4: Clone the Repository and Build Artifacts
 
-The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Get Started guide](./get-started.md#phase-1-build-artifacts-on-the-developer-system) to clone the repository and run `make build MODE=image-from-iso ...`.
+The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository and run `make build MODE=image-from-iso ...`.
 
 Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 5 below to attach your USB drive to WSL2.
 

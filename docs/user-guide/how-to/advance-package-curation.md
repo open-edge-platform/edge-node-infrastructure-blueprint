@@ -12,7 +12,7 @@ distros on x86_64.
 
 > Note that this path is intended for advanced users who need fine-grained control over disk
 > layout, installed packages, and package repositories. Most users can start with the simpler
-> path, [using a pre-built ISO image](./get-started.md#option-1-recommended-build-from-iso).
+> path, [using a pre-built ISO image](../get-started/build-from-source.md#option-1-recommended-build-from-iso).
 
 This article will show you how to:
 
@@ -159,7 +159,7 @@ Build output:
 - `usb-installation-files.tar.gz` in `infrastructure/build-artifacts/out`
 
 Once `usb-installation-files.tar.gz` is ready, continue with
-[Phase 2: Prepare Bootable USB](./get-started.md#phase-2-prepare-bootable-usb) in the Get Started guide
+[Phase 2: Prepare Bootable USB](../get-started/prepare-usb.md) in the Get Started guide
 for the remaining steps: configuring the USB device, writing the artifacts, and booting the target system.
 
 ## Package curation and template customization
