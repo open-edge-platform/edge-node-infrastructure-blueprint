@@ -281,7 +281,7 @@ kubectl logs dlstreamer-gpu
 
 For complex pipelines, you can use the **DL Streamer Coding Agent** — a Claude Code skill that generates complete, working DL Streamer applications from plain-English descriptions. Instead of manually wiring GStreamer elements, describe what you want and the agent builds, validates, and runs the app for you.
 
-See the [DL Streamer Coding Agent Guide](dlstreamer-coding-agent-guide.md) for usage details, example prompts, and supported use cases.
+See the [DL Streamer Coding Agent Guide](./dlstreamer-coding-agent-guide.md) for usage details, example prompts, and supported use cases.
 
 ---
 
@@ -291,7 +291,7 @@ See the [DL Streamer Coding Agent Guide](dlstreamer-coding-agent-guide.md) for u
 - [DL Streamer Docker Hub](https://hub.docker.com/r/intel/dlstreamer)
 - [DL Streamer Elements Reference](https://github.com/open-edge-platform/dlstreamer/blob/main/docs/user-guide/elements/elements.md)
 - [DL Streamer Samples](https://github.com/open-edge-platform/dlstreamer/tree/main/samples)
-- [Container Device Interface Guide](container-device-interface-guide.md) — CDI setup for GPU/NPU access
+- [Container Device Interface Guide](./container-device-interface-guide.md) — CDI setup for GPU/NPU access
 
 <!--hide_directive
 :::{toctree}
