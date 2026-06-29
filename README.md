@@ -26,7 +26,7 @@ The solution bridges the gap between edge hardware capabilities and application 
 
 For the developer system, we recommend using Ubuntu 24.04 or Ubuntu 22.04 LTS. The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
 
-For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/windows-wsl-guide.md).
+For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/how-to/set-up-windows-wsl.md).
 
 > **BIOS requirement:** The image build uses QEMU to run the Ubuntu installer inside a virtual machine.
 > Hardware virtualisation (**Intel VT-x**) must be enabled in the developer system BIOS before running the build.
@@ -51,7 +51,7 @@ go version  # should report Go programming language version 1.22 or later
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b main
 cd edge-node-infrastructure-blueprint
 ```
 
