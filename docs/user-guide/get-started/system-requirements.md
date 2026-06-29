@@ -45,7 +45,7 @@ export PATH=/usr/local/go/bin:$PATH  # add to ~/.bashrc to persist
 go version  # should report Go programming language version 1.22 or later
 ```
 
-> **Notes**:
+> **Notes:**
 >
 > - Keep the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` values consistent across all proxy configuration files.
 > - The build flow has been verified on Ubuntu OS versions 22.04 and 24.04.

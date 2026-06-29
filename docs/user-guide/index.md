@@ -36,13 +36,13 @@ IoT processing, and real-time applications at the network edge.
 :hidden:
 
 Get Started <get-started.md>
-Advanced Image Customization <how-to/advance-package-curation.md>
-Container Device Interface Guide <how-to/container-device-interface-guide.md>
-GPU and NPU Device Plugins <how-to/device-plugins-guide.md>
-DL Streamer Pipelines Guide <how-to/dlstreamer-pipelines-guide.md>
-Edge Workloads and Benchmarks Guide <how-to/edge-benchmarking-guide.md>
+Advanced Image Customization <how-to/advanced-image-customization.md>
+Container Device Interface Guide <how-to/configure-cdi.md>
+GPU and NPU Device Plugins <how-to/configure-device-plugins.md>
+DL Streamer Pipelines Guide <how-to/build-dlstreamer-pipelines.md>
+Edge Workloads and Benchmarks Guide <how-to/run-edge-benchmarks.md>
 Infrastructure Capabilities <platform-capabilities.md>
-AI Agent Integration <agent-skills-usage.md>
+AI Agent Integration <agent-skills.md>
 Troubleshooting <troubleshooting.md>
 
 :::
