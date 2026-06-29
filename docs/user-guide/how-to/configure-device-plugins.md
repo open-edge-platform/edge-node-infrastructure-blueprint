@@ -302,4 +302,4 @@ dmesg | grep -i vpu
 - [Intel GPU Plugin Documentation](https://github.com/intel/intel-device-plugins-for-kubernetes/tree/main/cmd/gpu_plugin)
 - [Intel NPU Plugin Documentation](https://github.com/intel/intel-device-plugins-for-kubernetes/tree/main/cmd/npu_plugin)
 - [Kubernetes Device Plugin Framework](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/)
-- [Container Device Interface Guide](container-device-interface-guide.md) — for Docker/Podman usage without Kubernetes
+- [Container Device Interface Guide](configure-cdi.md) — for Docker/Podman usage without Kubernetes

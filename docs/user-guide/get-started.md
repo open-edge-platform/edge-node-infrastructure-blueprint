@@ -40,12 +40,12 @@ See the [Troubleshooting](./troubleshooting.md) guide for common issues and solu
 
 ## Next Steps
 
-- Use [Advanced Image Customization](./how-to/advance-package-curation.md) if you want to build a custom image flavor.
+- Use [Advanced Image Customization](./how-to/advanced-image-customization.md) if you want to build a custom image flavor.
 - Run repeatable workflows through natural language using the agent skills described in the
   [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/docs/agent-skills-guide.md)
   section.
 - Expose Intel® accelerators to containerized workloads using the
-  [Intel CDI Usage Guide](./how-to/container-device-interface-guide.md).
+  [Intel CDI Usage Guide](./how-to/configure-cdi.md).
 
 <!--hide_directive
 :::{toctree}
