@@ -94,7 +94,7 @@ From the repository root, run one of the following build modes.
 
 Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image
 file. For additional image customization, see the
-[Ubuntu Desktop Raw Image Generation guide](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/readme.md).
+[Ubuntu Desktop Raw Image Generation guide](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/host-os/readme.md).
 
 ```bash
 make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
@@ -108,18 +108,7 @@ Option 1.
 
 To generate an image using Image Composer Tool, refer to:
 
-- [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md).
-
-#### Developer Incremental Build
-
-Use the `reuse-image` mode to use a prebuilt image, skipping base image regeneration and reducing build time.
-For reusable ICT images, use `MODE=image-from-tool` with `ICT_IMG` instead of `MODE=reuse-image`.
-
-```bash
-make build MODE=reuse-image
-```
-
-You can also manually copy an existing image to USB partition 5 when required by your process.
+- [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/host-os/ict/README.md).
 
 #### Build output
 
@@ -156,20 +145,6 @@ Required inputs:
   - Additional system parameters
   - Installation Mode (Attended or Unattended)
 
-#### Installation Mode Details
-
-Installation mode is optional and defaults to the **Unattended Mode**, which means a fully automated installation
-without user interaction. If you require interactive debugging, set `installation_mode=true` in the `config-file`
-to enable the **Attended Mode** with prompts for user input during the boot process.
-
-If installation fails or you need to troubleshoot, run the installer in interactive debug mode on the Alpine OS terminal:
-
-```bash
-/usr/local/bin/os-install.sh -i
-```
-
-This launches the installer in interactive debug mode for troubleshooting and manual configuration.
-
 > **Note:** Proxy configuration is optional in unrestricted network environments.
 
 Run the following command:
@@ -196,7 +171,19 @@ After installation, log in using the credentials specified in the `config-file` 
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 
-For the Kubernetes cluster:
+After the target system boots from the USB and completes first-boot provisioning via cloud-init, verify that services are running correctly. The orchestration mode depends on the `host_type` value set in the `config-file` during USB preparation (`container` is the default).
+
+For container mode (`host_type=container`):
+
+```bash
+docker info
+docker ps
+```
+
+For details on exposing Intel® GPU or NPU to containers via CDI, see the
+[Intel CDI Usage Guide](./container-device-interface-guide.md).
+
+For Kubernetes mode (`host_type=kubernetes`):
 
 ```bash
 # Kubernetes nodes and plugin pods
@@ -236,28 +223,19 @@ sudo dmesg | grep xe
 sudo dmesg | grep vpu
 ```
 
-For containers:
-
-```bash
-docker info
-docker ps
-```
-
-For details on exposing Intel® GPU or NPU to containers via CDI, see the
-[Intel CDI Usage Guide](./container-device-interface-guide.md).
-
 ## Troubleshooting Checklist
 
 - Docker build fails: Recheck the Docker daemon and CLI proxy settings, then restart the Docker daemon.
 - USB preparation fails: Verify the device path and available USB capacity.
 - `kubectl` issues: Confirm that the Kubernetes installation has completed and the node status is `Ready`.
 - GPU or NPU not detected: Inspect `dmesg` for driver load failures.
+- OS installation fails: Set `installation_mode=true` in the `config-file`, rebuild the USB, and reboot to enable **Attended Mode** with interactive prompts. Optionally, run `/usr/local/bin/os-install.sh -i` on the Alpine OS terminal to launch the installer in interactive debug mode.
 
 ## Next Steps
 
 - Use [Advanced Image Customization](./advance-package-curation.md) if you want to build a custom image flavor.
 - Run repeatable workflows through natural language using the agent skills described in the
-  [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/docs/agent-skills-guide.md)
+  [AI Agent-Driven Development Strategy](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/docs/agent-skills-guide.md)
   section.
 - Expose Intel® accelerators to containerized workloads using the
   [Intel CDI Usage Guide](./container-device-interface-guide.md).
