@@ -220,7 +220,7 @@ cp infrastructure/host-os/ict/generic-handheld-os-template.yml \
    infrastructure/host-os/ict/my-variant-template.yml
 ```
 
-For detailed validation and build instructions, refer to [Building an Ubuntu OS Version 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md). That guide covers:
+For detailed validation and build instructions, refer to [Building an Ubuntu OS Version 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/host-os/ict/README.md). That guide covers:
 
 - template validation
 - image build process
