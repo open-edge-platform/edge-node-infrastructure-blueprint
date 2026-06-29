@@ -4,7 +4,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 # Advanced Image Customization (Using Image Composer Tool)
 
-The [Image Composer Tool (ICT)](https://github.com/open-edge-platform/image-composer-tool)
+The [Image Composer Tool (ICT)](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release)
 is a command-line tool for building custom Linux images from pre-built packages.
 To get a bootable RAW or ISO image, you define the target OS, packages, kernel, and disk layout.
 ICT supports multiple distributions including Ubuntu, Azure Linux, and Red Hat compatible
@@ -23,7 +23,7 @@ This article will show you how to:
 
 ## Build and verify the default template
 
-Refer to the detailed [ICT QuickStart](https://github.com/open-edge-platform/image-composer-tool/tree/main#quick-start)
+Refer to the detailed [ICT QuickStart](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release#quick-start)
 to build the `image-composer-tool` binary.
 
 ### Configure the template

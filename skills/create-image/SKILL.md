@@ -33,7 +33,8 @@ Prompt only before destructive operations:
 ## Steps
 **Run silently (no prompts):**
 1. Clone `image-composer-tool` if missing, or reuse existing checkout:
-   - `git clone https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
+   - `git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
+   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout 2026.1-Release`
 2. Build the tool binary:
    - `cd <os_image_composer_repo>`
    - `go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool`
