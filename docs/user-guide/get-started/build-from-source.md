@@ -9,12 +9,12 @@ This guide covers Phase 1 of the provisioning workflow: building bootable USB ar
 
 Before starting, confirm your system meets all [System Requirements](./system-requirements.md).
 
-For Windows Subsystem for Linux (WSL), follow the steps in the [Windows WSL Guide](../how-to/windows-wsl-guide.md).
+For Windows Subsystem for Linux (WSL), follow the steps in the [Windows WSL Guide](../how-to/set-up-windows-wsl.md).
 
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b main
 cd edge-node-infrastructure-blueprint
 ```
 
@@ -22,7 +22,7 @@ cd edge-node-infrastructure-blueprint
 
 From the repository root, run one of the following build modes.
 
-> **Note**: If your development environment is behind a firewall, add proxy configuration to the
+> **Note:** If your development environment is behind a firewall, add proxy configuration to the
 > `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings,
 > pass `skip-proxy=true` to the make command.
 

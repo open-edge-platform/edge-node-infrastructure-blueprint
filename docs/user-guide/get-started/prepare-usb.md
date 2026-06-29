@@ -126,4 +126,4 @@ docker ps
 ```
 
 For details on exposing Intel® GPU or NPU to containers via CDI, see the
-[Intel CDI Usage Guide](../how-to/container-device-interface-guide.md).
+[Intel CDI Usage Guide](../how-to/configure-cdi.md).
