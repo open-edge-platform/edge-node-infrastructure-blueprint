@@ -134,18 +134,6 @@ Required inputs:
    - Additional system parameters
    - Installation Mode (Attended or Unattended)
 
-#### Installation Mode Details
-
-Installation mode is optional and defaults to the **Unattended Mode**, which means a fully automated installation without user interaction. If you require interactive debugging, set `installation_mode=true` in the `config-file` to enable the **Attended Mode** with prompts for user input during the boot process.
-
-If installation fails or you need to troubleshoot, run the installer in interactive debug mode on the Alpine OS terminal:
-
-```bash
-/usr/local/bin/os-install.sh -i
-```
-
-This launches the installer in interactive debug mode for troubleshooting and manual configuration.
-
 > **Note**: Proxy configuration is optional in unrestricted network environments.
 
 Run the following command:
@@ -172,8 +160,16 @@ After installation, log in using the credentials specified in the configuration 
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 
+After the target system boots from the USB and completes first-boot provisioning via cloud-init, verify that services are running correctly. The orchestration mode depends on the `host_type` value set in the `config-file` during USB preparation (`container` is the default).
 
-For the Kubernetes cluster:
+For container mode (`host_type=container`):
+
+```bash
+docker info
+docker ps
+```
+
+For Kubernetes mode (`host_type=kubernetes`):
 
 ```bash
 # Kubernetes nodes and plugin pods
@@ -213,16 +209,10 @@ sudo dmesg | grep xe
 sudo dmesg | grep vpu
 ```
 
-For containers:
-
-```bash
-docker info
-docker ps
-```
-
 ## Troubleshooting Checklist
 
 - Docker build fails: Recheck the Docker daemon and CLI proxy settings, then restart the Docker daemon.
 - USB preparation fails: Verify the device path and available USB capacity.
 - `kubectl` issues: Confirm that the Kubernetes installation has completed and the node status is `Ready`.
 - GPU or NPU not detected: Re-run the Best-Known Configuration (BKC) installation and inspect `dmesg` for driver load failures.
+- OS installation fails: Set `installation_mode=true` in the `config-file`, rebuild the USB, and reboot to enable **Attended Mode** with interactive prompts. Optionally, run `/usr/local/bin/os-install.sh -i` on the Alpine OS terminal to launch the installer in interactive debug mode.
