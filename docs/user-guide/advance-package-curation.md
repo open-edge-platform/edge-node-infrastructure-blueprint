@@ -23,8 +23,34 @@ This article will show you how to:
 
 ## Build and verify the default template
 
-Refer to the detailed [ICT QuickStart](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release#quick-start)
-to build the `image-composer-tool` binary.
+### Clone the repository
+
+```bash
+git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git
+cd image-composer-tool
+```
+
+### Build the tool
+
+Produces `./image-composer-tool` in the repo root:
+
+```bash
+go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
+```
+
+### Install image composition prerequisites
+
+These packages are required before composing any image:
+
+```bash
+sudo apt install systemd-ukify mmdebstrap
+```
+
+Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
+
+> **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
+> issues. Ensure you have version 1.4.3 or later. On Ubuntu OS version 23.04 or later, the
+> repository version is sufficient.
 
 ### Configure the template
 

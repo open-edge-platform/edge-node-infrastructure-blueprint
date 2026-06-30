@@ -108,7 +108,7 @@ Option 1.
 
 To generate an image using Image Composer Tool, refer to:
 
-- [Building an Ubuntu OS Version 24.04 Image](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/v2026.1.0/infrastructure/host-os/ict/README.md).
+- [Advanced Image Customization (Using Image Composer Tool)](./advance-package-curation.md).
 
 #### Build output
 
