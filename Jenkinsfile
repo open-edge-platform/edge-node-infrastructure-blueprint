@@ -354,9 +354,10 @@ pipeline {
 
                 if [ -n "$SSH_PUB_FILE" ]; then
                     # Use awk to avoid sed delimiter issues with SSH key content
+                    # Files are root-owned (from sudo tar), so use sudo for write
                     SSH_PUB=$(cat "$SSH_PUB_FILE")
-                    awk -v key="$SSH_PUB" '/^ssh_key=/{print "ssh_key=\"" key "\""; next} {print}' config-file > config-file.tmp
-                    mv config-file.tmp config-file
+                    sudo awk -v key="$SSH_PUB" '/^ssh_key=/{print "ssh_key=\"" key "\""; next} {print}' config-file > /tmp/config-file.tmp
+                    sudo mv /tmp/config-file.tmp config-file
                     echo "Injected SSH public key from $SSH_PUB_FILE into config-file."
                 fi
 
