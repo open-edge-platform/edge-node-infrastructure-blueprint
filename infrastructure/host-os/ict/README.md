@@ -38,7 +38,7 @@ and the provided template
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/image-composer-tool.git -b main
+git clone https://github.com/open-edge-platform/image-composer-tool.git -b 2026.1-Release
 cd image-composer-tool
 ```
 

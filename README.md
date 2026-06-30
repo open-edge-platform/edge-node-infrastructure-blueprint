@@ -51,7 +51,7 @@ go version  # should report Go programming language version 1.22 or later
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b main
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b release-2026.1.0
 cd edge-node-infrastructure-blueprint
 ```
 
