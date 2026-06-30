@@ -342,53 +342,45 @@ pipeline {
                 sudo tar -xzf out/usb-installation-files.tar.gz -C out/
                 cd out
 
-                # Inject Jenkins agent SSH key into config-file for post-install SSH access
+                # Inject SSH key and host proxy into config-file for non-interactive VEN deployment.
+                # Files are root-owned (from sudo tar). Using simple case/match to avoid
+                # awk -v issues inside Groovy triple-quoted strings.
+
+                SSH_PUB=""
                 if [ -f ~/.ssh/id_ed25519.pub ]; then
-                    SSH_PUB_FILE=~/.ssh/id_ed25519.pub
+                    SSH_PUB=$(cat ~/.ssh/id_ed25519.pub)
                 elif [ -f ~/.ssh/id_rsa.pub ]; then
-                    SSH_PUB_FILE=~/.ssh/id_rsa.pub
+                    SSH_PUB=$(cat ~/.ssh/id_rsa.pub)
                 else
-                    SSH_PUB_FILE=""
                     echo "WARNING: No SSH public key found. VEN tests requiring SSH will fail."
                 fi
 
-                if [ -n "$SSH_PUB_FILE" ]; then
-                    # Use awk to avoid sed delimiter issues with SSH key content
-                    # Files are root-owned (from sudo tar), so use sudo for write
-                    SSH_PUB=$(cat "$SSH_PUB_FILE")
-                    sudo awk -v key="$SSH_PUB" '/^ssh_key=/{print "ssh_key=\"" key "\""; next} {print}' config-file > /tmp/config-file.tmp
-                    sudo mv /tmp/config-file.tmp config-file
-                    echo "Injected SSH public key from $SSH_PUB_FILE into config-file."
-                fi
+                HOST_HP="${http_proxy:-${HTTP_PROXY:-}}"
+                HOST_HPS="${https_proxy:-${HTTPS_PROXY:-}}"
+                HOST_NP="${no_proxy:-${NO_PROXY:-localhost,127.0.0.1}}"
 
-                # Inject host proxy settings into config-file to avoid interactive prompts.
-                # Reads from host environment (/etc/environment or current shell).
-                HOST_HTTP_PROXY="${http_proxy:-${HTTP_PROXY:-}}"
-                HOST_HTTPS_PROXY="${https_proxy:-${HTTPS_PROXY:-}}"
-                HOST_NO_PROXY="${no_proxy:-${NO_PROXY:-localhost,127.0.0.1}}"
+                while IFS= read -r line; do
+                    case "$line" in
+                        http_proxy=*)  echo "http_proxy=\"${HOST_HP}\"" ;;
+                        https_proxy=*) echo "https_proxy=\"${HOST_HPS}\"" ;;
+                        no_proxy=*)    echo "no_proxy=\"${HOST_NP}\"" ;;
+                        HTTP_PROXY=*)  echo "HTTP_PROXY=\"${HOST_HP}\"" ;;
+                        HTTPS_PROXY=*) echo "HTTPS_PROXY=\"${HOST_HPS}\"" ;;
+                        NO_PROXY=*)    echo "NO_PROXY=\"${HOST_NP}\"" ;;
+                        ssh_key=*)
+                            if [ -n "$SSH_PUB" ]; then
+                                echo "ssh_key=\"${SSH_PUB}\""
+                            else
+                                echo "$line"
+                            fi
+                            ;;
+                        *) echo "$line" ;;
+                    esac
+                done < config-file > /tmp/config-file.tmp
+                sudo mv /tmp/config-file.tmp config-file
 
-                if [ -n "$HOST_HTTP_PROXY" ]; then
-                    sudo awk \
-                        -v hp="$HOST_HTTP_PROXY" \
-                        -v hps="$HOST_HTTPS_PROXY" \
-                        -v np="$HOST_NO_PROXY" \
-                    '
-                        /^http_proxy=/  {print "http_proxy=\"" hp "\""; next}
-                        /^https_proxy=/ {print "https_proxy=\"" hps "\""; next}
-                        /^no_proxy=/    {print "no_proxy=\"" np "\""; next}
-                        /^HTTP_PROXY=/  {print "HTTP_PROXY=\"" hp "\""; next}
-                        /^HTTPS_PROXY=/ {print "HTTPS_PROXY=\"" hps "\""; next}
-                        /^NO_PROXY=/    {print "NO_PROXY=\"" np "\""; next}
-                        {print}
-                    ' config-file > /tmp/config-file.tmp
-                    sudo mv /tmp/config-file.tmp config-file
-                    echo "Injected host proxy into config-file: $HOST_HTTP_PROXY"
-                else
-                    echo "No proxy detected on host. Leaving config-file proxy values as-is."
-                fi
-
-                echo "Config-file key values:"
-                grep -E '^(http_proxy|https_proxy|ssh_key|host_type)' config-file || true
+                echo "Config-file updated:"
+                grep -E '^(http_proxy|https_proxy|no_proxy|ssh_key|host_type)' config-file || true
 
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
