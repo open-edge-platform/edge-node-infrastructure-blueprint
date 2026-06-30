@@ -11,14 +11,16 @@ Before starting, confirm your system meets all [System Requirements](./system-re
 
 For Windows Subsystem for Linux (WSL), follow the steps in the [Windows WSL Guide](../how-to/set-up-windows-wsl.md).
 
-## 1. Clone the Repository
+## Phase 1 Build Artifacts on the Developer System
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b main
 cd edge-node-infrastructure-blueprint
 ```
 
-## 2. Build Bootable USB Artifacts
+### 2. Build Bootable USB Artifacts
 
 From the repository root, run one of the following build modes.
 
@@ -26,7 +28,7 @@ From the repository root, run one of the following build modes.
 > `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings,
 > pass `skip-proxy=true` to the make command.
 
-### Option 1 (Recommended): Build from ISO
+#### Option 1 (Recommended): Build from ISO
 
 Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image
 file. For additional image customization, see the
@@ -36,7 +38,7 @@ file. For additional image customization, see the
 make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
 ```
 
-### Option 2 (Advanced): Build with Image Composer Tool Image
+#### Option 2 (Advanced): Build with Image Composer Tool Image
 
 This path is intended for advanced users who need fine-grained control over disk
 layout, installed packages, and package repositories. Most users can start with
@@ -57,7 +59,7 @@ make build MODE=reuse-image
 
 You can also manually copy an existing image to USB partition 5 when required by your process.
 
-## Build Output
+### Build Output
 
 With any of the above build options, expect the following output:
 
