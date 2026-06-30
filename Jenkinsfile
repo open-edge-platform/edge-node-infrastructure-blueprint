@@ -405,6 +405,9 @@ pipeline {
                 # Enable bash tracing inside bootable-usb-prepare.sh for debugging
                 sudo sed -i '2i set -x' bootable-usb-prepare.sh
 
+                # Add -no-reboot to QEMU so it exits when the VM does 'reboot -f'
+                sudo sed -i '/-vnc :99/a\  -no-reboot \\' ven-deployment.sh
+
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
                 # We run it in background and monitor for installation completion.
