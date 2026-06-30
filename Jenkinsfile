@@ -9,8 +9,8 @@ properties([
     parameters([
         choice(
             name: 'BUILD_MODE',
-            choices: ['script-based', 'ict-based'],
-            description: 'script-based: build image from Ubuntu ISO; ict-based: build image with Image Composer Tool.'
+            choices: ['script-based', 'ict-based', 'reuse-image'],
+            description: 'script-based: build from Ubuntu ISO; ict-based: build with Image Composer Tool; reuse-image: skip image build, reuse previous build artifacts.'
         ),
         string(
             name: 'ISO_URL',
@@ -20,12 +20,7 @@ properties([
         string(
             name: 'ICT_IMG',
             defaultValue: '',
-            description: '(ict-based only) Absolute path to pre-built ICT image (.raw.gz/.raw.img.gz). Leave empty to trigger child ICT build job.'
-        ),
-        string(
-            name: 'ICT_BUILD_JOB',
-            defaultValue: 'Devops-Testing/Sudipta/fed-ict-build',
-            description: '(ict-based only) Jenkins job path for ICT image build. Triggered when ICT_IMG is empty.'
+            description: '(ict-based only) Absolute path to pre-built ICT image (.raw.gz/.raw.img.gz). Leave empty to build from source.'
         ),
         string(
             name: 'SOURCE_REPO_URL',
@@ -41,6 +36,11 @@ properties([
             name: 'SOURCE_REPO_CREDENTIALS_ID',
             defaultValue: '',
             description: 'Optional Jenkins credentialsId for SOURCE_REPO_URL.'
+        ),
+        booleanParam(
+            name: 'SKIP_BUILD_REUSE_CACHE',
+            defaultValue: false,
+            description: 'Skip image build entirely and reuse cached artifacts from the last successful build (/tmp/enib-build-cache/).'
         ),
         booleanParam(
             name: 'RUN_VEN_DEPLOYMENT',
@@ -73,11 +73,13 @@ pipeline {
                             error "ISO_URL is required for script-based mode."
                         }
                         echo "Mode: script-based | ISO: ${params.ISO_URL}"
+                    } else if (params.BUILD_MODE == 'reuse-image') {
+                        echo "Mode: reuse-image | Skipping image build, reusing previous artifacts."
                     } else {
                         if (params.ICT_IMG?.trim()) {
                             echo "Mode: ict-based | ICT image: ${params.ICT_IMG}"
                         } else {
-                            echo "Mode: ict-based | No ICT image provided; will trigger child job: ${params.ICT_BUILD_JOB}"
+                            echo "Mode: ict-based | No ICT image provided; will build from source using Image Composer Tool."
                         }
                     }
                 }
@@ -145,9 +147,35 @@ pipeline {
             }
         }
 
+        stage('Restore Cached Build') {
+            when {
+                expression { params.SKIP_BUILD_REUSE_CACHE }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                CACHE_DIR="/tmp/enib-build-cache"
+                echo "=== Restoring cached build artifacts from ${CACHE_DIR} ==="
+
+                if [ ! -f "${CACHE_DIR}/usb-installation-files.tar.gz" ]; then
+                    echo "ERROR: No cached build found at ${CACHE_DIR}/"
+                    echo "Run a full build first (SKIP_BUILD_REUSE_CACHE=false) to populate the cache."
+                    ls -la "$CACHE_DIR" 2>/dev/null || echo "  (directory does not exist)"
+                    exit 1
+                fi
+
+                mkdir -p infrastructure/build-artifacts/out
+                cp -v "${CACHE_DIR}"/* infrastructure/build-artifacts/out/
+                echo "Cache restored. Contents:"
+                ls -lh infrastructure/build-artifacts/out/
+                '''
+            }
+        }
+
         stage('Build Image (script-based)') {
             when {
-                expression { params.BUILD_MODE == 'script-based' }
+                expression { params.BUILD_MODE == 'script-based' && !params.SKIP_BUILD_REUSE_CACHE }
             }
             steps {
                 sh '''#!/usr/bin/env bash
@@ -158,45 +186,85 @@ pipeline {
             }
         }
 
-        stage('Trigger ICT Child Build') {
+        stage('Build Artifacts (reuse-image)') {
             when {
-                expression { params.BUILD_MODE == 'ict-based' && !params.ICT_IMG?.trim() }
+                expression { params.BUILD_MODE == 'reuse-image' && !params.SKIP_BUILD_REUSE_CACHE }
             }
             steps {
-                script {
-                    // Both parent and child run on the same node (fed-node),
-                    // so we use a shared filesystem path instead of copyArtifacts.
-                    def sharedOutputDir = '/tmp/ict-shared-output'
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+                echo "Running: make build MODE=reuse-image (skipping image creation)"
+                make build MODE=reuse-image skip-proxy=true
+                '''
+            }
+        }
 
-                    echo "Triggering ICT build child job: ${params.ICT_BUILD_JOB}"
-                    build job: params.ICT_BUILD_JOB, parameters: [
-                        string(name: 'SOURCE_REPO_URL', value: params.SOURCE_REPO_URL),
-                        string(name: 'SOURCE_REPO_BRANCH', value: params.SOURCE_REPO_BRANCH),
-                        string(name: 'SOURCE_REPO_CREDENTIALS_ID', value: params.SOURCE_REPO_CREDENTIALS_ID ?: ''),
-                        string(name: 'SHARED_OUTPUT_DIR', value: sharedOutputDir)
-                    ], wait: true, propagate: true
+        stage('Build ICT Image from Source') {
+            when {
+                expression { params.BUILD_MODE == 'ict-based' && !params.ICT_IMG?.trim() && !params.SKIP_BUILD_REUSE_CACHE }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
 
-                    // Read image path from shared location (written by child job)
-                    def ictImage = sh(
-                        script: "find ${sharedOutputDir} -type f \\( -name '*.raw.gz' -o -name '*.raw.img.gz' \\) | head -1",
-                        returnStdout: true
-                    ).trim()
-                    if (!ictImage) {
-                        error "ICT child job completed but no image found in ${sharedOutputDir}"
-                    }
-                    env.ICT_IMG_RESOLVED = ictImage
-                    echo "ICT image from child job: ${env.ICT_IMG_RESOLVED}"
-                }
+                echo "=== Building ICT Image from Source ==="
+                ICT_TEMPLATE="infrastructure/host-os/ict/generic-handheld-os-template.yml"
+
+                # Clone Image Composer Tool
+                if [ ! -d ict-tool ]; then
+                    git clone --depth 1 --branch 2026.1-Release \
+                        https://github.com/open-edge-platform/image-composer-tool.git ict-tool
+                fi
+
+                # Install prerequisites
+                sudo apt-get update -qq
+                sudo apt-get install -y --no-install-recommends systemd-ukify mmdebstrap
+
+                # Build ICT binary
+                cd ict-tool
+                go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
+                echo "ICT binary built: $(ls -la image-composer-tool)"
+
+                # Validate template
+                TEMPLATE="${WORKSPACE}/${ICT_TEMPLATE}"
+                ./image-composer-tool validate "$TEMPLATE"
+                echo "Template validation passed."
+
+                # Build the image
+                echo "Building ICT image (this may take a while)..."
+                sudo -E ./image-composer-tool build "$TEMPLATE"
+                echo "ICT image build completed."
+                cd ..
+
+                # Find the output image
+                ICT_OUTPUT=$(find ict-tool -type f -name "*.raw.gz" -print -o -type f -name "*.raw.img.gz" -print | head -1)
+                if [ -z "$ICT_OUTPUT" ]; then
+                    echo "ERROR: No ICT image output found."
+                    exit 1
+                fi
+
+                # Copy to a known location for next stage
+                mkdir -p /tmp/ict-shared-output
+                cp "$ICT_OUTPUT" /tmp/ict-shared-output/
+                echo "ICT image ready: $ICT_OUTPUT"
+                '''
             }
         }
 
         stage('Build Image (ict-based)') {
             when {
-                expression { params.BUILD_MODE == 'ict-based' }
+                expression { params.BUILD_MODE == 'ict-based' && !params.SKIP_BUILD_REUSE_CACHE }
             }
             steps {
                 script {
-                    def ictPath = params.ICT_IMG?.trim() ?: env.ICT_IMG_RESOLVED
+                    def ictPath = params.ICT_IMG?.trim()
+                    if (!ictPath) {
+                        // Use image built by previous stage
+                        ictPath = sh(
+                            script: "find /tmp/ict-shared-output -type f -name '*.raw.gz' -print -o -type f -name '*.raw.img.gz' -print | head -1",
+                            returnStdout: true
+                        ).trim()
+                    }
                     if (!ictPath) {
                         error "No ICT image path available."
                     }
@@ -229,6 +297,31 @@ pipeline {
             }
         }
 
+        stage('Save Build Cache') {
+            when {
+                expression { !params.SKIP_BUILD_REUSE_CACHE }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                CACHE_DIR="/tmp/enib-build-cache"
+                echo "=== Saving build artifacts to cache (${CACHE_DIR}) ==="
+
+                rm -rf "$CACHE_DIR"
+                mkdir -p "$CACHE_DIR"
+
+                if [ -d infrastructure/build-artifacts/out ] && [ "$(ls -A infrastructure/build-artifacts/out 2>/dev/null)" ]; then
+                    cp infrastructure/build-artifacts/out/* "$CACHE_DIR/" 2>/dev/null || true
+                    echo "Cached for next run:"
+                    ls -lh "$CACHE_DIR/"
+                else
+                    echo "No artifacts to cache."
+                fi
+                '''
+            }
+        }
+
         stage('VEN Deployment') {
             when {
                 expression { params.RUN_VEN_DEPLOYMENT }
@@ -250,16 +343,21 @@ pipeline {
                 cd out
 
                 # Inject Jenkins agent SSH key into config-file for post-install SSH access
-                if [ -f ~/.ssh/id_rsa.pub ]; then
-                    SSH_PUB=$(cat ~/.ssh/id_rsa.pub)
-                    sed -i "s|^ssh_key=.*|ssh_key=\"${SSH_PUB}\"|" config-file
-                    echo "Injected SSH public key into config-file."
-                elif [ -f ~/.ssh/id_ed25519.pub ]; then
-                    SSH_PUB=$(cat ~/.ssh/id_ed25519.pub)
-                    sed -i "s|^ssh_key=.*|ssh_key=\"${SSH_PUB}\"|" config-file
-                    echo "Injected SSH public key (ed25519) into config-file."
+                if [ -f ~/.ssh/id_ed25519.pub ]; then
+                    SSH_PUB_FILE=~/.ssh/id_ed25519.pub
+                elif [ -f ~/.ssh/id_rsa.pub ]; then
+                    SSH_PUB_FILE=~/.ssh/id_rsa.pub
                 else
+                    SSH_PUB_FILE=""
                     echo "WARNING: No SSH public key found. VEN tests requiring SSH will fail."
+                fi
+
+                if [ -n "$SSH_PUB_FILE" ]; then
+                    # Use awk to avoid sed delimiter issues with SSH key content
+                    SSH_PUB=$(cat "$SSH_PUB_FILE")
+                    awk -v key="$SSH_PUB" '/^ssh_key=/{print "ssh_key=\"" key "\""; next} {print}' config-file > config-file.tmp
+                    mv config-file.tmp config-file
+                    echo "Injected SSH public key from $SSH_PUB_FILE into config-file."
                 fi
 
                 # ven-deployment.sh runs QEMU in foreground.
