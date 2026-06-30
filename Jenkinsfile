@@ -399,12 +399,15 @@ pipeline {
                 echo "=== End Pre-flight ==="
                 echo ""
 
+                # Enable bash tracing inside bootable-usb-prepare.sh for debugging
+                sudo sed -i '2i set -x' bootable-usb-prepare.sh
+
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
                 # We run it in background and monitor for installation completion.
-                # Tee all output to a log so progress-bar \r sequences don't hide errors.
+                # Redirect all output to a log file so progress-bar \r sequences don't hide errors.
                 echo "Launching VEN deployment (ven-deployment.sh) in background..."
-                sudo -E ./ven-deployment.sh 2>&1 | tee ven-deployment-full.log &
+                sudo -E ./ven-deployment.sh > ven-deployment-full.log 2>&1 &
                 VEN_PID=$!
 
                 # Wait for ven-deployment.sh — must not trigger set -e on failure
