@@ -389,9 +389,12 @@ pipeline {
                 sudo -E ./ven-deployment.sh &
                 VEN_PID=$!
 
-                # Wait for ven-deployment.sh to finish or fail
+                # Wait for ven-deployment.sh — must not trigger set -e on failure
+                # so we can print the log file before exiting
+                set +e
                 wait $VEN_PID 2>/dev/null
                 VEN_EXIT=$?
+                set -e
 
                 # Show the bootable-usb-prepare log (errors are hidden in this file)
                 echo ""
