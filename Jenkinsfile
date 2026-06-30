@@ -361,6 +361,35 @@ pipeline {
                     echo "Injected SSH public key from $SSH_PUB_FILE into config-file."
                 fi
 
+                # Inject host proxy settings into config-file to avoid interactive prompts.
+                # Reads from host environment (/etc/environment or current shell).
+                HOST_HTTP_PROXY="${http_proxy:-${HTTP_PROXY:-}}"
+                HOST_HTTPS_PROXY="${https_proxy:-${HTTPS_PROXY:-}}"
+                HOST_NO_PROXY="${no_proxy:-${NO_PROXY:-localhost,127.0.0.1}}"
+
+                if [ -n "$HOST_HTTP_PROXY" ]; then
+                    sudo awk \
+                        -v hp="$HOST_HTTP_PROXY" \
+                        -v hps="$HOST_HTTPS_PROXY" \
+                        -v np="$HOST_NO_PROXY" \
+                    '
+                        /^http_proxy=/  {print "http_proxy=\"" hp "\""; next}
+                        /^https_proxy=/ {print "https_proxy=\"" hps "\""; next}
+                        /^no_proxy=/    {print "no_proxy=\"" np "\""; next}
+                        /^HTTP_PROXY=/  {print "HTTP_PROXY=\"" hp "\""; next}
+                        /^HTTPS_PROXY=/ {print "HTTPS_PROXY=\"" hps "\""; next}
+                        /^NO_PROXY=/    {print "NO_PROXY=\"" np "\""; next}
+                        {print}
+                    ' config-file > /tmp/config-file.tmp
+                    sudo mv /tmp/config-file.tmp config-file
+                    echo "Injected host proxy into config-file: $HOST_HTTP_PROXY"
+                else
+                    echo "No proxy detected on host. Leaving config-file proxy values as-is."
+                fi
+
+                echo "Config-file key values:"
+                grep -E '^(http_proxy|https_proxy|ssh_key|host_type)' config-file || true
+
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
                 # We run it in background and monitor for installation completion.
