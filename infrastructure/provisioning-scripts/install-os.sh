@@ -1295,7 +1295,8 @@ clone_source_to_target() {
     mount "${os_disk}${os_rootfs_part}" /mnt
     mkdir -p "$TARGET_DIR"
 
-    tar -xzf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1
+    # Use pigz for faster parallel decompression
+    tar -I pigz -xf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1
     if [ $? -eq 0 ]; then
         find "$TARGET_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
         success "Developer source extracted to target /opt/edge/developer/"
@@ -1505,6 +1506,8 @@ EOF
      # exit the su - $user
         exit
 EOT
+	 usermod -aG docker $user
+         chmod 666 /var/run/docker.sock
             success "docker proxy services updated successfully"
         else
             failure "Failed to updated the docker proxy settings"

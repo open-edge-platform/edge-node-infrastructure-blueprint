@@ -5,6 +5,8 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 
 ## Configuration
 
@@ -15,9 +17,9 @@ ARCH="x86_64"
 MIRROR="https://dl-cdn.alpinelinux.org/alpine"
 
 # Directory paths
-WORKDIR="$(pwd)/build"
+WORKDIR="${WORKDIR:-$SCRIPT_DIR/build}"
 ROOTFS="$WORKDIR/rootfs"
-OUT="$WORKDIR/output"
+OUT="${OUT:-$WORKDIR/output}"
 
 ## Provisioning files
 OS_INSTALLER_SCRIPT="$(pwd)/../provisioning-scripts/install-os.sh"
@@ -47,6 +49,13 @@ readonly PACKAGES="busybox util-linux linux-lts e2fsprogs e2fsprogs-static dosfs
 
 ## Functions
 
+# Ensure build artifacts are readable by the invoking user when running in Docker.
+fix_output_permissions() {
+    if [[ -n "${HOST_UID:-}" && -n "${HOST_GID:-}" ]]; then
+        chown -R "${HOST_UID}:${HOST_GID}" "$OUT" || true
+    fi
+}
+
 # Cleaning mounts
 cleanup() {
     echo "[*] Cleaning mounts..."
@@ -67,9 +76,10 @@ download_and_extract_rootfs() {
     echo "Downloading Alpine minirootfs..."
     cd "$WORKDIR"
     wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/alpine-minirootfs-$ALPINE_VERSION.0-$ARCH.tar.gz"
-    
+
     echo "Extracting..."
-    tar -xzf alpine-minirootfs-*.tar.gz -C "$ROOTFS"
+    # Use pigz for faster parallel decompression
+    tar -I pigz -xf alpine-minirootfs-*.tar.gz -C "$ROOTFS"
 }
 
 # Configure Alpine repositories and network
@@ -86,7 +96,14 @@ copy_network_config() {
 # Install required packages
 install_packages() {
     echo "Installing packages inside rootfs..."
-    sudo chroot "$ROOTFS" /bin/sh -c "apk update && apk add $PACKAGES"
+    sudo env \
+        http_proxy="${http_proxy:-}" \
+        https_proxy="${https_proxy:-}" \
+        no_proxy="${no_proxy:-}" \
+        HTTP_PROXY="${HTTP_PROXY:-}" \
+        HTTPS_PROXY="${HTTPS_PROXY:-}" \
+        NO_PROXY="${NO_PROXY:-}" \
+        chroot "$ROOTFS" /bin/sh -c "apk update && apk add $PACKAGES"
 }
 
 # Copy installer and provisioning scripts
@@ -114,12 +131,18 @@ copy_provisioning_files() {
     # Copy cdi scripts 
     for item in "${CDI_FILES_LIST[@]}"; do
         if [[ -e "$item" ]]; then
-	    sudo cp -r "$item/." "$ROOTFS/etc/scripts/cdi/"
+	        echo "  Copying CDI files from: $item"
+	        sudo cp -r "$item/." "$ROOTFS/etc/scripts/cdi/"
+	    # Verify binary is executable in rootfs
+	    if [[ -f "$ROOTFS/etc/scripts/cdi/intel-cdi-specs-generator-gpu" ]]; then
+	        echo " CDI binary found in rootfs"
+	    else
+	        echo "    WARNING: CDI binary not found in rootfs after copy!"
+	    fi
         else
             echo "[WARN] Skipping missing: $item"
         fi
     done
-
 }
 
 # Create init script
@@ -181,6 +204,7 @@ EOF
 copy_kernel() {
 
     sudo cp "$ROOTFS/boot/vmlinuz-lts" "$OUT/vmlinuz"
+    sudo cp "$ROOTFS/boot/vmlinuz-lts" "$OUT/vmlinux"
 
     if [ ! -d "$ROOTFS/lib/modules" ]; then
         echo "ERROR: No modules found in rootfs! Check apk add linux-lts step."
@@ -193,18 +217,20 @@ copy_kernel() {
 build_initramfs() {
     echo "Building initramfs..."
     cd "$ROOTFS"
+    # Use pigz for faster parallel compression
     find . \
         -path ./proc -prune -o \
         -path ./sys -prune -o \
         -path ./dev -prune -o \
-        -print | cpio -o -H newc | gzip > "$OUT/initramfs"
+        -print | cpio -o -H newc | pigz > "$OUT/initramfs"
     cd - >/dev/null
 }
 
 # Verify build success
 verify_build() {
-    if [[ -e "$OUT/initramfs" && -e "$OUT/vmlinuz" ]]; then
+    if [[ -e "$OUT/initramfs" && -e "$OUT/vmlinuz" && -e "$OUT/vmlinux" ]]; then
         echo "Build complete!"
+        echo "Artifacts available in: $OUT"
     else
         echo "Build failed! Please check!"
         exit 1
@@ -247,4 +273,7 @@ build_initramfs
 
 # Verify build success
 verify_build
+
+# Make output files user-accessible on the host when using Docker bind mounts.
+fix_output_permissions
 

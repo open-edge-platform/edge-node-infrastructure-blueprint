@@ -7,7 +7,7 @@ description: Update Ubuntu package configuration files for package add/delete op
 
 ## Trigger Phrases
 - update install packages
-- add package to auto-install-pkgs
+- add package to curate-host-packages.sh
 - delete package from ict template
 - modify ubuntu package list
 - update-install-packages
@@ -24,15 +24,15 @@ description: Update Ubuntu package configuration files for package add/delete op
 - enib_home: absolute path to this repository root
 - package_operation: `add|delete`
 - packages_list: comma-separated package names
-- target_config_file: `auto-install-pkgs|ict-template|both`
+- target_config_file: `curate-host-packages|ict-template|both`
 
 ## Preconditions
 - [ ] Repository exists and is writable: `test -d <enib_home> && test -w <enib_home>`
 - [ ] Target files exist:
-  - `test -f <enib_home>/infrastructure/host-os/auto-install-pkgs.yaml`
+  - `test -f <enib_home>/infrastructure/host-os/curate-host-packages.sh`
   - `test -f <enib_home>/infrastructure/host-os/ict/ubuntu24-x86_64-minimal-ptl.yml`
 - [ ] `package_operation` is one of `add|delete`.
-- [ ] `target_config_file` is one of `auto-install-pkgs|ict-template|both`.
+- [ ] `target_config_file` is one of `curate-host-packages.sh|ict-template|both`.
 - [ ] `packages_list` is not empty.
 - [ ] Validate each package name format (letters, digits, `.`, `+`, `-`) and reject invalid tokens.
 - [ ] **MANDATORY**: Verify package availability in Ubuntu 24.04 repositories for each requested package using `apt-cache show <package_name>`. If package not found, use `apt-cache search <keyword>` to find alternatives and present to user for selection.
@@ -55,13 +55,13 @@ description: Update Ubuntu package configuration files for package add/delete op
   - Return matched packages to user for confirmation before adding to `packages_list`.
   - Merge confirmed packages with the original `packages_list`.
 4. Run preconditions and create backups:
-  - Backup `infrastructure/host-os/auto-install-pkgs.yaml` and/or `infrastructure/host-os/ict/ubuntu24-x86_64-minimal-ptl.yml` before modification.
+  - Backup `infrastructure/host-os/curate-host-packages.sh` and/or `infrastructure/host-os/ict/ubuntu24-x86_64-minimal-ptl.yml` before modification.
 5. Update target configuration files based on `target_config_file`:
-  - `auto-install-pkgs`: update `host-os/auto-install-pkgs.yaml`.
+  - `curate-host-packages`: update `host-os/curate-host-packages.sh`.
   - `ict-template`: update `host-os/ict/ubuntu24-x86_64-minimal-ptl.yml`.
   - `both`: update both files.
-6. If adding more packages in `host-os/auto-install-pkgs.yaml`, add only the cumulative package size to existing `DISK_SIZE` in `host-os/prepare-host-img.sh` when cumulative package size exceeds 1GB. Do not increment disk size for packages under 1GB (existing disk allocation already includes future headroom).
-7. For packages that depend on kernel (performance tools, kernel drivers, or userspace packages with kernel dependencies), create symbolic links to the custom Intel kernel inside `infrastructure/installation-scripts/setup-kernel-depended-pkgs.sh` as a workaround. Do not start `setup-kernel-depended-pkgs.sh` if updated as part of `auto-install-pkgs.yaml` and `ubuntu24-x86_64-minimal-ptl.yml`; this script will start during the provisioning process separately.
+6. If adding more packages in `host-os/curate-host-packages`, add only the cumulative package size to existing `DISK_SIZE` in `host-os/custom-image-setup.sh` when cumulative package size exceeds 1GB. Do not increment disk size for packages under 1GB (existing disk allocation already includes future headroom).
+7. For packages that depend on kernel (performance tools, kernel drivers, or userspace packages with kernel dependencies), create symbolic links to the custom Intel kernel inside `infrastructure/installation-scripts/setup-kernel-depended-pkgs.sh` as a workaround. Do not start `setup-kernel-depended-pkgs.sh` if updated as part of `curate-host-packages.sh` and `ubuntu24-x86_64-minimal-ptl.yml`; this script will start during the provisioning process separately.
 8. Validate updated YAML syntax for modified files.
 9. Summarize package update results for each modified file.
 10. If user asks for artifact packaging, hand off to the dedicated packaging skill.
