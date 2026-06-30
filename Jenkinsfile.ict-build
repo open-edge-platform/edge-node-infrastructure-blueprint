@@ -220,14 +220,14 @@ pipeline {
                 mkdir -p "$OUTPUT_DIR"
 
                 # ICT outputs images under workspace/ directory within the tool repo
-                find image-composer-tool -type f \( -name "*.raw.gz" -o -name "*.raw.img.gz" \) -print | while read -r img; do
+                find image-composer-tool -type f -name "*.raw.gz" -print -o -type f -name "*.raw.img.gz" -print | while read -r img; do
                     echo "Found: $img"
                     cp "$img" "$OUTPUT_DIR/"
                 done
 
                 echo "=== ICT Output (${OUTPUT_DIR}) ==="
                 # Verify at least one image was copied
-                IMG_COUNT=$(find "$OUTPUT_DIR" -type f \( -name "*.raw.gz" -o -name "*.raw.img.gz" \) | wc -l)
+                IMG_COUNT=$(find "$OUTPUT_DIR" -type f -name "*.raw.gz" -o -type f -name "*.raw.img.gz" | wc -l)
                 if [ "$IMG_COUNT" -eq 0 ]; then
                     echo "ERROR: No image artifacts found in $OUTPUT_DIR!"
                     exit 1
