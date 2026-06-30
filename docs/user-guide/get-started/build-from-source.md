@@ -11,7 +11,7 @@ Before starting, confirm your system meets all [System Requirements](./system-re
 
 For Windows Subsystem for Linux (WSL), follow the steps in the [Windows WSL Guide](../how-to/set-up-windows-wsl.md).
 
-## Phase 1 Build Artifacts on the Developer System
+## Phase 1: Build Artifacts on the Developer System
 
 ### 1. Clone the Repository
 
