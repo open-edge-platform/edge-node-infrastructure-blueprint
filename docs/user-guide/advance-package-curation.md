@@ -16,26 +16,53 @@ distros on x86_64.
 
 This article will show you how to:
 
-- [Build and verify the default template](#build-and-verify-the-default-template)
+- [Build OS image using default template](#build-and-verify-the-default-template)
 - [Package the image into artifacts](#package-the-image-into-artifacts)
 - [Package curation and template customization](#package-curation-and-template-customization)
 - [Troubleshoot the process](#troubleshoot)
 
-## Build and verify the default template
+## Build OS image using default template
 
-Refer to the detailed [ICT QuickStart](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release#quick-start)
-to build the `image-composer-tool` binary.
+### Clone the repositories
+
+```bash
+# If edge-node-infrastructure-blueprint is not already cloned, uncomment the line below
+# git clone --branch v2026.1.0 https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git
+```
+
+Now, you should have the source codes available in `edge-node-infrastructure-blueprint` and `image-composer-tool` directories in your workpsace (say `/home/user`).
+
+### Build the tool
+
+Produces `./image-composer-tool` in the repo root:
+
+```bash
+cd image-composer-tool
+go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
+```
+
+### Install image composition prerequisites
+
+These packages are required before composing any image:
+
+```bash
+sudo apt install systemd-ukify mmdebstrap
+```
+
+Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
+
+> **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
+> issues. Ensure you have version 1.4.3 or later. On Ubuntu OS version 23.04 or later, the
+> repository version is sufficient.
 
 ### Configure the template
 
 Copy the upstream template to the Image Composer Tool home directory where you must have the `image-composer-tool` binary.
 
 ```bash
-cd image-composer-tool/
-cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+cp ../edge-node-infrastructure-blueprint/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
 ```
-
-Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
 
 Now, you can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package curation and template customization](#package-curation-and-template-customization) section.
 
@@ -83,7 +110,7 @@ sudo -E ./image-composer-tool build my-ubuntu24.yml
 When the build completes, expect the following output on the console with build timings:
 
 ```bash
-2026-04-09T15:10:22.705+0530    INFO    display/display.go:21   Checking for image artifacts in: /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal
+2026-04-09T15:10:22.705+0530    INFO    display/display.go:21   Checking for image artifacts in: /home/user/image-composer-tool/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:30   Found 2 total entries in directory
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:36   Checking file: minimal-desktop-ubuntu-24.04.raw.gz (isDir=false)
 2026-04-09T15:10:22.705+0530    INFO    display/display.go:36   Checking file: spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json (isDir=false)
@@ -97,10 +124,10 @@ When the build completes, expect the following output on the console with build 
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:60
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:61     Generated Artifacts (including SBOM):
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:79       • minimal-desktop-ubuntu-24.04.raw.gz (2.62 GB)
-2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
+2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/image-composer-tool/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:81
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:79       • spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json (1.37 MB)
-2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/ict/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json
+2026-04-09T15:10:22.706+0530    INFO    display/display.go:80         /home/user/image-composer-tool/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/spdx_manifest_deb_minimal-desktop-ubuntu_20260409_150520.json
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:81
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:84   ════════════════════════════════════════════════════════════════════════════
 2026-04-09T15:10:22.706+0530    INFO    display/display.go:85
@@ -135,23 +162,19 @@ Expected artefacts:
 
 ## Package the image into artifacts
 
-Use the `image-from-tool` mode when you already have an image generated by Image Composer Tool.
-This mode packages the provided Image Composer Tool image into
+Use the `image-from-tool` mode with `make build` now to package the OS image into
 the USB artifacts:
 
 ```bash
+cd ../edge-node-infrastructure-blueprint
 make build MODE=image-from-tool ICT_IMG=/absolute/path/to/minimal-desktop-ubuntu-24.04.raw.gz
 ```
-
-The following are the supported Image Composer Tool image extensions:
-
-- `.raw.gz`
-- `.raw.img.gz`
 
 Example:
 
 ```bash
-make build MODE=image-from-tool ICT_IMG=/home/user/images/minimal-desktop-ubuntu-24.04.raw.gz
+cd ../edge-node-infrastructure-blueprint
+make build MODE=image-from-tool ICT_IMG=/home/user/image-composer-tool/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
 ```
 
 Build output:
