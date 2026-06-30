@@ -78,7 +78,7 @@ For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guid
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
+git clone --branch v2026.1.0 https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
 cd edge-node-infrastructure-blueprint
 ```
 
