@@ -421,7 +421,7 @@ pipeline {
                 echo "=== end log ==="
                 echo ""
                 echo "=== ven-deployment-full.log (sanitized) ==="
-                cat ven-deployment-full.log 2>/dev/null | tr '\r' '\n' | grep -v '^\s*$' || echo "(no full log found)"
+                cat ven-deployment-full.log 2>/dev/null | col -b | cat -s || echo "(no full log found)"
                 echo "=== end full log ==="
                 echo ""
 
