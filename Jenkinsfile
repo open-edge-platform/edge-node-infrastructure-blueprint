@@ -1,150 +1,375 @@
-// SPDX-FileCopyrightText: (C) 2024 Intel Corporation
-// SPDX-License-Identifier: LicenseRef-Intel
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
 
-def getEnvFromBranch(branch) {
-    if (branch ==~ /main/) {
-        return 'virus'
-    }
-    else {
-        return 'virus'
-        // PR checks can be extended with checkmarx, bandit, snyk but source code has to available for them to pass. Protex should be kept only at branch level scanning.
-    }
-}
+// Dynamic parameters: ICT_IMG and ICT_BUILD_JOB only appear when BUILD_MODE=ict-based.
+// Requires "Active Choices" plugin (uno-choice) for full dynamic visibility.
+// Without the plugin, all parameters are shown but ICT-only ones are ignored in script-based mode.
+
+properties([
+    parameters([
+        choice(
+            name: 'BUILD_MODE',
+            choices: ['script-based', 'ict-based'],
+            description: 'script-based: build image from Ubuntu ISO; ict-based: build image with Image Composer Tool.'
+        ),
+        string(
+            name: 'ISO_URL',
+            defaultValue: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso',
+            description: '(script-based only) Ubuntu ISO URL to build from.'
+        ),
+        string(
+            name: 'ICT_IMG',
+            defaultValue: '',
+            description: '(ict-based only) Absolute path to pre-built ICT image (.raw.gz/.raw.img.gz). Leave empty to trigger child ICT build job.'
+        ),
+        string(
+            name: 'ICT_BUILD_JOB',
+            defaultValue: 'Devops-Testing/Sudipta/fed-ict-build',
+            description: '(ict-based only) Jenkins job path for ICT image build. Triggered when ICT_IMG is empty.'
+        ),
+        string(
+            name: 'SOURCE_REPO_URL',
+            defaultValue: 'https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git',
+            description: 'Git URL of this repository to checkout.'
+        ),
+        string(
+            name: 'SOURCE_REPO_BRANCH',
+            defaultValue: 'main',
+            description: 'Branch or ref to checkout.'
+        ),
+        string(
+            name: 'SOURCE_REPO_CREDENTIALS_ID',
+            defaultValue: '',
+            description: 'Optional Jenkins credentialsId for SOURCE_REPO_URL.'
+        ),
+        booleanParam(
+            name: 'RUN_VEN_DEPLOYMENT',
+            defaultValue: true,
+            description: 'Run Virtual Edge Node (VEN) deployment and validation after image build.'
+        )
+    ])
+])
 
 pipeline {
-    agent {
-        docker {
-            label 'oie_spot_executor'
-            image 'amr-registry.caas.intel.com/one-intel-edge/rrp-devops/oie_ci_testing:latest'
-            alwaysPull true
-            args '--privileged -v /dev:/dev'
-        }
+    agent { label 'fed-node' }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '15'))
     }
+
     environment {
-        GIT_SHORT_URL=env.GIT_URL.split('/')[4].toString().replaceAll('.git','')
-        PROJECT_NAME = "${GIT_SHORT_URL}"
-        authorEmail = sh (script: 'git --no-pager show -s --format=\'%ae\'',returnStdout: true).trim()
-        SDLE_UPLOAD_PROJECT_ID = ' ' //add your SDL project
+        PATH = "/usr/local/go/bin:${env.PATH}"
     }
+
     stages {
-        stage('Scan Sources'){
-            environment {
-                SCANNERS            = getEnvFromBranch(env.BRANCH_NAME)
-                PROTEX_PROJECT_NAME = "${GIT_SHORT_URL}"
-            }
-            when {
-                anyOf {
-                    branch 'main';
-                    changeRequest();
-                }
-            }
+        stage('Parameter Validation') {
             steps {
-                rbheStaticCodeScan()
-            }
-        }
-        // This stage is required for service/agent repos only
-        // Please remove it for chart repos
-        stage('Version Check') {
-            steps {
-                echo "Check if its a valid code version"
-                sh '''
-                /opt/ci/version-check.sh
-                '''
-            }        
-        }
-        stage('Build') {
-            steps {
-                echo "Hi, I'm a pipeline, doing build step"
-                echo "For time-being skipped, make build stage due to- Host OS image download failed"
-                echo "The ISO download and mounting are now working (you can see the successful mount with read-only warning, which is normal for ISOs). However, the build is still failing during the Starting Installation phase"
-            }
-        }
-        stage('License Check') {
-            steps {
-                sh '''
-                echo "License checking the code"
-                make license
-                '''
-            }
-        }
-        stage('Lint') {
-            steps {
-                echo "Hi, I'm a pipeline, doing lint step"
-                sh '''
-                make lint
-                '''
-            }
-        }
-        stage('Test') {
-            when {
-                changeRequest()
-            }
-            steps {
-                echo "Hi, I'm a pipeline, doing test step"
-            }
-            post {
-                success {
-                    coverageReport('cobertura-coverage.xml')
-                }
-            }
-        }
-        // This stage is required for service/agent repos only
-        // Please remove it for chart repos
-        stage('Version Tag') {
-            when {
-                anyOf { branch 'main'; branch 'feature*'; branch 'release*' }
-            }
-            steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                    {
-                        netrcPatch()
-                        echo "Generate tag if SemVer"
-                        sh '''
-                        # Tag the version
-                        /opt/ci/version-tag.sh
-                        '''
-                }
-            }
-        }
-        stage('Version dev') {
-            when {
-                anyOf { branch 'main'; branch 'iaas-*-*'; branch 'release-*'; }
-            }
-            steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_oie_devops_github_api',usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']])
-                {
-                    versionDev()
-                }
-            }
-        }
-        stage('Auto approve') {
-            when {
-                changeRequest()
-            }
-            steps {
-                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'sys_devops_approve_github_api', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]) {
-                    script {
-                        autoApproveAndMergePR()
+                script {
+                    if (params.BUILD_MODE == 'script-based') {
+                        if (!params.ISO_URL?.trim()) {
+                            error "ISO_URL is required for script-based mode."
+                        }
+                        echo "Mode: script-based | ISO: ${params.ISO_URL}"
+                    } else {
+                        if (params.ICT_IMG?.trim()) {
+                            echo "Mode: ict-based | ICT image: ${params.ICT_IMG}"
+                        } else {
+                            echo "Mode: ict-based | No ICT image provided; will trigger child job: ${params.ICT_BUILD_JOB}"
+                        }
                     }
                 }
             }
         }
-        stage('Artifact') {
+
+        stage('Checkout') {
             steps {
-                artifactUpload()
+                script {
+                    if (fileExists('Makefile') && fileExists('README.md')) {
+                        echo 'Repository content already exists in workspace; skipping checkout.'
+                        return
+                    }
+
+                    def resolvedRepoUrl = params.SOURCE_REPO_URL?.trim() ?: 'https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git'
+                    echo "Checking out: ${resolvedRepoUrl} @ ${params.SOURCE_REPO_BRANCH}"
+
+                    def remote = [url: resolvedRepoUrl]
+                    if (params.SOURCE_REPO_CREDENTIALS_ID?.trim()) {
+                        remote.credentialsId = params.SOURCE_REPO_CREDENTIALS_ID.trim()
+                    }
+
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: params.SOURCE_REPO_BRANCH]],
+                        userRemoteConfigs: [remote],
+                        extensions: [[
+                            $class: 'CloneOption',
+                            shallow: true,
+                            depth: 1,
+                            noTags: false,
+                            timeout: 30
+                        ]]
+                    ])
+                }
+            }
+        }
+
+        stage('Preflight') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "Build mode: ${BUILD_MODE}"
+                echo "Workspace: ${WORKSPACE}"
+
+                # Verify non-interactive sudo with env preservation
+                if ! sudo -n true 2>/dev/null; then
+                    echo "ERROR: Non-interactive sudo not available. Grant NOPASSWD:SETENV for Jenkins user."
+                    exit 1
+                fi
+                if ! sudo -nE true 2>/dev/null; then
+                    echo "ERROR: sudo -E not allowed. Add SETENV to sudoers entry."
+                    exit 1
+                fi
+
+                # Verify Go (needed for CDI generator build)
+                if ! command -v go &>/dev/null; then
+                    echo "ERROR: Go not found in PATH. PATH=$PATH"
+                    exit 1
+                fi
+                echo "Go: $(go version)"
+                echo "Preflight passed."
+                '''
+            }
+        }
+
+        stage('Build Image (script-based)') {
+            when {
+                expression { params.BUILD_MODE == 'script-based' }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+                echo "Running: make build MODE=image-from-iso"
+                make build MODE=image-from-iso ISO_URL="${ISO_URL}" ICT_IMG="" skip-proxy=true
+                '''
+            }
+        }
+
+        stage('Trigger ICT Child Build') {
+            when {
+                expression { params.BUILD_MODE == 'ict-based' && !params.ICT_IMG?.trim() }
+            }
+            steps {
+                script {
+                    // Both parent and child run on the same node (fed-node),
+                    // so we use a shared filesystem path instead of copyArtifacts.
+                    def sharedOutputDir = '/tmp/ict-shared-output'
+
+                    echo "Triggering ICT build child job: ${params.ICT_BUILD_JOB}"
+                    build job: params.ICT_BUILD_JOB, parameters: [
+                        string(name: 'SOURCE_REPO_URL', value: params.SOURCE_REPO_URL),
+                        string(name: 'SOURCE_REPO_BRANCH', value: params.SOURCE_REPO_BRANCH),
+                        string(name: 'SOURCE_REPO_CREDENTIALS_ID', value: params.SOURCE_REPO_CREDENTIALS_ID ?: ''),
+                        string(name: 'SHARED_OUTPUT_DIR', value: sharedOutputDir)
+                    ], wait: true, propagate: true
+
+                    // Read image path from shared location (written by child job)
+                    def ictImage = sh(
+                        script: "find ${sharedOutputDir} -type f \\( -name '*.raw.gz' -o -name '*.raw.img.gz' \\) | head -1",
+                        returnStdout: true
+                    ).trim()
+                    if (!ictImage) {
+                        error "ICT child job completed but no image found in ${sharedOutputDir}"
+                    }
+                    env.ICT_IMG_RESOLVED = ictImage
+                    echo "ICT image from child job: ${env.ICT_IMG_RESOLVED}"
+                }
+            }
+        }
+
+        stage('Build Image (ict-based)') {
+            when {
+                expression { params.BUILD_MODE == 'ict-based' }
+            }
+            steps {
+                script {
+                    def ictPath = params.ICT_IMG?.trim() ?: env.ICT_IMG_RESOLVED
+                    if (!ictPath) {
+                        error "No ICT image path available."
+                    }
+                    sh """#!/usr/bin/env bash
+                    set -euo pipefail
+                    echo "Running: make build MODE=image-from-tool ICT_IMG=${ictPath}"
+                    make build MODE=image-from-tool ICT_IMG="${ictPath}" ISO_URL="" skip-proxy=true
+                    """
+                }
+            }
+        }
+
+        stage('Collect Build Artifacts') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+                echo "=== Build Artifacts ==="
+                find infrastructure/build-artifacts/out -type f -print 2>/dev/null \
+                    | while read f; do
+                        size=$(du -h "$f" | cut -f1)
+                        echo "  [$size] $f"
+                    done || echo "  (none)"
+
+                echo ""
+                echo "Artifacts remain on disk at: ${WORKSPACE}/infrastructure/build-artifacts/out/"
+                echo "(Large image files are NOT uploaded to Jenkins to avoid 10+ min archive delays)"
+                '''
+                // Only archive small metadata/logs, NOT multi-GB images
+                archiveArtifacts artifacts: 'infrastructure/build-artifacts/out/**/*.log,infrastructure/build-artifacts/out/**/*.txt,infrastructure/build-artifacts/out/**/config-file', allowEmptyArchive: true
+            }
+        }
+
+        stage('VEN Deployment') {
+            when {
+                expression { params.RUN_VEN_DEPLOYMENT }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "=== Virtual Edge Node (VEN) Deployment ==="
+                cd infrastructure/build-artifacts
+
+                if [ ! -f out/usb-installation-files.tar.gz ]; then
+                    echo "ERROR: usb-installation-files.tar.gz not found in build output."
+                    exit 1
+                fi
+
+                # Extract installation artifacts
+                sudo tar -xzf out/usb-installation-files.tar.gz -C out/
+                cd out
+
+                # Inject Jenkins agent SSH key into config-file for post-install SSH access
+                if [ -f ~/.ssh/id_rsa.pub ]; then
+                    SSH_PUB=$(cat ~/.ssh/id_rsa.pub)
+                    sed -i "s|^ssh_key=.*|ssh_key=\"${SSH_PUB}\"|" config-file
+                    echo "Injected SSH public key into config-file."
+                elif [ -f ~/.ssh/id_ed25519.pub ]; then
+                    SSH_PUB=$(cat ~/.ssh/id_ed25519.pub)
+                    sed -i "s|^ssh_key=.*|ssh_key=\"${SSH_PUB}\"|" config-file
+                    echo "Injected SSH public key (ed25519) into config-file."
+                else
+                    echo "WARNING: No SSH public key found. VEN tests requiring SSH will fail."
+                fi
+
+                # ven-deployment.sh runs QEMU in foreground.
+                # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
+                # We run it in background and monitor for installation completion.
+                echo "Launching VEN deployment (ven-deployment.sh) in background..."
+                sudo -E ./ven-deployment.sh &
+                VEN_PID=$!
+
+                # Wait for installation to complete.
+                # The installer writes to ubuntu-disk.img. After reboot, the VM boots the installed OS.
+                # We detect completion by waiting for the disk to grow beyond the initial 197K qcow2 header.
+                TIMEOUT=2400  # 40 minutes max for installation
+                ELAPSED=0
+                INSTALL_DONE=false
+                while kill -0 $VEN_PID 2>/dev/null; do
+                    if [ $ELAPSED -ge $TIMEOUT ]; then
+                        echo "WARNING: Installation timeout (${TIMEOUT}s). Killing QEMU."
+                        sudo pkill -f "qemu-system-x86_64.*ubuntu-disk.img" || true
+                        break
+                    fi
+
+                    # Check if the disk has been written to significantly (>1GB = installation happened)
+                    DISK_SIZE=$(stat -c%s ubuntu-disk.img 2>/dev/null || echo 0)
+                    if [ "$DISK_SIZE" -gt 1073741824 ]; then
+                        if [ "$INSTALL_DONE" = "false" ]; then
+                            echo "  Installation detected (disk size: $(du -h ubuntu-disk.img | cut -f1)). Waiting for reboot cycle..."
+                            INSTALL_DONE=true
+                        fi
+                        # After install + reboot, give it 60s to boot the installed OS, then kill
+                        sleep 60
+                        echo "  Post-install boot detected. Shutting down installation VM."
+                        sudo pkill -f "qemu-system-x86_64.*ubuntu-disk.img" || true
+                        break
+                    fi
+
+                    sleep 30
+                    ELAPSED=$((ELAPSED + 30))
+                    echo "  Installing... (${ELAPSED}s elapsed)"
+                done
+                wait $VEN_PID 2>/dev/null || true
+
+                echo "VEN installation completed."
+
+                # Disconnect NBD from installation phase
+                sudo qemu-nbd --disconnect /dev/nbd0 2>/dev/null || true
+
+                # Verify disk was created
+                if [ ! -f ubuntu-disk.img ]; then
+                    echo "FAIL: ubuntu-disk.img not created by installation."
+                    exit 1
+                fi
+                echo "PASS: ubuntu-disk.img created ($(ls -lh ubuntu-disk.img | awk '{print $5}'))"
+                '''
+            }
+        }
+
+        stage('VEN Boot & Test') {
+            when {
+                expression { params.RUN_VEN_DEPLOYMENT }
+            }
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "=== Booting Installed VEN for Testing ==="
+                chmod +x tests/ven-boot-installed.sh tests/ven-validate.sh tests/ven-cleanup.sh
+
+                # Boot the installed VM with SSH port forwarding
+                # ubuntu-disk.img is in infrastructure/build-artifacts/out/ (created by ven-deployment.sh)
+                sudo tests/ven-boot-installed.sh \
+                    infrastructure/build-artifacts/out/ubuntu-disk.img \
+                    2222 98 4G 300
+
+                echo ""
+                echo "=== Running VEN Validation Tests ==="
+                # Run the test suite (uses SSH to validate the VM)
+                tests/ven-validate.sh 2222 user localhost || VEN_TEST_RESULT=$?
+
+                # Archive test results
+                cp /tmp/ven-test-results.txt infrastructure/build-artifacts/out/ven-test-results.txt 2>/dev/null || true
+
+                # Cleanup test VM
+                sudo tests/ven-cleanup.sh 2222 user localhost
+
+                if [ "${VEN_TEST_RESULT:-0}" -ne 0 ]; then
+                    echo "VEN validation had failures. Check test results."
+                    exit 1
+                fi
+                '''
+
+                archiveArtifacts artifacts: 'infrastructure/build-artifacts/out/ven-test-results.txt', allowEmptyArchive: true
             }
         }
     }
+
     post {
         always {
-            jcpSummaryReport()
-            intelLogstashSend failBuild: false, verbose: true
-            cleanWs()
+            // Cleanup any leftover QEMU processes (installation + test VMs)
+            sh 'sudo pkill -f "qemu-system-x86_64.*ubuntu-disk.img" 2>/dev/null || true'
+            sh 'sudo pkill -f "qemu-system-x86_64.*ven-test-vm" 2>/dev/null || true'
+            sh 'sudo qemu-nbd --disconnect /dev/nbd0 2>/dev/null || true'
+            sh 'rm -f /tmp/ven-test-vm.pid 2>/dev/null || true'
+            cleanWs(deleteDirs: true, notFailBuild: true)
+        }
+        success {
+            echo 'Pipeline completed successfully.'
         }
         failure {
-            script {
-                emailFailure()
-            }
+            echo 'Pipeline failed. Check stage logs for details.'
         }
     }
 }

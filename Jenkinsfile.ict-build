@@ -1,0 +1,252 @@
+// SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+// SPDX-License-Identifier: Apache-2.0
+
+// Child job: Build ICT (Image Composer Tool) image
+// This job is triggered by the parent pipeline when BUILD_MODE=ict-based
+// and no ICT_IMG path is provided.
+//
+// Produces: ict-output/<image-name>.raw.gz as an archived artifact.
+
+pipeline {
+    agent { label 'fed-node' }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    parameters {
+        string(
+            name: 'SOURCE_REPO_URL',
+            defaultValue: 'https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git',
+            description: 'Git URL of the ENIB repository (for the ICT template).'
+        )
+        string(
+            name: 'SOURCE_REPO_BRANCH',
+            defaultValue: 'main',
+            description: 'Branch or ref to checkout.'
+        )
+        string(
+            name: 'SOURCE_REPO_CREDENTIALS_ID',
+            defaultValue: '',
+            description: 'Optional Jenkins credentialsId.'
+        )
+        string(
+            name: 'ICT_REPO_URL',
+            defaultValue: 'https://github.com/open-edge-platform/image-composer-tool.git',
+            description: 'Git URL for Image Composer Tool repository.'
+        )
+        string(
+            name: 'ICT_REPO_BRANCH',
+            defaultValue: '2026.1-Release',
+            description: 'Branch/tag of Image Composer Tool to use.'
+        )
+        string(
+            name: 'ICT_TEMPLATE',
+            defaultValue: 'infrastructure/host-os/ict/generic-handheld-os-template.yml',
+            description: 'Path to ICT template (relative to ENIB repo root).'
+        )
+        string(
+            name: 'SHARED_OUTPUT_DIR',
+            defaultValue: '/tmp/ict-shared-output',
+            description: 'Shared filesystem path where the built image is placed for the parent job to pick up.'
+        )
+    }
+
+    environment {
+        PATH = "/usr/local/go/bin:${env.PATH}"
+    }
+
+    stages {
+        stage('Preflight') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "=== ICT Build Preflight ==="
+
+                # Sudo check
+                if ! sudo -n true 2>/dev/null; then
+                    echo "ERROR: Non-interactive sudo not available."
+                    exit 1
+                fi
+                if ! sudo -nE true 2>/dev/null; then
+                    echo "ERROR: sudo -E not allowed."
+                    exit 1
+                fi
+
+                # Go check
+                if ! command -v go &>/dev/null; then
+                    echo "ERROR: Go not found in PATH."
+                    echo "PATH=$PATH"
+                    exit 1
+                fi
+                echo "Go: $(go version)"
+
+                # Check required packages
+                for pkg in systemd-ukify mmdebstrap; do
+                    if dpkg -s "$pkg" &>/dev/null; then
+                        echo "OK: $pkg installed"
+                    else
+                        echo "WARN: $pkg not installed, will attempt to install"
+                    fi
+                done
+
+                echo "Preflight passed."
+                '''
+            }
+        }
+
+        stage('Checkout ENIB') {
+            steps {
+                dir('enib') {
+                    script {
+                        def resolvedRepoUrl = params.SOURCE_REPO_URL?.trim() ?: 'https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git'
+                        def remote = [url: resolvedRepoUrl]
+                        if (params.SOURCE_REPO_CREDENTIALS_ID?.trim()) {
+                            remote.credentialsId = params.SOURCE_REPO_CREDENTIALS_ID.trim()
+                        }
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.SOURCE_REPO_BRANCH]],
+                            userRemoteConfigs: [remote],
+                            extensions: [[
+                                $class: 'CloneOption',
+                                shallow: true,
+                                depth: 1,
+                                noTags: false,
+                                timeout: 30
+                            ]]
+                        ])
+                    }
+                }
+            }
+        }
+
+        stage('Checkout ICT') {
+            steps {
+                dir('image-composer-tool') {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: params.ICT_REPO_BRANCH]],
+                        userRemoteConfigs: [[url: params.ICT_REPO_URL]],
+                        extensions: [[
+                            $class: 'CloneOption',
+                            shallow: true,
+                            depth: 1,
+                            noTags: false,
+                            timeout: 30
+                        ]]
+                    ])
+                }
+            }
+        }
+
+        stage('Install ICT Prerequisites') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "Installing ICT prerequisites..."
+                sudo apt-get update -qq
+                sudo apt-get install -y --no-install-recommends systemd-ukify mmdebstrap
+                echo "Prerequisites installed."
+                '''
+            }
+        }
+
+        stage('Build ICT Binary') {
+            steps {
+                dir('image-composer-tool') {
+                    sh '''#!/usr/bin/env bash
+                    set -euo pipefail
+
+                    echo "Building Image Composer Tool..."
+                    go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
+                    ls -la image-composer-tool
+                    echo "ICT binary built successfully."
+                    '''
+                }
+            }
+        }
+
+        stage('Validate Template') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                TEMPLATE="${WORKSPACE}/enib/${ICT_TEMPLATE}"
+                if [ ! -f "$TEMPLATE" ]; then
+                    echo "ERROR: Template not found at $TEMPLATE"
+                    exit 1
+                fi
+
+                echo "Validating template: $TEMPLATE"
+                cd image-composer-tool
+                ./image-composer-tool validate "$TEMPLATE"
+                echo "Template validation passed."
+                '''
+            }
+        }
+
+        stage('Build ICT Image') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                TEMPLATE="${WORKSPACE}/enib/${ICT_TEMPLATE}"
+                echo "Building ICT image from template: $TEMPLATE"
+
+                cd image-composer-tool
+                sudo -E ./image-composer-tool build "$TEMPLATE"
+
+                echo "ICT image build completed."
+                '''
+            }
+        }
+
+        stage('Collect ICT Output') {
+            steps {
+                sh '''#!/usr/bin/env bash
+                set -euo pipefail
+
+                echo "=== Collecting ICT build output ==="
+
+                # Write image to shared output dir (parent job reads from here)
+                OUTPUT_DIR="${SHARED_OUTPUT_DIR}"
+                rm -rf "$OUTPUT_DIR"
+                mkdir -p "$OUTPUT_DIR"
+
+                # ICT outputs images under workspace/ directory within the tool repo
+                find image-composer-tool -type f \( -name "*.raw.gz" -o -name "*.raw.img.gz" \) -print | while read -r img; do
+                    echo "Found: $img"
+                    cp "$img" "$OUTPUT_DIR/"
+                done
+
+                echo "=== ICT Output (${OUTPUT_DIR}) ==="
+                # Verify at least one image was copied
+                IMG_COUNT=$(find "$OUTPUT_DIR" -type f \( -name "*.raw.gz" -o -name "*.raw.img.gz" \) | wc -l)
+                if [ "$IMG_COUNT" -eq 0 ]; then
+                    echo "ERROR: No image artifacts found in $OUTPUT_DIR!"
+                    exit 1
+                fi
+                ls -lh "$OUTPUT_DIR/"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs(deleteDirs: true, notFailBuild: true)
+        }
+        success {
+            echo 'ICT image build completed successfully.'
+        }
+        failure {
+            echo 'ICT image build failed. Check stage logs.'
+        }
+    }
+}
