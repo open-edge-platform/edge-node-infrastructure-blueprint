@@ -361,15 +361,15 @@ pipeline {
 
                 while IFS= read -r line; do
                     case "$line" in
-                        http_proxy=*)  echo "http_proxy=\"${HOST_HP}\"" ;;
-                        https_proxy=*) echo "https_proxy=\"${HOST_HPS}\"" ;;
-                        no_proxy=*)    echo "no_proxy=\"${HOST_NP}\"" ;;
-                        HTTP_PROXY=*)  echo "HTTP_PROXY=\"${HOST_HP}\"" ;;
-                        HTTPS_PROXY=*) echo "HTTPS_PROXY=\"${HOST_HPS}\"" ;;
-                        NO_PROXY=*)    echo "NO_PROXY=\"${HOST_NP}\"" ;;
+                        http_proxy=*)  printf '%s\n' "http_proxy=${HOST_HP}" ;;
+                        https_proxy=*) printf '%s\n' "https_proxy=${HOST_HPS}" ;;
+                        no_proxy=*)    printf '%s\n' "no_proxy=${HOST_NP}" ;;
+                        HTTP_PROXY=*)  printf '%s\n' "HTTP_PROXY=${HOST_HP}" ;;
+                        HTTPS_PROXY=*) printf '%s\n' "HTTPS_PROXY=${HOST_HPS}" ;;
+                        NO_PROXY=*)    printf '%s\n' "NO_PROXY=${HOST_NP}" ;;
                         ssh_key=*)
                             if [ -n "$SSH_PUB" ]; then
-                                echo "ssh_key=\"${SSH_PUB}\""
+                                printf 'ssh_key="%s"\n' "${SSH_PUB}"
                             else
                                 echo "$line"
                             fi
@@ -381,6 +381,9 @@ pipeline {
 
                 echo "Config-file updated:"
                 grep -E '^(http_proxy|https_proxy|no_proxy|ssh_key|host_type)' config-file || true
+
+                # Also export ssh_key so sudo -E passes it through the environment
+                export ssh_key="${SSH_PUB}"
 
                 # Pre-flight: verify extracted files and dependencies
                 echo ""
