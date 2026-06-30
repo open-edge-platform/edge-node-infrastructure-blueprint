@@ -382,11 +382,29 @@ pipeline {
                 echo "Config-file updated:"
                 grep -E '^(http_proxy|https_proxy|no_proxy|ssh_key|host_type)' config-file || true
 
+                # Pre-flight: verify extracted files and dependencies
+                echo ""
+                echo "=== VEN Pre-flight Checks ==="
+                echo "Files in $(pwd):"
+                ls -la
+                echo ""
+                echo "Checking usb-bootable-files.tar.gz contents:"
+                tar -tzf usb-bootable-files.tar.gz | head -20 || echo "FAIL: cannot list tar contents"
+                echo ""
+                echo "Checking python3 + PyYAML:"
+                python3 -c "import yaml; print('PyYAML OK')" 2>&1 || echo "FAIL: PyYAML not available"
+                echo ""
+                echo "Checking gdisk:"
+                which sgdisk 2>/dev/null && echo "sgdisk OK" || echo "WARN: sgdisk not found"
+                echo "=== End Pre-flight ==="
+                echo ""
+
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
                 # We run it in background and monitor for installation completion.
+                # Tee all output to a log so progress-bar \r sequences don't hide errors.
                 echo "Launching VEN deployment (ven-deployment.sh) in background..."
-                sudo -E ./ven-deployment.sh &
+                sudo -E ./ven-deployment.sh 2>&1 | tee ven-deployment-full.log &
                 VEN_PID=$!
 
                 # Wait for ven-deployment.sh — must not trigger set -e on failure
@@ -401,6 +419,10 @@ pipeline {
                 echo "=== bootable_usb_setup_log.txt ==="
                 cat bootable_usb_setup_log.txt 2>/dev/null || echo "(no log file found)"
                 echo "=== end log ==="
+                echo ""
+                echo "=== ven-deployment-full.log (sanitized) ==="
+                cat ven-deployment-full.log 2>/dev/null | tr '\r' '\n' | grep -v '^\s*$' || echo "(no full log found)"
+                echo "=== end full log ==="
                 echo ""
 
                 if [ $VEN_EXIT -ne 0 ]; then
