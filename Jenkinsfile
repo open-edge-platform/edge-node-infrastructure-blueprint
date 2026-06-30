@@ -389,38 +389,20 @@ pipeline {
                 sudo -E ./ven-deployment.sh &
                 VEN_PID=$!
 
-                # Wait for installation to complete.
-                # The installer writes to ubuntu-disk.img. After reboot, the VM boots the installed OS.
-                # We detect completion by waiting for the disk to grow beyond the initial 197K qcow2 header.
-                TIMEOUT=2400  # 40 minutes max for installation
-                ELAPSED=0
-                INSTALL_DONE=false
-                while kill -0 $VEN_PID 2>/dev/null; do
-                    if [ $ELAPSED -ge $TIMEOUT ]; then
-                        echo "WARNING: Installation timeout (${TIMEOUT}s). Killing QEMU."
-                        sudo pkill -f "qemu-system-x86_64.*ubuntu-disk.img" || true
-                        break
-                    fi
+                # Wait for ven-deployment.sh to finish or fail
+                wait $VEN_PID 2>/dev/null
+                VEN_EXIT=$?
 
-                    # Check if the disk has been written to significantly (>1GB = installation happened)
-                    DISK_SIZE=$(stat -c%s ubuntu-disk.img 2>/dev/null || echo 0)
-                    if [ "$DISK_SIZE" -gt 1073741824 ]; then
-                        if [ "$INSTALL_DONE" = "false" ]; then
-                            echo "  Installation detected (disk size: $(du -h ubuntu-disk.img | cut -f1)). Waiting for reboot cycle..."
-                            INSTALL_DONE=true
-                        fi
-                        # After install + reboot, give it 60s to boot the installed OS, then kill
-                        sleep 60
-                        echo "  Post-install boot detected. Shutting down installation VM."
-                        sudo pkill -f "qemu-system-x86_64.*ubuntu-disk.img" || true
-                        break
-                    fi
+                # Show the bootable-usb-prepare log (errors are hidden in this file)
+                echo ""
+                echo "=== bootable_usb_setup_log.txt ==="
+                cat bootable_usb_setup_log.txt 2>/dev/null || echo "(no log file found)"
+                echo "=== end log ==="
+                echo ""
 
-                    sleep 30
-                    ELAPSED=$((ELAPSED + 30))
-                    echo "  Installing... (${ELAPSED}s elapsed)"
-                done
-                wait $VEN_PID 2>/dev/null || true
+                if [ $VEN_EXIT -ne 0 ]; then
+                    echo "ven-deployment.sh exited with code $VEN_EXIT"
+                fi
 
                 echo "VEN installation completed."
 
