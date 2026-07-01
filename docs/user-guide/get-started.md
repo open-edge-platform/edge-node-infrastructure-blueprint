@@ -23,7 +23,6 @@ The process is divided into three phases:
 3. **Phase 3** — Validate bring-up and confirm services are running
 
 Before starting, review the [System Requirements](./get-started/system-requirements.md).
-=======
 
 ## Phase 1: Build Artifacts on the Developer System
 
@@ -38,7 +37,6 @@ Follow the [Prepare USB and Validate](./get-started/prepare-usb.md) guide to wri
 ## Troubleshooting
 
 See the [Troubleshooting](./troubleshooting.md) guide for common issues and solutions.
-=======
 
 ## Next Steps
 
