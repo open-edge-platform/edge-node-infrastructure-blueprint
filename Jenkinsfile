@@ -406,7 +406,7 @@ pipeline {
                 sudo sed -i '2i set -x' bootable-usb-prepare.sh
 
                 # Add -no-reboot to QEMU so it exits when the VM does 'reboot -f'
-                sudo sed -i '/-vnc :99/a\  -no-reboot \\' ven-deployment.sh
+                sudo sed -i 's/-vnc :99/-vnc :99 -no-reboot/' ven-deployment.sh
 
                 # ven-deployment.sh runs QEMU in foreground.
                 # The installer ends with 'reboot -f' which reboots the VM (doesn't shut it down).
