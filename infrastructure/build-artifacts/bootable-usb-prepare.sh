@@ -117,50 +117,9 @@ if [ -z "$host_type" ] || { [ "$host_type" != "kubernetes" ] && [ "$host_type" !
     echo "Invalid host_type => $host_type provided, Please check!. It should not be empty or host_type=kubernetes/container"
     exit 1
 fi
-
-# Validate the custom-cloud-init section
-if ! dpkg -s python3 > /dev/null 2>&1; then
-    if ! apt install -y python3 > /dev/null 2>&1; then
-        echo "Python installation failed,please check!!"
-    fi
-fi
-
-sudo apt install gdisk > /dev/null 2>&1
  
 CONFIG_FILE="config-file"
-START_MARKER="^services:"
 
-# Extract YAML content from custom cloud-init-section
-# if any error,throw the errors  
-YAML_CONTENT=$(awk "/$START_MARKER/ {found=1} found" "$CONFIG_FILE")
-
-# Validate using Python
-if ! echo "$YAML_CONTENT" | python3 -c '
-import sys, yaml
-
-try:
-    data = yaml.safe_load(sys.stdin.read())
-    # Validate runcmd
-    if "runcmd" in data:
-        runcmd = data["runcmd"]
-        if runcmd is None:
-            print("")
-        elif not isinstance(runcmd, list):
-            sys.exit(1)
-        else:
-            for item in runcmd:
-                if not isinstance(item, str) and not isinstance(item, list):
-                    print(f"Invalid runcmd item: {item!r}")
-                    sys.exit(1)
-    else:
-        print("")
-except yaml.YAMLError as e:
-    print("Custom cloud-init YAML is invalid:\n", e)
-    sys.exit(1)
-'; then
-    echo "Custom cloud-init file is not valid,Please check!!"
-    exit 1
-fi
 
 # --- Progress Bar Function ---
 show_progress_bar() {
@@ -215,7 +174,7 @@ download_developer_src() {
     local tmpdir
     tmpdir=$(mktemp -d)
     if git clone --depth 1 "$REPO_URL" "${tmpdir}/developer-src"; then
-        tar -czf "$TARBALL" -C "$tmpdir" developer-src
+        tar -I pigz -cf "$TARBALL" -C "$tmpdir" developer-src
         rm -rf "$tmpdir"
         echo "Created developer-src.tar.gz"
     else

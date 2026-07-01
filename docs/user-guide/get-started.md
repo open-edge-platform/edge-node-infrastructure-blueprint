@@ -26,7 +26,7 @@ Before starting, review the [System Requirements](./get-started/system-requireme
 
 ## Phase 1: Build Artifacts on the Developer System
 
-The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL).
+The developer host OS can be either a baremetal Linux installation with docker or Windows Subsystem for Linux (WSL) with docker.
 
 Follow the [Build from Source](./get-started/build-from-source.md) guide to clone the repository and produce `usb-installation-files.tar.gz`.
 

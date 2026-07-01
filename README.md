@@ -24,25 +24,25 @@ The solution bridges the gap between edge hardware capabilities and application 
 
 ### 1. Prerequisites
 
-For the developer system, we recommend using Ubuntu 24.04 or Ubuntu 22.04 LTS. The developer host OS can be either a baremetal Ubuntu installation or Windows Subsystem for Linux (WSL) to build the artifacts.
+#### Docker Setup
 
 For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/how-to/set-up-windows-wsl.md).
 
-> **BIOS requirement:** The image build uses QEMU to run the Ubuntu installer inside a virtual machine.
-> Hardware virtualisation (**Intel VT-x**) must be enabled in the developer system BIOS before running the build.
-> To verify it is enabled, run `grep -m1 -c 'vmx' /proc/cpuinfo` — a value of `1` or higher confirms VT-x is active.
+Docker Engine is required because the build workflow uses Docker images and containers.
 
-#### Go Toolchain
+Install Docker Engine for your Linux distribution using the official Docker documentation:
+- Linux install overview: https://docs.docker.com/engine/install/
+- Debian: https://docs.docker.com/engine/install/debian/
+- Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+- RHEL: https://docs.docker.com/engine/install/rhel/
+- Fedora: https://docs.docker.com/engine/install/fedora/
 
-Go 1.22 or later is required to build the Intel CDI GPU spec generator, which is compiled and embedded into the HookOS image before the OS build starts.
+Configure Docker for non-root usage and service startup after installation:
+- https://docs.docker.com/engine/install/linux-postinstall/
 
-```bash
-# Install Go programming language version 1.22 or later, for example, version 1.24.2)
-wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
-export PATH=/usr/local/go/bin:$PATH  # add to ~/.bashrc to persist
-go version  # should report Go programming language version 1.22 or later
-```
+If you are behind a proxy, configure Docker daemon proxy settings:
+- https://docs.docker.com/config/daemon/systemd/
+
 
 > Notes
 > - Keep `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` consistent across all proxy configuration files.
@@ -62,15 +62,26 @@ From the repository root, run one of the following build modes.
 > Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 > For air-gapped deployments: run `infrastructure/installation-scripts/download-resources.sh` before building, to bundle Intel's device-plugin manifests and container images into the installation artifacts.
 
-#### Option 1: Build from ISO Image File
+#### Option 1: Build from a Standard 24.04 Minimal desktop image
 
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu ISO image file:
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
+
+To build the Ubuntu image with required tools and packages:
+
+> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile` with your new password using:
+> ```bash
+> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
+> ```
 
 ```bash
-make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
+make build
 ```
 
-For additional image customization, see `infrastructure/host-os/readme.md`.
+Or explicitly specify the standard mode:
+
+```bash
+make build MODE=standard-image
+```
 
 #### Option 2: Build with Image Composer Tool Image
 
