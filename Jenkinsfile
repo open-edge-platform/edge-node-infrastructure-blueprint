@@ -413,7 +413,7 @@ pipeline {
                 # We run it in background and monitor for installation completion.
                 # Redirect all output to a log file so progress-bar \r sequences don't hide errors.
                 echo "Launching VEN deployment (ven-deployment.sh) in background..."
-                sudo -E ./ven-deployment.sh > ven-deployment-full.log 2>&1 &
+                sudo -E ./ven-deployment.sh > /tmp/ven-deployment-full.log 2>&1 &
                 VEN_PID=$!
 
                 # Wait for ven-deployment.sh — must not trigger set -e on failure
@@ -430,7 +430,7 @@ pipeline {
                 echo "=== end log ==="
                 echo ""
                 echo "=== ven-deployment-full.log (sanitized) ==="
-                cat ven-deployment-full.log 2>/dev/null | col -b | cat -s || echo "(no full log found)"
+                cat /tmp/ven-deployment-full.log 2>/dev/null | col -b | cat -s || echo "(no full log found)"
                 echo "=== end full log ==="
                 echo ""
 
