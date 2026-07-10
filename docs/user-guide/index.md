@@ -37,6 +37,7 @@ IoT processing, and real-time applications at the network edge.
 
 Get Started <get-started.md>
 Advanced Image Customization <how-to/advanced-image-customization.md>
+Build on macOS (x86 VM) <how-to/build-on-macos-x86.md>
 Container Device Interface Guide <how-to/configure-cdi.md>
 GPU and NPU Device Plugins <how-to/configure-device-plugins.md>
 DL Streamer Pipelines Guide <how-to/build-dlstreamer-pipelines.md>
