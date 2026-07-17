@@ -243,9 +243,9 @@ coverage:
 ICT_DIR              := infrastructure/host-os/ict
 ICT_PATCH            := $(ICT_DIR)/generic-handheld-os-template.patch
 ICT_FINAL            := $(ICT_DIR)/generic-handheld-os-template.yml
-ICT_UPSTREAM_REPO    := open-edge-platform/image-composer-tool
-ICT_UPSTREAM_PATH    := image-templates/ubuntu24-x86_64-minimal-ptl-pv-raw.yml
-ICT_UPSTREAM_SHA     := bc18a5b45f1ac7423156dd307b83318cdf2dcc77
+ICT_UPSTREAM_REPO    := skewat1/image-composer-tool
+ICT_UPSTREAM_PATH    := image-templates/ubuntu24-x86_64-minimal-ptl-mr1-raw.yml
+ICT_UPSTREAM_SHA     := 5aefc7916277d895a01e700916807a41475dbfa2
 ICT_UPSTREAM_RAW_URL := https://raw.githubusercontent.com/$(ICT_UPSTREAM_REPO)/$(ICT_UPSTREAM_SHA)/$(ICT_UPSTREAM_PATH)
 
 ict-refresh-upstream:
