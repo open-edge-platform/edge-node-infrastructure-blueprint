@@ -51,6 +51,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 qemu-utils net-tools ovmf
+          # Verify OVMF path
+          OVMF_PATH=$(find /usr/share -name "OVMF_CODE*.fd" | head -1)
+          echo "OVMF_PATH=$OVMF_PATH" >> "$GITHUB_ENV"
+          echo "OVMF firmware found at: $OVMF_PATH"
 
       - name: Run VEN validation
         working-directory: infrastructure/build-artifacts/out
@@ -71,7 +75,7 @@ jobs:
             -enable-kvm \
             -cpu host \
             -machine q35,accel=kvm \
-            -bios /usr/share/OVMF/OVMF_CODE.fd \
+            -bios "$OVMF_PATH" \
             -nographic \
             -serial mon:stdio \
             -drive file=ubuntu-disk.img,format=qcow2 \
