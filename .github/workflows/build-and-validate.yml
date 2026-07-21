@@ -41,35 +41,38 @@ jobs:
         run: |
           make build MODE=standard-image skip-proxy=true
 
-      - name: Enable KVM
+      - name: Run VEN validation
+        working-directory: infrastructure/build-artifacts/out
         run: |
+          # Enable KVM
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Install QEMU and dependencies
-        run: |
+          # Install QEMU and dependencies
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 qemu-utils net-tools ovmf
-          # Verify OVMF path
-          OVMF_PATH=$(find /usr/share -name "OVMF_CODE*.fd" | head -1)
-          echo "OVMF_PATH=$OVMF_PATH" >> "$GITHUB_ENV"
-          echo "OVMF firmware found at: $OVMF_PATH"
+          if [ -f /usr/share/OVMF/OVMF_CODE_4M.fd ]; then
+            OVMF_PATH=/usr/share/OVMF/OVMF_CODE_4M.fd
+          elif [ -f /usr/share/OVMF/OVMF_CODE.fd ]; then
+            OVMF_PATH=/usr/share/OVMF/OVMF_CODE.fd
+          elif [ -f /usr/share/qemu/OVMF.fd ]; then
+            OVMF_PATH=/usr/share/qemu/OVMF.fd
+          else
+            echo "ERROR: No OVMF firmware found"
+            find /usr/share -name "*OVMF*" -ls
+            exit 1
+          fi
+          echo "OVMF firmware: $OVMF_PATH"
 
-      - name: Run VEN validation
-        working-directory: infrastructure/build-artifacts/out
-        run: |
+          # Extract artifacts
           tar -xzf usb-installation-files.tar.gz
-
-          # Extract bootable files for VEN
           tar -xzf usb-bootable-files.tar.gz
 
           # Create virtual disk for installation target
           qemu-img create -f qcow2 ubuntu-disk.img 64G
 
           echo "Starting VEN (Virtual Edge Node) validation..."
-          # Boot the VM with the ISO and validate it launches successfully
-          # Use -nographic and a timeout to run headlessly in CI
           timeout 300 qemu-system-x86_64 \
             -m 4G \
             -enable-kvm \
