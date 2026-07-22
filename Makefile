@@ -1,11 +1,13 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-.PHONY: all build build-cdi-generator lint shellcheck clean coverage license list help
+.PHONY: all build build-cdi-generator lint shellcheck hadolint clean coverage license list help
 SHELL := bash -eu -o pipefail
 
 # Find all shell scripts
 SH_FILES := $(shell find . -type f -name '*.sh' 2>/dev/null)
+# Find all Dockerfiles
+DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null)
 
 BASE_IMAGE := edge-base-builder:ubuntu24.04
 BUILD_ARTIFACTS_IMAGE := build-edge-blueprint-artifacts:latest
@@ -193,11 +195,26 @@ build: check-proxy check-docker build-base
 		"$(MODE)" "$$CONTAINER_ICT_IMG"
 	@echo "---END MAKEFILE Build---"
 
-lint: shellcheck
+lint: shellcheck hadolint
 	@# Help: Runs lint stage
 	@echo "---MAKEFILE LINT---"
 	echo $@
 	@echo "---END MAKEFILE LINT---"
+# https://github.com/hadolint/hadolint
+hadolint:
+	@# Help: Lint Dockerfiles with hadolint
+	@echo "---MAKEFILE HADOLINT---"
+	@if command -v hadolint &> /dev/null; then \
+		hadolint --config .hadolint.yaml $(DOCKERFILES); \
+	else \
+		docker run --rm \
+			-v "$$PWD":/workspace \
+			-w /workspace \
+			hadolint/hadolint:v2.12.0 \
+			hadolint --config .hadolint.yaml $(DOCKERFILES); \
+	fi
+	@echo "---END MAKEFILE HADOLINT---"
+
 # https://github.com/koalaman/shellcheck
 shellcheck:
 	@# Help: Lint shell scripts with shellcheck

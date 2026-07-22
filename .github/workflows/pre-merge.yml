@@ -33,20 +33,46 @@ jobs:
       run_reuse_check: true
       run_test: false
 
+  dockerfile-scan:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Run Hadolint on all Dockerfiles
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf  # v3.1.0
+        with:
+          recursive: true
+          config: .hadolint.yaml
+          format: tty
+          failure-threshold: error
+
   final-check:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [pre-merge-pipeline]
+    needs: [pre-merge-pipeline, dockerfile-scan]
     env:
       RESULT: ${{ needs.pre-merge-pipeline.result }}
+      DOCKERFILE_SCAN_RESULT: ${{ needs.dockerfile-scan.result }}
     steps:
       - name: Final Status Check
         run: |
           pre_merge_pipeline_result="${RESULT}"
+          dockerfile_scan_result="${DOCKERFILE_SCAN_RESULT}"
 
           echo "Pre-merge pipeline result: $pre_merge_pipeline_result"
+          echo "Dockerfile scan result:    $dockerfile_scan_result"
 
-          if [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; then
+          status="OK"
+          for result in "$pre_merge_pipeline_result" "$dockerfile_scan_result"; do
+            if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
+              status="KO"
+            fi
+          done
+
+          if [ "$status" == "OK" ]; then
             echo "Pre-merge check passed successfully."
           else
             echo "Pre-merge checks failed. PR can't get merged"
