@@ -16,4 +16,5 @@ runcmd:
     # Allow helm/kubectl access from external development system
     iptables -A INPUT -p tcp --dport 6443 -j ACCEPT
     . /etc/environment
+    mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null || true
 
