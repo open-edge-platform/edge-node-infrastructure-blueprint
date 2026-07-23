@@ -1292,7 +1292,7 @@ clone_source_to_target() {
     mkdir -p "$TARGET_DIR"
 
     # Use pigz for faster parallel decompression
-    tar -I pigz -xf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1
+    tar -xzf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1
     if [ $? -eq 0 ]; then
         find "$TARGET_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
         success "Developer source extracted to target /opt/edge/developer/"
