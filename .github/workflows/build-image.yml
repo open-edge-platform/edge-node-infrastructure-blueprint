@@ -58,16 +58,22 @@ jobs:
           cd /tmp/image-composer-tool
           sudo -E ./image-composer-tool build "$GITHUB_WORKSPACE/infrastructure/host-os/ict/generic-handheld-os-template.yml"
 
-      - name: Build final image from ICT output
+      - name: Copy ICT image and fix permissions
         run: |
-          ICT_IMG=$(find /tmp/image-composer-tool/workspace -name "*.raw.gz" -type f | head -1)
+          ICT_IMG=$(sudo find /tmp/image-composer-tool/workspace -name "*.raw.gz" -type f | head -1)
           if [ -z "$ICT_IMG" ]; then
             echo "ERROR: ICT image output not found"
-            find /tmp/image-composer-tool/workspace -type f -ls
+            sudo find /tmp/image-composer-tool/workspace -type f -ls
             exit 1
           fi
-          echo "Using ICT image: $ICT_IMG"
-          make build MODE=image-from-tool ICT_IMG="$ICT_IMG" skip-proxy=true
+          echo "Found ICT image: $ICT_IMG"
+          sudo cp "$ICT_IMG" "$GITHUB_WORKSPACE/ict-image.raw.gz"
+          sudo chown "$(id -u):$(id -g)" "$GITHUB_WORKSPACE/ict-image.raw.gz"
+          ls -lh "$GITHUB_WORKSPACE/ict-image.raw.gz"
+
+      - name: Build final image from ICT output
+        run: |
+          make build MODE=image-from-tool ICT_IMG="$GITHUB_WORKSPACE/ict-image.raw.gz" skip-proxy=true
 
   build-script-image:
     runs-on: ubuntu-latest
