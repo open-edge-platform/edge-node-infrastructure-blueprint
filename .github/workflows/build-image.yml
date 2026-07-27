@@ -5,10 +5,6 @@
 name: Build Image
 
 on:
-  pull_request:
-    branches:
-      - main
-      - release*
   push:
     branches:
       - main
