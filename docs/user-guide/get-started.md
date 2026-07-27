@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This guide walks you through provisioning an Intel edge node end-to-end: building installation artifacts on a developer system, writing them to a bootable USB, installing the OS on the target system, and validating the bring-up.
 
-![Setup overview](./_assets/setup.svg)
+![Setup overview](./_assets/setup.drawio.svg)
 
 The workflow involves two types of systems:
 

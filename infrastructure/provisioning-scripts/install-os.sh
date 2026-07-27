@@ -1448,10 +1448,12 @@ EOF
          mount "$os_disk$os_rootfs_part" /mnt
          mount --bind /proc /mnt/proc
          mount --bind /sys /mnt/sys
-         # Enable the docker service first
+         # Enable the docker service
          if chroot /mnt /bin/bash <<EOT; then
          set -e
          systemctl enable docker
+         systemctl disable k3s 2>/dev/null || true
+         usermod -aG docker $user
 EOT
              success "Enabled the docker services"
          else
@@ -1502,8 +1504,6 @@ EOF
      # exit the su - $user
         exit
 EOT
-	 usermod -aG docker $user
-         chmod 666 /var/run/docker.sock
             success "docker proxy services updated successfully"
         else
             failure "Failed to updated the docker proxy settings"

@@ -15,9 +15,9 @@ RUN git clone --depth 1 --branch ${TAG} \
 
 WORKDIR /build/repo
 
-# Sync vendor and build binary
+# Sync vendor and build static binary (CGO_ENABLED=0 avoids musl dynamic link)
 RUN go mod vendor && \
-    GOOS=linux GOARCH=amd64 \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -a -ldflags "-s -w" \
     -mod vendor -o /intel-cdi-specs-generator-gpu ./cmd/cdi-specs-generator
 

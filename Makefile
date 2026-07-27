@@ -23,12 +23,19 @@ else
 export DOCKER_BUILDKIT=0
 endif
 
-PROXY_FILE := proxy.env
-ETC_ENV    := /etc/environment
+PROXY_TEMPLATE := .proxy.env
+PROXY_FILE     := proxy.env
+ETC_ENV        := /etc/environment
 # Environment variables for build commands.skip-proxy to bypass proxy checks
 # If proxy settings are detected under proxy.env, they will be loaded into ENV_PROXIES
-# if not, ENV_PROXIES will be updated from /etc/environment. 
+# if not, ENV_PROXIES will be updated from /etc/environment.
 # if neither have valid proxy settings, the user will be prompted to proceed without proxy or abort the build.
+
+# Auto-create proxy.env from template if missing
+$(PROXY_FILE): $(PROXY_TEMPLATE)
+	@cp $(PROXY_TEMPLATE) $(PROXY_FILE)
+	@echo "Created $(PROXY_FILE) from $(PROXY_TEMPLATE) — edit freely, it is git-ignored."
+
 check-docker:
 	@# Help: Check if Docker is installed and functional
 	@echo "Checking if Docker is installed..."
@@ -68,7 +75,7 @@ check-docker:
 	fi
 	@echo "All Docker checks passed. Proceeding with build..."
 
-check-proxy:
+check-proxy: $(PROXY_FILE)
 	@if [ "$(skip-proxy)" = "true" ]; then \
 		echo "Proxy explicitly skipped by user."; \
 	else \
