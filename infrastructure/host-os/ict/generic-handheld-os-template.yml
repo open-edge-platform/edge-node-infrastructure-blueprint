@@ -207,6 +207,8 @@ systemConfig:
     - grep
     - grub-efi-amd64-signed
     - gzip
+    - pigz
+    - gdisk
     - language-pack-en
     - language-pack-en-base
     - language-pack-gnome-en
