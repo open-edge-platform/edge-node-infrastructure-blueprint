@@ -36,7 +36,7 @@ Required inputs:
   - Workload orchestration preference (host_type)
   - Single Root I/O Virtualization (SRIOV) toggle
   - Additional system parameters
-  - Installation Mode (Attended or Unattended)
+  - Debug Mode (`false`)
 
 > **Note:** Proxy configuration is optional in unrestricted network environments.
 

@@ -99,7 +99,7 @@ RUN systemctl --root=/ enable NetworkManager   || true && \
     systemctl --root=/ set-default graphical.target
 
 ARG USERNAME=user
-ARG USER_PASSWORD='$6$ENIBDEFAULT$ldaxPVYnIXySCgfxvzBdUwUw6Kyt5DiGzeDe4brEFEIIe2C1.42Vu5pRg1qH8WfkPYvVohvfyLQY6AeQRcRpx1'
+ARG USER_PASSWORD='$6$z62Fexi.jttmcREt$Ltc4kdydbL39UAgY05sWtQ6EyeCjro48EIghXJD8dxw6G4OfWmoF3F9X9ayEaOYqgmcpMoXpjC.IJZPXjr6Vx.'
 
 RUN sed -i 's/#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf
 

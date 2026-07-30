@@ -77,10 +77,24 @@ From the repository root, run one of the following build modes.
 
 Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
 
-> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile` with your new password using:
-> ```bash
-> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
-> ```
+Before building, update the default user credentials in `infrastructure/host-os/Dockerfile`. Replace the default `USERNAME` and `USER_PASSWORD` hash with your own values:
+
+```bash
+ARG USERNAME=<your-username>
+ARG USER_PASSWORD='<SHA-512-hashed-password>'
+```
+
+Generate the password hash using one of the following methods:
+
+```bash
+# Using openssl (requires `openssl` to be installed)
+openssl passwd -6 'your-password-here'
+
+# Using mkpasswd (requires `whois` to be installed)
+mkpasswd --method=sha-512 'your-password-here'
+```
+
+> **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 
 ```bash
 make build
@@ -158,21 +172,7 @@ Required inputs:
    - Workload orchestration preference (host_type)
    - Single Root I/O Virtualization (SRIOV) toggle
    - Additional system parameters
-   - Installation Mode (Attended or Unattended)
-
-#### Installation Mode Details
-
-Installation mode is optional and defaults to the **Unattended Mode**, which means a fully automated installation without user interaction. If you require interactive debugging, set `installation_mode=true` in the `config-file` to enable the **Attended Mode** with prompts for user input during the boot process.
-
-If installation fails or you need to troubleshoot, run the installer in interactive debug mode on the Alpine OS terminal:
-
-```bash
-/usr/local/bin/os-install.sh -i
-```
-
-This launches the installer in interactive debug mode for troubleshooting and manual configuration.
-
-> **Note**: Proxy configuration is optional in unrestricted network environments.
+   - Debug Mode (`false`)
 
 Run the following command:
 
@@ -252,3 +252,4 @@ docker ps
 - USB preparation fails: Verify the device path and available USB capacity.
 - `kubectl` issues: Confirm that the Kubernetes installation has completed and the node status is `Ready`.
 - GPU or NPU not detected: Re-run the Best-Known Configuration (BKC) installation and inspect `dmesg` for driver load failures.
+- OS installation fails: Set `debug_mode=true` in the `config-file`, rebuild the USB, and reboot to enable **Debug Mode** with interactive prompts. Optionally, run `/usr/local/bin/os-install.sh -i` on the Alpine OS terminal to launch the installer in interactive debug mode.
