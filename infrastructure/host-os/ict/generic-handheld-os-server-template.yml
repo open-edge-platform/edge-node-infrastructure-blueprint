@@ -173,7 +173,7 @@ packageRepositories:
       - libswresample6
       - libswscale9
 
-      - intel-lpmd
+     # - intel-lpmd
 
     # QEMU Virtualization (overlay builds)
     # Remove these to disable: QEMU/KVM virtual machine emulation
@@ -258,9 +258,13 @@ packageRepositories:
 
   # Intel ECI repository (aligned with eci.intel.com setup instructions)
   # apt equivalent: deb [signed-by=...] https://eci.intel.com/repos/noble isar main
+  # NOTE: [trusted=yes] workaround — the GPG key and Release signature are valid
+  # (verified externally with gpg), but ICT's Go openpgp library fails to verify
+  # this particular binary key format. Revert to the pkey URL once ICT is fixed:
+  #   pkey: "https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
   - codename: "isar"
     url: "https://eci.intel.com/repos/noble"
-    pkey: "https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
+    pkey: "[trusted=yes]"
     component: "main"
     priority: 600
     allowPackages:
@@ -467,7 +471,7 @@ systemConfig:
       - sysbench
       - stress-ng
       - fio
-
+      - usb-modeswitch
       - v4l-utils
       - libllvm18
       - libdebuginfod1t64
@@ -809,6 +813,22 @@ systemConfig:
       - manpages # optional, Linux system call and library reference manual pages
       - manpages-dev # optional, developer-oriented manual pages (section 2/3)
 
+    # intel-lpmd v0.1.0 build dependencies (source build in configurations section)
+    # These are installed by ICT (network available) so they're present in chroot.
+    # Purged after the build in the configurations cleanup step.
+      - autoconf
+      - automake
+      - autoconf-archive
+      - libtool
+      - gtk-doc-tools
+      - libdbus-1-dev
+      - libglib2.0-dev
+      - libxml2-dev
+      - libnl-3-dev
+      - libnl-genl-3-dev
+      - libsystemd-dev
+      - libupower-glib-dev
+
     # Android Debug Bridge
     # Remove these to disable: ADB for Android device interaction
 
@@ -864,7 +884,7 @@ systemConfig:
 
     # Power Management
     # Remove these to disable: system power and thermal management
-      - intel-lpmd
+      #- intel-lpmd
       - thermald # optional, Intel thermal management daemon (prevents CPU throttling)
       - upower # optional, power management interface daemon (battery/AC status)
 
@@ -970,20 +990,22 @@ systemConfig:
     # HD audio codec via DSP
     - cmd: "wget -O /lib/firmware/intel/sof-ace-tplg/sof-hda-generic.tplg https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-hda-generic.tplg --no-check-certificate 2>&1 || echo 'Warning: sof-hda-generic.tplg download failed'"
 
-    # --- intel-lpmd v0.1.0 (source build) — DISABLED ---
-    # Left here for reference only. The packaged 0.1.0 deb targets 25.10 (needs libnl
-    # >= 3.11, libxml2-16, glibc >= 2.42) while noble has 3.7.0 / libxml2.so.2 / 2.39,
-    # so it cannot be installed on this image. Building from source works (verified on
-    # noble: links against libnl-3.so.200 / libxml2.so.2, installs to /usr/sbin and
-    # /usr/lib/systemd/system) but needs a compiler toolchain pulled in mid-build, which
-    # is not reproducible. Proper fix: a noble-built intel-lpmd in the overlay repo,
-    # then add intel-lpmd back to packages: + allowPackages: and delete this block.
-    #- cmd: "printf 'deb http://archive.ubuntu.com/ubuntu noble main universe\\n' > /etc/apt/sources.list.d/lpmd-build.list && printf 'Package: *\\nPin: origin archive.ubuntu.com\\nPin-Priority: 100\\n' > /etc/apt/preferences.d/lpmd-build-pin && apt-get update && apt-get install -y --no-install-recommends autoconf automake libtool gtk-doc-tools libdbus-1-dev libglib2.0-dev libxml2-dev libnl-3-dev libnl-genl-3-dev libsystemd-dev systemd-dev libupower-glib-dev"
-    #- cmd: "rm -rf /tmp/intel-lpmd && git clone --depth 1 --branch v0.1.0 https://github.com/intel/intel-lpmd.git /tmp/intel-lpmd"
-    #- cmd: "cd /tmp/intel-lpmd && ./autogen.sh prefix=/usr --localstatedir=/var --sysconfdir=/etc && make -j$(nproc) && make install"
-    #- cmd: "test -x /usr/sbin/intel_lpmd && test -f /usr/lib/systemd/system/intel_lpmd.service"
-    #- cmd: "mkdir -p /etc/systemd/system/multi-user.target.wants && ln -sf /usr/lib/systemd/system/intel_lpmd.service /etc/systemd/system/multi-user.target.wants/intel_lpmd.service"
-    #- cmd: "rm -rf /tmp/intel-lpmd && apt-get purge -y autoconf automake libtool gtk-doc-tools libxml2-dev libnl-3-dev libnl-genl-3-dev libsystemd-dev systemd-dev libupower-glib-dev; rm -f /etc/apt/sources.list.d/lpmd-build.list /etc/apt/preferences.d/lpmd-build-pin; apt-get update || true"
+    # --- intel-lpmd v0.1.0 (source build in chroot) ---
+    # Build from source because the packaged 0.1.0 deb targets 25.10 (needs libnl
+    # >= 3.11, libxml2-16, glibc >= 2.42) while noble has 3.7.0 / libxml2.so.2 / 2.39.
+    # Build dependencies are in the packages: list (resolved by ICT with network).
+    # Step 1: Download intel-lpmd v0.1.0 source tarball
+    - cmd: "mkdir -p /tmp/intel-lpmd && wget -q https://github.com/intel/intel-lpmd/archive/refs/tags/v0.1.0.tar.gz -O /tmp/intel-lpmd/v0.1.0.tar.gz"
+    # Step 2: Extract source
+    - cmd: "cd /tmp/intel-lpmd && tar -xf v0.1.0.tar.gz"
+    # Step 3: Build and install (prefix=/usr so binaries land in /usr/sbin, unit in /usr/lib/systemd/system)
+    - cmd: "cd /tmp/intel-lpmd/intel-lpmd-0.1.0 && ./autogen.sh prefix=/usr --localstatedir=/var --sysconfdir=/etc && make -j$(nproc) && make install"
+    # Step 4: Verify installation
+    - cmd: "test -x /usr/sbin/intel_lpmd && test -f /usr/lib/systemd/system/intel_lpmd.service"
+    # Step 5: Enable intel_lpmd service for multi-user target
+    - cmd: "mkdir -p /etc/systemd/system/multi-user.target.wants && ln -sf /usr/lib/systemd/system/intel_lpmd.service /etc/systemd/system/multi-user.target.wants/intel_lpmd.service"
+    # Step 6: Clean up source and purge build-only dependencies (no network needed)
+    - cmd: "rm -rf /tmp/intel-lpmd && dpkg --purge --force-depends autoconf automake autoconf-archive libtool gtk-doc-tools libdbus-1-dev libxml2-dev libnl-3-dev libnl-genl-3-dev libsystemd-dev libupower-glib-dev 2>/dev/null || true"
 
     # --- MTL (Meteor Lake) audio firmware – from Intel Artifactory ---
     # Source: af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/ TODO remove this for external release, use SOF upstream instead
