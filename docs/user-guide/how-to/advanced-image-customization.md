@@ -59,10 +59,14 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ### Configure the template
 
-Copy the upstream template to the Image Composer Tool home directory where you must have the `image-composer-tool` binary.
+Copy the appropriate template to the Image Composer Tool home directory where you must have the `image-composer-tool` binary.
 
 ```bash
-cp ../edge-node-infrastructure-blueprint/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+# For desktop image
+cp ../edge-node-infrastructure-blueprint/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24-desktop.yml
+
+# For server image (headless)
+cp ../edge-node-infrastructure-blueprint/infrastructure/host-os/ict/generic-handheld-os-server-template.yml my-ubuntu24-server.yml
 ```
 
 Now, you can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package curation and template customization](#package-curation-and-template-customization) section.
@@ -202,9 +206,10 @@ Use this flow when you want to build a custom image flavor (for example, debug, 
 The package curation flow can update one or both of the following files:
 
 - `infrastructure/host-os/auto-install-pkgs.yaml`
-- `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+- `infrastructure/host-os/ict/generic-handheld-os-template.yml` (desktop)
+- `infrastructure/host-os/ict/generic-handheld-os-server-template.yml` (server)
 
-The ICT-based template is the preferred advanced image build method. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based (`generic-handheld-os-template.yml`) images.
+The ICT-based templates are the preferred advanced image build method. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based templates.
 
 ### End-to-end flow
 

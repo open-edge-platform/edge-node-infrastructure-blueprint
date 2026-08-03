@@ -7,9 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 
 This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
  Intel® Core™ Ultra processor platforms using
-[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
-and the provided template
-[`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml).
+[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool).
+
+Two templates are provided:
+- [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml) - Minimal **desktop** Ubuntu 24.04 with GUI
+- [`generic-handheld-os-server-template.yml`](./generic-handheld-os-server-template.yml) - Minimal **server** Ubuntu 24.04 (headless)
+
+Choose the template based on your deployment needs.
 
 ---
 
@@ -72,11 +76,14 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ## Configure the Template
 
-Copy the upstream template to a working location and edit it for your
-environment:
+Copy the appropriate template to a working location and edit it for your environment:
 
 ```bash
-cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+# For desktop image
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24-desktop.yml
+
+# For server image (headless)
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-server-template.yml my-ubuntu24-server.yml
 ```
 
 Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
@@ -184,7 +191,8 @@ Expected artefacts:
 
 | File | Description |
 |------|-------------|
-| `minimal-desktop-ubuntu.raw.gz` | Compressed raw disk image (ready to flash) |
+| `minimal-desktop-ubuntu.raw.gz` (desktop template) | Compressed raw disk image for desktop edition |
+| `minimal-ubuntu-server.raw.gz` (server template) | Compressed raw disk image for server edition |
 
 ## Troubleshoot
 

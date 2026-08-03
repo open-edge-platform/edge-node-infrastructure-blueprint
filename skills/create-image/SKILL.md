@@ -15,7 +15,7 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
 - work_template: output template path to edit (default: `<target_template>` basename prefixed with `work-`)
-- target_template: source template path (default: `infrastructure/host-os/ict/generic-handheld-os-template.yml`)
+- target_template: source template path (default: `infrastructure/host-os/ict/generic-handheld-os-template.yml` for desktop or `infrastructure/host-os/ict/generic-handheld-os-server-template.yml` for server)
 - os_image_composer_repo: clone path for image-composer-tool (default: `<enib_home>/tools/image-composer-tool`)
 
 ## Preconditions
