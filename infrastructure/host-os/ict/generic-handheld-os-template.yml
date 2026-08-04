@@ -277,12 +277,7 @@ systemConfig:
     - cmake
     - git
     - intel-gpu-tools
-    # libssl-dev hard-depends on "libssl3t64 (= <its own version>)". The resolver
-    # resolves the transitive libssl3t64 (pulled in by many base packages) to the
-    # -updates build 3.0.13-0ubuntu3.11, so libssl-dev must be pinned to the same
-    # -updates version or the exact "=" dep conflicts. Do NOT also list libssl3t64
-    # explicitly — that routes it through a path that stages the GA build instead.
-    - libssl-dev_3.0.13-0ubuntu3.11
+    - libssl-dev
     - make
     - mosquitto
     - mosquitto-clients
