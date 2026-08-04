@@ -105,9 +105,43 @@ sudo apt update && sudo apt install -y qemu-system-x86 qemu-utils xorriso cloud-
 ISO_FILE=$(basename "$ISO_URL")
 
 # Download ISO ---
+# Downloaded to a .part file first: an interrupted download must not leave a
+# partial ISO under the final name, or the next run skips the download and
+# fails 20 minutes later inside QEMU.
 if [ ! -f "$ISO_FILE" ]; then
     echo "Downloading Ubuntu $ISO_FILE..."
-    wget -O "$ISO_FILE" "$ISO_URL"
+    wget -c -O "$ISO_FILE.part" "$ISO_URL"
+
+    # Verify completeness before use, against the SHA256SUMS published next to
+    # the ISO.
+    echo "Fetching SHA256SUMS to verify the download..."
+    EXPECTED_SHA256=""
+    if wget -q -O SHA256SUMS.tmp "$(dirname "$ISO_URL")/SHA256SUMS"; then
+        EXPECTED_SHA256=$(awk -v f="$ISO_FILE" '{ gsub(/^\*/, "", $2); if ($2 == f) print $1 }' SHA256SUMS.tmp)
+    fi
+    rm -f SHA256SUMS.tmp
+
+    if [ -z "$EXPECTED_SHA256" ]; then
+        echo "Error: could not determine the expected SHA256 for $ISO_FILE"
+        echo "  Tried: $(dirname "$ISO_URL")/SHA256SUMS"
+        exit 1
+    fi
+
+    echo "Verifying $ISO_FILE..."
+    ACTUAL_SHA256=$(sha256sum "$ISO_FILE.part" | awk '{print $1}')
+    if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+        echo "Error: $ISO_FILE is incomplete or corrupt"
+        echo "  expected : $EXPECTED_SHA256"
+        echo "  actual   : $ACTUAL_SHA256"
+        echo "  size     : $(stat -c %s "$ISO_FILE.part") bytes"
+        echo "  Re-run the build to resume the download."
+        exit 1
+    fi
+
+    # Only a verified ISO gets the final name, so the check above is not
+    # skipped on a later run.
+    mv -f "$ISO_FILE.part" "$ISO_FILE"
+    echo "Checksum OK"
 fi
 
 #  Extract vmlinuz and initrd ---

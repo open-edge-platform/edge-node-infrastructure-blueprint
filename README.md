@@ -70,6 +70,11 @@ Build the Ubuntu image, including the required tools and packages, from an Ubunt
 make build MODE=image-from-iso ISO_URL=https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-desktop-amd64.iso
 ```
 
+The downloaded ISO is checksum-verified against the `SHA256SUMS` file published
+next to it, so an interrupted download is detected and resumed on the next run
+instead of being reused as-is. The build fails if the ISO host publishes no
+`SHA256SUMS` next to the ISO.
+
 For additional image customization, see `infrastructure/host-os/readme.md`.
 
 #### Option 2: Build with Image Composer Tool Image
