@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 name: validate-platform-config
-description: Validate whether a provisioned platform is correctly configured over SSH, including k3s pod health, binary paths, cloud-init state, network/proxy setup, and device readiness.
+description: Validate whether a provisioned platform is correctly configured over SSH, including k3s pod health, binary paths, cloud-init state, network and proxy setup, and device readiness.
 ---
 
 ## Trigger Phrases
@@ -20,7 +20,7 @@ description: Validate whether a provisioned platform is correctly configured ove
 - ssh_port: SSH port (default: `22`)
 - kubeconfig_path: expected kubeconfig path (default: `/etc/rancher/k3s/k3s.yaml`)
 
-Note: Private key authentication is auto-detected from `~/.ssh/` (searches `id_rsa`, `id_ed25519`, `id_ecdsa` in order). No prompt for key path.
+Note: Private key authentication is auto-detected from `~/.ssh/` (searches `id_rsa`, `id_ed25519`, and `id_ecdsa` in order). No prompt for key path.
 
 ## Preconditions
 Run silently without user prompts:
@@ -30,23 +30,23 @@ Run silently without user prompts:
   - `command -v ssh`
 - [ ] Remote host is reachable on SSH port:
   - `timeout 5 bash -c '</dev/tcp/<ssh_host>/<ssh_port>'`
-- [ ] Attempt remote login directly using the SSH agent / default keys (no key path required):
+- [ ] Attempt remote login directly using the SSH agent or default keys (no key path required):
   - `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host> true`
   - if exit code is `0`, proceed; record `SSH_AUTH=default`
   - only if direct login fails, fall back to explicit key discovery in `~/.ssh/`:
     - Run: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then echo "KEY_FOUND=$key"; exit 0; fi; fi; done; echo "KEY_FOUND=none"`
     - if output contains `KEY_FOUND=none`, stop and report missing/unsafe key error
-    - retry login with `-i <key>`; if it still fails, stop and report SSH auth error
+    - retry login with `-i <key>`; if it still fails, stop and report SSH authentication error
 
 Prompt only for missing required inputs:
 - [ ] Ask for missing `ssh_host` and `ssh_port` only. Assume `ssh_user=user` unless the user overrides it.
 
 ## Steps
-1. Build SSH command using the auth method established in preconditions.
+1. Build SSH command using the authentication method established in preconditions.
   - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host>`
   - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
 
-2. Detect host_type from remote config.
+2. Detect the host_type from the remote configuration.
   - command:
     - `grep -E '^host_type' /etc/cloud/config-file 2>/dev/null || echo 'host_type=unknown'`
   - parse the output to extract the value (e.g. `kubernetes`, `container`, or `unknown`)
@@ -80,7 +80,7 @@ Prompt only for missing required inputs:
     - one of expected locations exists: `/usr/local/bin/k3s`, `/usr/bin/k3s`
     - k3s service is enabled and active
 
-4. **If HOST_TYPE!=kubernetes** (container or unknown): Validate Docker, Docker Compose, and CDI.
+4. **If HOST_TYPE!=kubernetes** (container or unknown): Validate Docker, Docker Compose, and Container Device Interface (CDI).
   - commands:
     - `command -v docker`
     - `docker --version 2>/dev/null || true`
@@ -151,17 +151,17 @@ Prompt only for missing required inputs:
     - Total CPU core count and logical processors reported
     - P-core, E-core, and LPE-core counts are reported when `core_type` is exposed
     - raw `core_type` counts are always reported alongside decoded counts for traceability
-    - if `core_type` is not exposed by kernel/platform, report P/E/LPE counts as `unavailable`
+    - if `core_type` is not exposed by the kernel or platform, report P/E/LPE counts as `unavailable`
     - CPU model, family, stepping, and feature flags documented
     - CPU codename is reported only when verified from trusted identifiers (family/model/stepping mapping); never infer codename from model name text alone
     - if codename cannot be verified confidently, report `CPU_CODENAME=unverified` instead of guessing
     - CPU frequency scaling driver reported
     - Core type information from `/sys/devices/system/cpu/cpu*/topology/core_type` is decoded using common Linux hybrid mapping (`2=P`, `1=E`, `3=LPE`) and may vary by kernel/platform
     - Thread siblings mapping for logical CPU layout
-    - GPU presence determined from PCI and/or `/dev/dri`
+    - GPU presence determined from Peripheral Component Interconnect (PCI) and/or `/dev/dri`
     - NPU presence determined from PCI scan output
 
-9. If GPU is present, report GPU VF counts.
+9. If GPU is present, report GPU Virtual Function (VF) counts.
   - commands:
     - `for f in /sys/class/drm/card*/device/sriov_numvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
     - `for f in /sys/class/drm/card*/device/sriov_totalvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
@@ -183,14 +183,14 @@ Prompt only for missing required inputs:
 Validation section is criteria-only. Do not render the pass/fail results table here.
 - SSH connectivity check passes.
 - `host_type` is detected and reported; conditional checks branch accordingly.
-- **If kubernetes**: All required k3s pods listed in Step 3 are found in correct namespaces and healthy (`Running`, `1/1`); `kubectl` and `k3s` binaries present.
-- **If container/unknown**: Docker and Docker Compose are available, Docker service active, CDI spec files present.
+- **If kubernetes**: All required k3s pods listed in Step 3 are found in the correct namespaces and are healthy (`Running`, `1/1`); `kubectl` and `k3s` binaries are present.
+- **If container/unknown**: Docker and Docker Compose are available, Docker service is active, and CDI specification files are present.
 - cloud-init completion indicators are successful.
 - Network check reports assigned IP and route; connectivity is classified as direct or proxy/restricted with explicit reason.
-- Proxy values are collected briefly from `/etc/environment`; expanded only if network issues detected.
+- Proxy values are collected briefly from `/etc/environment`; expanded only if network issues are detected.
 - CPU/GPU/NPU inventory is collected with clear present/absent status.
 - CPU codename labeling is verification-based and avoids false platform naming.
-- GPU VF data is reported when GPU exists.
+- GPU VF data is reported when the GPU exists.
 - SR-IOV service (`intel-sriov-vf.service`) is validated when `enable_sriov=true` in config-file.
 
 ## Rollback
