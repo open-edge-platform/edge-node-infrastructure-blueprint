@@ -150,26 +150,33 @@ packageRepositories:
 
     # Intel Kernel & Tools
     # Remove these to disable: Intel-optimized 6.18 kernel with headers and tools
+    #
+    # Every package the internal repo publishes for the 6.18 line. Tools are named
+    # `linux-intel-<tool>`, not `linux-<tool>-6.18-intel` — same spellings as
+    # installer.sh:474. Keep this list in sync with systemConfig.packages; an entry
+    # there but not here silently falls back to the Ubuntu archive build.
+    # Revisit the whole block if this template moves off 6.18.
       - linux-headers-6.18-intel # must
       - linux-image-6.18-intel # must
-      #- linux-kbuild-6.18.38
-      #- linux-config-6.18
-      #- linux-bpf-dev
-    # Kernel tools. The internal repo names these `linux-intel-<tool>` with no
-    # kernel suffix — the old `linux-<tool>-6.18-intel` spellings do not exist in
-    # any configured repo and made the build fail with "not found in repo".
-    # These names match installer.sh:474, which is the source of truth.
-    # Published for the 6.18 line only: remove them if this template moves to 7.0.
+      - linux-kbuild-6.18.38
+      - linux-config-6.18
       - linux-intel-bpftool
       - linux-intel-misc-tools
       - linux-intel-perf
       - linux-intel-cpupower
       - linux-intel-rtla
       - linux-intel-usbip
-      #- libcpupower-intel-dev
+      - libcpupower-intel-dev
       - libcpupower-intel1
-      #- linux-intel-hyperv-daemons
-      #- linux-intel-sdsi
+      - linux-intel-hyperv-daemons
+      - linux-intel-sdsi
+    # Kernel docs and source tree, ~362MB installed. The -intel packages are
+    # 10KB wrappers that only Depend on the real ones, so all four go together.
+      - linux-doc-6.18
+      - linux-doc-intel
+      - linux-source-6.18
+      - linux-source-intel
+      #- linux-bpf-dev # not in the internal repo; comes from noble-updates
     
     # Wayland Libraries (overlay version 1.23.0 required by mesa-vulkan-drivers)
     # Remove these to disable: Wayland display protocol libraries
@@ -509,6 +516,7 @@ systemConfig:
       - sysbench
       - stress-ng
       - fio
+      - powertop
       - usb-modeswitch
       - v4l-utils
       - libllvm18
@@ -518,7 +526,7 @@ systemConfig:
     # Compression and Archiving
     # Remove these to disable: tar, xz, bzip2, zip archive support
       #- tar
-      #- xz-utils
+      - xz-utils # required by linux-source-6.18
       #- bzip2
       - unzip # optional, extract ZIP archives
       #- zip
@@ -695,30 +703,39 @@ systemConfig:
 
     # Intel Kernel & Tools
     # Remove these to disable: Intel-optimized 6.18 kernel with headers and tools
+    # Names must match the allowPackages block above. Aliases for the -intel
+    # suffixed binaries are created in configurations: below.
       - linux-headers-6.18-intel
       - linux-image-6.18-intel
-      #- linux-kbuild-6.18.38
-      #- linux-config-6.18
+      - linux-kbuild-6.18.38
+      - linux-config-6.18
       - linux-bpf-dev
-    # Kernel tools — names must match the allowPackages block above and
-    # installer.sh:474. The internal repo publishes these as
-    # `linux-intel-<tool>`, NOT `linux-<tool>-6.18-intel`.
-    # Published for the 6.18 line only: remove them if this template moves to 7.0.
       - linux-intel-bpftool
       - linux-intel-misc-tools
       - linux-intel-perf
       - linux-intel-cpupower
       - linux-intel-rtla
       - linux-intel-usbip
-      #- libcpupower-intel-dev
+      - libcpupower-intel-dev
       - libcpupower-intel1
-      #- linux-intel-hyperv-daemons
-      #- linux-intel-sdsi
+      - linux-intel-hyperv-daemons
+      - linux-intel-sdsi
+      - linux-doc-6.18
+      - linux-doc-intel
+      - linux-source-6.18
+      - linux-source-intel
+    # Dependencies of the above, all from the Ubuntu archive so no allowPackages
+    # entry: pahole for linux-kbuild, libjs-sphinxdoc for linux-doc, binutils and
+    # xz-utils for linux-source (it ships /usr/src/linux-source-6.18.tar.xz).
+      - pahole
+      - libjs-sphinxdoc
+      - binutils
 
     # Boot Configuration Utilities
     # Remove these to disable: bootconfig inspection and generation tooling
       #TODO- bootconfig
 
+      - clinfo # optional, OpenCL platform and device enumeration tool (GPU verification)
 
     # Intel NPU driver dependency
     # The NPU driver (installed later from GitHub in the configurations section)
@@ -1051,20 +1068,16 @@ systemConfig:
     # cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
 
     # --- Canonical names for the internal kernel tools ---------------------------
-    # The internal repo's linux-intel-* packages install their binaries with an
-    # `-intel` suffix (bpftool-intel, perf-intel, cpupower-intel, rtla-intel,
-    # usbip-intel, usbipd-intel), so plain `bpftool`, `perf`, ... are not on PATH.
-    # Symlink the unsuffixed names into /usr/local/{bin,sbin}, which glibc/PATH
-    # search BEFORE /usr/bin and /usr/sbin. Effect: the user types `bpftool` and
-    # gets the internal build. Nothing is installed from the Ubuntu archive.
-    #
-    # /usr/local is deliberate — writing to /usr/bin would collide with the
-    # Canonical linux-tools packages if they are ever pulled in transitively, and
-    # dpkg would overwrite our links. Here dpkg never touches them, and if a
-    # Canonical tool does land in /usr/bin the internal one still wins on PATH.
-    #
-    # `-f` so a re-run is idempotent; each link is guarded so a package that is
-    # not installed does not fail the build.
+    # The linux-intel-* packages install their binaries with an `-intel` suffix
+    # (bpftool-intel, perf-intel, ...), so plain `bpftool`, `perf` are not on PATH.
+    # Symlink the unsuffixed names into /usr/local/{bin,sbin}, which PATH searches
+    # before /usr/bin and /usr/sbin, so the internal build always wins and dpkg
+    # never overwrites the links. Same treatment for the tools that already have
+    # canonical names but land in /usr/sbin only, and for man pages, completions,
+    # the cpupower unit and the kbuild dir. Every link is guarded so an uninstalled
+    # package is skipped, and -f keeps re-runs idempotent.
+    # misc-tools, hyperv-daemons and sdsi already install canonical names;
+    # libcpupower-intel1/-dev use the standard soname. Nothing needed for those.
     - cmd: "mkdir -p /usr/local/bin /usr/local/sbin"
     - cmd: "[ -x /usr/sbin/bpftool-intel ] && ln -sf /usr/sbin/bpftool-intel /usr/local/sbin/bpftool || true"
     - cmd: "[ -x /usr/bin/perf-intel ] && ln -sf /usr/bin/perf-intel /usr/local/bin/perf || true"
@@ -1072,18 +1085,24 @@ systemConfig:
     - cmd: "[ -x /usr/bin/rtla-intel ] && ln -sf /usr/bin/rtla-intel /usr/local/bin/rtla || true"
     - cmd: "[ -x /usr/sbin/usbip-intel ] && ln -sf /usr/sbin/usbip-intel /usr/local/sbin/usbip || true"
     - cmd: "[ -x /usr/sbin/usbipd-intel ] && ln -sf /usr/sbin/usbipd-intel /usr/local/sbin/usbipd || true"
-    # bpftool/usbip live in sbin but are useful to non-root shells whose PATH may
-    # omit sbin, so expose them in /usr/local/bin too.
+    # sbin tools, also in bin for non-root shells whose PATH omits sbin
     - cmd: "[ -x /usr/sbin/bpftool-intel ] && ln -sf /usr/sbin/bpftool-intel /usr/local/bin/bpftool || true"
     - cmd: "[ -x /usr/sbin/usbip-intel ] && ln -sf /usr/sbin/usbip-intel /usr/local/bin/usbip || true"
-    # Bash completions ship suffixed too; register them under the plain names.
+    # rtla ships these as symlinks to "rtla", which it never installs — dangling
+    # as shipped. rtla dispatches on argv[0], so point them at rtla-intel.
+    - cmd: "[ -x /usr/bin/rtla-intel ] && for t in hwnoise osnoise timerlat; do ln -sf /usr/bin/rtla-intel /usr/local/bin/$t; done || true"
+    - cmd: "for t in turbostat intel-speed-select x86_energy_perf_policy; do [ -x /usr/sbin/$t ] && ln -sf /usr/sbin/$t /usr/local/bin/$t || true; done"
+    - cmd: "[ -x /usr/sbin/intel_pstate_tracer.py ] && ln -sf /usr/sbin/intel_pstate_tracer.py /usr/local/bin/intel_pstate_tracer || true"
     - cmd: "[ -f /usr/share/bash-completion/completions/bpftool-intel ] && ln -sf /usr/share/bash-completion/completions/bpftool-intel /usr/share/bash-completion/completions/bpftool || true"
     - cmd: "[ -f /usr/share/bash-completion/completions/perf-intel ] && ln -sf /usr/share/bash-completion/completions/perf-intel /usr/share/bash-completion/completions/perf || true"
-    # linux-intel-cpupower ships cpupower-intel.service; alias it so
-    # `systemctl {start,enable} cpupower` works with the canonical unit name.
+    - cmd: "for f in /usr/share/man/man1/{perf,rtla,bpftool,cpupower}-intel*.1.gz; do [ -e \"$f\" ] || continue; b=$(basename \"$f\"); n=$(echo \"$b\" | sed 's/-intel//'); [ \"$b\" = \"$n\" ] || ln -sf \"$f\" \"/usr/share/man/man1/$n\"; done; true"
     - cmd: "[ -f /usr/lib/systemd/system/cpupower-intel.service ] && ln -sf /usr/lib/systemd/system/cpupower-intel.service /etc/systemd/system/cpupower.service || true"
-    # Report what actually resolved, so a missing tool is visible in the build log.
-    - cmd: "for t in bpftool perf cpupower rtla usbip usbipd; do p=$(command -v $t 2>/dev/null || true); echo \"kernel-tool symlink: $t -> ${p:-MISSING} $(readlink -f ${p:-/nonexistent} 2>/dev/null || true)\"; done"
+    # out-of-tree builds look for /lib/modules/$(uname -r)/build
+    - cmd: "[ -d /usr/lib/linux-kbuild-6.18.38 ] && for k in /lib/modules/*-intel/build; do [ -e \"$k\" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 \"$k\"; done || true"
+    # Report what resolved, so a missing tool is visible in the build log.
+    - cmd: "for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v $t 2>/dev/null || true); echo \"kernel-tool symlink: $t -> ${p:-MISSING} $(readlink -f ${p:-/nonexistent} 2>/dev/null || true)\"; done"
+    # A dangling link is worse than a missing one, so fail the build on it.
+    - cmd: "for l in /usr/local/bin/* /usr/local/sbin/*; do [ -L \"$l\" ] && [ ! -e \"$l\" ] && echo \"ERROR: dangling symlink $l -> $(readlink $l)\" && exit 1; done; true"
 
     # --- PTL audio enablement (Intel SOF / I2S + HDMI-in codec) ---
     # Step 1: Blacklist legacy HD-audio modules so the DSP/SOF stack is used
