@@ -87,6 +87,14 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
         --no-cache \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
+        --build-arg no_proxy="${no_proxy:-}" \
+        --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
+        --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
+        --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
+        --build-arg INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-}" \
+        --build-arg INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-}" \
+        --build-arg INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-}" \
+        --build-arg INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 else
@@ -94,6 +102,14 @@ else
         --network=host \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
+        --build-arg no_proxy="${no_proxy:-}" \
+        --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
+        --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
+        --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
+        --build-arg INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-}" \
+        --build-arg INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-}" \
+        --build-arg INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-}" \
+        --build-arg INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 fi
@@ -259,14 +275,19 @@ sudo tee "${MNT}/etc/sysctl.d/99-dmesg.conf" > /dev/null << 'EOF'
 kernel.dmesg_restrict = 0
 EOF
 
-sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null | while read -r f; do
+# Best-effort patch of any profile.d scripts that call `dmesg` (harmless if
+# none match). `|| true` on the pipe head is required because `set -o pipefail`
+# would otherwise propagate grep's "no match" exit 1 through the pipe and
+# `set -e` would abort the whole build.
+{ sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null || true; } | while read -r f; do
     log "  Patching dmesg call in: ${f}"
     sudo sed -i 's/^\(.*dmesg.*\)$/# \1 # disabled — dmesg_restrict/' "${f}"
 done
 
 # Fix /etc/profile.d scripts
 sudo sed -i 's|^\(.*\. "$i".*\)$|{ \1; } 2>/dev/null \|\| true|g' "${MNT}/etc/profile"
-sudo grep "profile.d" "${MNT}/etc/profile"
+# Diagnostic-only grep; a missing match is not a failure.
+sudo grep "profile.d" "${MNT}/etc/profile" || true
 
 # Fix mesa_driver.sh — if line was commented out leaving orphaned else/fi
 sudo tee "${MNT}/etc/profile.d/mesa_driver.sh" > /dev/null << 'EOF'
