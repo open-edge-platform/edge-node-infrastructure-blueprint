@@ -78,12 +78,29 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
+# Intel overlay repository override contract.
+# Left empty by default — curate-host-packages.sh applies its own public
+# defaults (${VAR:-...}) when these are unset/empty. Internal CI can pass
+# --build-arg INTEL_OVERLAY_URL=... etc. to validate against a mirror
+# without editing the script.
+# INTEL_OVERLAY_KEY_FINGERPRINT uses ${VAR-default} in the script, so passing
+# an explicit empty string here disables the pin (trusted internal mirror),
+# while leaving it unset keeps the public-key fingerprint pin.
+ARG INTEL_OVERLAY_URL=""
+ARG INTEL_OVERLAY_COMPONENTS=""
+ARG INTEL_OVERLAY_KEY_URL=""
+ARG INTEL_OVERLAY_KEY_FINGERPRINT
+
 ENV http_proxy=${http_proxy} \
     https_proxy=${https_proxy} \
     no_proxy=${no_proxy} \
     HTTP_PROXY=${HTTP_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY} \
     NO_PROXY=${NO_PROXY} \
+    INTEL_OVERLAY_URL=${INTEL_OVERLAY_URL} \
+    INTEL_OVERLAY_COMPONENTS=${INTEL_OVERLAY_COMPONENTS} \
+    INTEL_OVERLAY_KEY_URL=${INTEL_OVERLAY_KEY_URL} \
+    INTEL_OVERLAY_KEY_FINGERPRINT=${INTEL_OVERLAY_KEY_FINGERPRINT} \
     DEBIAN_FRONTEND=noninteractive
 
 # Copy and run custom package/kernel installation script
