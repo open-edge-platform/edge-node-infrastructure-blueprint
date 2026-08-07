@@ -106,7 +106,26 @@ Or explicitly specify the standard mode:
 make build MODE=standard-image
 ```
 
-#### Option 2: Build with Image Composer Tool Image
+#### Option 2: Build from a Standard 24.04 Minimal server (headless) image
+
+Build a headless Ubuntu server image, including the required tools and packages, using `Dockerfile.server`:
+
+> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile.server` with your new password using:
+> ```bash
+> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
+> ```
+
+```bash
+make build MODE=server-image
+```
+
+The Docker image (`custom-server-custom:latest`) is cached after the first build. Subsequent runs reuse the cached image, so the Docker build step completes quickly with only `CACHED` output. To force a full, no-cache rebuild of the server image, set `HOST_OS_REBUILD=true`:
+
+```bash
+make build MODE=server-image HOST_OS_REBUILD=true
+```
+
+#### Option 3: Build with Image Composer Tool Image
 
 See [`infrastructure/host-os/ict/README.md`](infrastructure/host-os/ict/README.md) to generate an image using Image Composer Tool.
 
