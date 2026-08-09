@@ -149,12 +149,13 @@ log "Create raw disk image (${IMG_SIZE})"
 truncate -s "${IMG_SIZE}" "${RAW_IMG}"
 log "  Created: ${RAW_IMG}"
 
-# Create GPT partition table with 512MB EFI partition and rest as root
-log "Partition (GPT: 512MB EFI + rest root)"
+# Create GPT partition table: 512MB EFI + 4GB swap + rest root
+log "Partition (GPT: 512MB EFI + 4GB swap + rest root)"
 
 sgdisk -Z "${RAW_IMG}"
 sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI-SYSTEM" "${RAW_IMG}"
-sgdisk -n 2:0:0     -t 2:8300 -c 2:"LINUX-ROOT"  "${RAW_IMG}"
+sgdisk -n 2:0:+4G   -t 2:8200 -c 2:"SWAP"        "${RAW_IMG}"
+sgdisk -n 3:0:0     -t 3:8300 -c 3:"LINUX-ROOT"   "${RAW_IMG}"
 sgdisk -p "${RAW_IMG}"
 
 # Attach loop device and get partition paths
@@ -162,43 +163,49 @@ log "Attach loop device"
 
 LOOP_DEV=$(sudo losetup -f --show -P "${RAW_IMG}")
 EFI_PART="${LOOP_DEV}p1"
-ROOT_PART="${LOOP_DEV}p2"
+SWAP_PART="${LOOP_DEV}p2"
+ROOT_PART="${LOOP_DEV}p3"
 
 # Wait for partition nodes (udev may be slow inside Docker)
 for i in $(seq 1 10); do
-    [[ -b "${EFI_PART}" && -b "${ROOT_PART}" ]] && break
+    [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
     sudo partprobe "${LOOP_DEV}" 2>/dev/null || true
     sleep 1
 done
 
 # Fallback to kpartx if losetup -P didn't create partition nodes
-if [[ ! -b "${EFI_PART}" || ! -b "${ROOT_PART}" ]]; then
+if [[ ! -b "${EFI_PART}" || ! -b "${SWAP_PART}" || ! -b "${ROOT_PART}" ]]; then
     log "  losetup -P partition nodes missing — falling back to kpartx"
     sudo kpartx -av "${LOOP_DEV}"
     USING_KPARTX=true
     EFI_PART="/dev/mapper/$(basename "${LOOP_DEV}")p1"
-    ROOT_PART="/dev/mapper/$(basename "${LOOP_DEV}")p2"
+    SWAP_PART="/dev/mapper/$(basename "${LOOP_DEV}")p2"
+    ROOT_PART="/dev/mapper/$(basename "${LOOP_DEV}")p3"
     for i in $(seq 1 10); do
-        [[ -b "${EFI_PART}" && -b "${ROOT_PART}" ]] && break
+        [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
         sleep 1
     done
 fi
 
 [[ ! -b "${EFI_PART}"  ]] && error "EFI partition device ${EFI_PART} not found"
+[[ ! -b "${SWAP_PART}" ]] && error "Swap partition device ${SWAP_PART} not found"
 [[ ! -b "${ROOT_PART}" ]] && error "Root partition device ${ROOT_PART} not found"
 
 
 
-log "Format partitions with rootfs and EFI filesystems"
+log "Format partitions with rootfs, swap, and EFI filesystems"
 sudo partprobe "${LOOP_DEV}" 2>/dev/null || true
 sleep 2
 [[ ! -b "${EFI_PART}"  ]] && error "EFI partition device ${EFI_PART} disappeared before format"
+[[ ! -b "${SWAP_PART}" ]] && error "Swap partition device ${SWAP_PART} disappeared before format"
 [[ ! -b "${ROOT_PART}" ]] && error "Root partition device ${ROOT_PART} disappeared before format"
 sudo mkfs.vfat -F 32 -n "EFI"  "${EFI_PART}"
+sudo mkswap -L "SWAP" "${SWAP_PART}"
 sudo mkfs.ext4 -F    -L "ROOT" "${ROOT_PART}"
 
 ROOT_UUID=$(sudo blkid -o value -s UUID     "${ROOT_PART}")
 EFI_UUID=$( sudo blkid -o value -s UUID     "${EFI_PART}")
+SWAP_UUID=$(sudo blkid -o value -s UUID     "${SWAP_PART}")
 ROOT_PARTUUID=$(sudo blkid -o value -s PARTUUID "${ROOT_PART}")
 EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
@@ -232,12 +239,12 @@ log "  resolv.conf -> $(sudo readlink ${MNT}/etc/resolv.conf)"
 
 # Fix hostname and hosts file
 sudo tee "${MNT}/etc/hostname" > /dev/null << 'EOF'
-edge-node
+minimal-ubuntu-server
 EOF
 
 sudo tee "${MNT}/etc/hosts" > /dev/null << 'EOF'
 127.0.0.1   localhost
-127.0.1.1   edge-node
+127.0.1.1   minimal-ubuntu-server
 ::1         localhost ip6-localhost ip6-loopback
 ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
@@ -288,12 +295,13 @@ fi
 EOF
 
 
-# Write to fstab with UUIDs for root and EFI partitions
+# Write to fstab with UUIDs for root, swap, and EFI partitions
 log "Write fstab"
 sudo tee "${MNT}/etc/fstab" > /dev/null << EOF
 # <file system>        <mount point>  <type>  <options>           <dump> <pass>
 UUID=${ROOT_UUID}      /              ext4    errors=remount-ro   0      1
 UUID=${EFI_UUID}       /boot/efi      vfat    defaults            0      2
+UUID=${SWAP_UUID}      none           swap    sw                  0      0
 EOF
 log "  fstab written:"
 sudo cat "${MNT}/etc/fstab"

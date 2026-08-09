@@ -156,7 +156,7 @@ RUN systemctl --root=/ enable NetworkManager   || true && \
 # console=tty0 console=ttyS0,115200n8 — serial console for headless debugging
 RUN mkdir -p /etc/default/grub.d && \
     echo 'GRUB_CMDLINE_LINUX_DEFAULT="xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"' \
-    > /etc/default/grub.d/99-edge-node.cfg
+    > /etc/default/grub.d/99-minimal-ubuntu-server.cfg
 
 # Extra kernel modules (aligned with template kernel.enableExtraModules)
 RUN echo "i915" >> /etc/initramfs-tools/modules && \

@@ -8,7 +8,7 @@ set -x
 echo "http_proxy=${http_proxy:-}"
 echo "https_proxy=${https_proxy:-}"
 
-INTEL_OVERLAY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260617-1608_2026_SW_A_REL3_RC01"
+INTEL_OVERLAY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260724-2201_2026_SW_S_REL3_RC01"
 INTEL_OVERLAY_KEY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg"
 INTEL_OVERLAY_COMPONENTS="main non-free multimedia internal"
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
@@ -44,7 +44,7 @@ install_depended_packages() {
 	echo "Updating apt and installing initial packages..."
 	apt update
 	apt upgrade -y
-	apt install -y --no-install-recommends wget ethtool libbpf1 wayland-protocols
+	apt install -y --no-install-recommends wget ethtool libbpf1 wayland-protocols binutils
 	echo "Initial packages installed."
 }
 
@@ -216,9 +216,7 @@ Pin: origin eci.intel.com
 Pin-Priority: 600
 EOF
 }
-# 		intel-media-va-driver \
-# NOTE: mesa-vdpau-drivers conflicts with mesa-libgallium from overlay (version < 25.2.8-3)
-# Install separately after main packages if needed.
+
 
 #TODO 		intel-mipi-gmsl-dkms  kernel 6.18 not supported
 install_essential_tools() {
@@ -226,105 +224,67 @@ install_essential_tools() {
 	apt update
 	export DEBIAN_FRONTEND=noninteractive
 	echo "=== DEBUG_BUILD: Checking package policies ===" # DEBUG_BUILD
-	apt-cache policy intel-media-va-driver intel-media-va-driver-non-free mesa-vdpau-drivers mesa-libgallium 2>/dev/null || true # DEBUG_BUILD
+	apt-cache policy intel-media-va-driver intel-media-va-driver-non-free mesa-libgallium 2>/dev/null || true # DEBUG_BUILD
 	echo "=== END DEBUG_BUILD ===" # DEBUG_BUILD
 	apt install -y --no-install-recommends \
-		adb \
 		alsa-topology-conf \
 		alsa-ucm-conf \
 		alsa-utils \
 		apparmor \
 		at \
 		v4l-utils \
-		autoconf \
-		automake \
 		avahi-daemon \
 		avahi-utils \
 		bc \
-		binutils \
 		bluez \
-		bmap-tools \
 		bridge-utils \
 		build-essential \
 		ca-certificates \
-		console-setup \
-		console-setup-linux \
 		chrony \
-		cifs-utils \
 		clinfo \
 		cloud-init \
-		cloud-utils \
 		cmake \
 		conntrack \
 		cpu-checker \
 		cron \
 		curl \
 		dbus \
-		debconf-i18n \
-		default-jre \
-		distro-info \
 		dkms \
 		dnsmasq-base \
 		dns-root-data \
 		dnsutils \
-		docker-compose \
 		dosfstools \
-		dracut-core \
 		e2fsprogs \
-		eject \
 		ethtool \
 		ffmpeg \
 		file \
 		fio \
 		firmware-sof-signed \
-		fwupd \
-		g++ \
-		gcc \
-		gdbserver \
 		gdisk \
 		gir1.2-gst-plugins-bad-1.0 \
-		gir1.2-gst-plugins-base-1.0 \
-		gir1.2-gst-rtsp-server-1.0 \
 		gir1.2-gstreamer-1.0 \
 		git \
 		git-lfs \
-		glmark2 \
 		gnupg \
-		gnuplot \
-		gstreamer1.0-alsa \
-		gstreamer1.0-gl \
-		gstreamer1.0-gtk3 \
 		gstreamer1.0-icamera \
 		gstreamer1.0-libcamera \
-		gstreamer1.0-opencv \
 		gstreamer1.0-plugins-bad \
-		gstreamer1.0-plugins-bad-apps \
 		gstreamer1.0-plugins-base \
-		gstreamer1.0-plugins-base-apps \
 		gstreamer1.0-plugins-good \
-		gstreamer1.0-plugins-ugly \
 		gstreamer1.0-pulseaudio \
-		gstreamer1.0-qt5 \
-		gstreamer1.0-rtsp \
 		gstreamer1.0-tools \
-		gstreamer1.0-x \
 		htop \
 		hwdata \
 		i2c-tools \
 		intel-gpu-tools \
 		intel-media-va-driver-non-free \
 		intel-microcode \
-		intel-lpmd \
 		intel-opencl-icd \
-		iperf3 \
 		iproute2 \
 		iptables \
 		iputils-ping \
 		iucode-tool \
 		jq \
-		kbd \
-		keyboard-configuration \
-		lbzip2 \
 		libattr1 \
 		libasound2t64 \
 		libatopology2t64 \
@@ -333,17 +293,12 @@ install_essential_tools() {
 		libavahi-common3 \
 		libavahi-core7 \
 		libavahi-glib1 \
-		libavcodec-dev \
 		libavcodec62 \
 		libavdevice62 \
 		libavfilter11 \
-		libavformat-dev \
 		libavformat62 \
-		libavutil-dev \
 		libavutil60 \
-		libbabeltrace-ctf1 \
 		libbluetooth3 \
-		libbpf1 \
 		libcamera-tools \
 		libcamhal-common \
 		libcamhal-ipu75xa \
@@ -357,93 +312,41 @@ install_essential_tools() {
 		libdrm-intel1 \
 		libdrm-nouveau2 \
 		libdrm-radeon1 \
-		libdrm-tests \
 		libdrm2 \
-		libegl-mesa0 \
 		libfftw3-single3 \
-		libgbm-dev \
-		libgbm1 \
-		libgl1-mesa-dri \
 		libglew-dev \
-		libgl1-mesa-dev \
 		libglm-dev \
-		libglx-mesa0 \
-		libgstreamer-opencv1.0-0 \
 		libgstreamer-plugins-bad1.0-0 \
-		libgstreamer-plugins-bad1.0-dev \
 		libgstreamer-plugins-base1.0-0 \
-		libgstreamer-plugins-base1.0-dev \
-		libgstreamer-plugins-good1.0-0 \
 		libgstreamer1.0-0 \
 		libgstreamer1.0-dev \
 		libgstreamer-gl1.0-0 \
-		libgstrtspserver-1.0-0 \
-		libgstrtspserver-1.0-dev \
 		libgsticamerainterface-1.0-1 \
 		libigdgmm12 \
-		libigdgmm-dev \
 		libigfxcmrt7 \
-		libigfxcmrt-dev \
 		libip4tc2 \
 		libllvm18 \
-		liblocale-gettext-perl \
-		libm17n-0 \
 		libmfx-gen1.2 \
-		libmfx-gen-dev \
 		libmnl0 \
 		libnfnetlink0 \
 		libnftnl11 \
-		libnss-libvirt \
 		libnss-mdns \
-		libotf1 \
 		libsamplerate0 \
 		libsdl2-dev \
 		libseccomp2 \
 		libsndfile1 \
-		libspice-client-glib-2.0-8 \
-		libspice-client-gtk-3.0-5 \
-		libspice-server1 \
-		libssl3t64 \
-		libssl-dev \
 		libswresample6 \
-		libswresample-dev \
 		libswscale9 \
-		libswscale-dev \
 		libsystemd0 \
-		libtool \
 		libtpms-dev \
 		libtpms0 \
-		libtext-charwidth-perl \
-		libtext-wrapi18n-perl \
-		libudev-dev \
 		libva2 \
 		libva-dev \
 		libva-drm2 \
 		libva-glx2 \
 		libva-wayland2 \
 		libva-x11-2 \
-		libvirt0 \
-		libvirt-clients \
-		libvirt-daemon \
-		libvirt-daemon-config-network \
-		libvirt-daemon-config-nwfilter \
-		libvirt-daemon-driver-lxc \
-		libvirt-daemon-driver-qemu \
-		libvirt-daemon-driver-storage-gluster \
-		libvirt-daemon-driver-storage-iscsi-direct \
-		libvirt-daemon-driver-storage-rbd \
-		libvirt-daemon-driver-vbox \
-		libvirt-daemon-driver-storage-zfs \
-		libvirt-daemon-driver-xen \
-		libvirt-daemon-system \
-		libvirt-daemon-system-systemd \
-		libvirt-dev \
-		libvirt-doc \
-		libvirt-login-shell \
 		libvirt-sanlock \
-		libvirt-wireshark \
-		libvpl-dev \
-		libvpl-tools \
 		libvpl2 \
 		libwayland-bin \
 		libwayland-client0 \
@@ -459,32 +362,27 @@ install_essential_tools() {
 		libc6 \
 		linux-bpf-dev \
 		linux-firmware \
-		linux-libc-dev \
-		linux-bpftool-6.18-intel \
-		linux-intel-pstate-tracer-6.18-intel \
-		linux-perf-6.18-intel \
-		linux-power-tools-6.18-intel \
-		linux-rtla-6.18-intel \
-		linux-usbip-6.18-intel \
+		linux-intel-bpftool \
+		linux-intel-cpupower \
+		linux-intel-misc-tools \
+		linux-intel-perf \
+		linux-intel-rtla \
+		linux-intel-usbip \
 		linuxptp \
-		locales \
 		lms \
 		lm-sensors \
 		logrotate \
 		lsb-release \
-		less \
 		lsof \
 		lsscsi \
 		lvm2 \
 		lzop \
-		m17n-db \
 		make \
 		manpages \
 		manpages-dev \
 		mc \
 		mdadm \
 		mesa-utils \
-		mesa-libgallium \
 		mesa-vulkan-drivers \
 		metee \
 		mosquitto \
@@ -492,15 +390,11 @@ install_essential_tools() {
 		msr-tools \
 		nano \
 		net-tools \
-		netcat-openbsd \
 		networkd-dispatcher \
 		nftables \
 		ocl-icd-libopencl1 \
-		onevpl-tools \
 		open-iscsi \
 		openssl \
-		ovmf \
-		ovmf-ia32 \
 		parted \
 		patch \
 		pcm \
@@ -508,105 +402,50 @@ install_essential_tools() {
 		pigz \
 		pkg-config \
 		polkitd \
-		powertop \
 		psmisc \
 		python3-cpuinfo \
 		python3-dev \
 		python3-netifaces \
 		python3-odf \
 		python3-openpyxl \
-		python3-pandas \
 		python3-pip \
 		python3-rich \
-		python3-seaborn \
 		python3-systemd \
 		python3-tables \
-		qemu-block-extra \
-		qemu-guest-agent \
-		qemu-system \
-		qemu-system-arm \
-		qemu-system-common \
-		qemu-system-data \
-		qemu-system-gui \
-		qemu-system-mips \
-		qemu-system-misc \
-		qemu-system-modules-opengl \
-		qemu-system-ppc \
-		qemu-system-s390x \
-		qemu-system-sparc \
-		qemu-system-x86 \
-		qemu-user \
-		qemu-user-binfmt \
-		qemu-utils \
 		read-edid \
 		rfkill \
 		rpc-go \
 		rpm \
 		rsync \
 		rsyslog \
-		runc \
 		screen \
 		sg3-utils \
 		snapd \
 		socat \
 		software-properties-common \
-		spice-client-glib-usb-acl-helper \
-		spice-client-gtk \
 		stress-ng \
 		sudo \
-		swtpm \
-		swtpm-tools \
 		sysbench \
-		terminator \
 		thermald \
 		thin-provisioning-tools \
 		tmux \
-		tpm2-abrmd \
-		tpm2-tools \
 		tcpdump \
 		ufw \
 		unattended-upgrades \
 		unzip \
 		upower \
-		ubuntu-minimal \
-		ubuntu-pro-client \
 		usb-modeswitch \
 		util-linux-extra \
-		libv4l2rds0t64 \
 		va-driver-all \
 		vainfo \
 		vim \
-		vim-tiny \
-		virt-viewer \
-		vulkan-tools \
 		wayland-protocols \
-		wbritish \
-		whiptail \
 		wireless-regdb \
-		wmctrl \
-		xdotool \
 		xdp-tools \
 		xfsprogs \
 		xxd \
 		zstd
-	# NOTE: The following packages exist in the previous version of this script
-	# but are NOT present in generic-handheld-os-server-template.yml.
-	# Uncomment if needed for specific use cases:
-	# amd64-microcode          # AMD CPU microcode — not needed for Intel-only platform
-	# bpfcc-tools              # BPF Compiler Collection tools — not in template
-	# bpftrace                 # eBPF tracing language — not in template
-	# python3-bpfcc            # Python bindings for BCC — not in template
-	# intel-gsc                # Intel Graphics Security Controller — not in template
-	# intel-metrics-discovery  # Intel GPU metrics discovery — not in template
-	# intel-metrics-library    # Intel GPU metrics library — not in template
-	# lxd-installer            # LXD container management — not in template
-	# mdevctl                  # Mediated device control — not in template
-	# ssh-import-id            # SSH key import from Launchpad/GitHub — not in template
-	# xpu-smi                  # Intel XPU system management — not in template
-	# qemu-efi-aarch64         # QEMU ARM64 EFI — not in template
-	# qemu-efi-arm             # QEMU ARM EFI — not in template
-	# gstreamer1.0-vaapi       # GStreamer VA-API plugin — not in template
-	# cloud-guest-utils        # Template uses cloud-utils instead
+
 
 	systemctl --root=/ disable systemd-timesyncd || true
 	systemctl --root=/ mask    systemd-timesyncd || true
@@ -865,11 +704,27 @@ instal_k3s() {
 
 install_helm() {
 	echo "Installing Helm..."
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    chmod 700 get_helm.sh
-    ./get_helm.sh
-    rm get_helm.sh
-    echo "Helm installed successfully."
+	# Route through download_file_with_tls_handling so the internal CA / insecure
+	# fallback applies here as it does for every other download in this script.
+	if ! download_file_with_tls_handling \
+		"https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" \
+		"/tmp/get_helm.sh"; then
+		echo "ERROR: Failed to download Helm installer"
+		exit 1
+	fi
+
+	chmod 700 /tmp/get_helm.sh
+
+	# The installer itself curls get.helm.sh; pass the CA through so it does not
+	# hit the same trust-chain failure we just worked around.
+	if [ -n "${INTERNAL_CA_CERT_FILE}" ]; then
+		CURL_CA_BUNDLE="${INTERNAL_CA_CERT_FILE}" /tmp/get_helm.sh
+	else
+		/tmp/get_helm.sh
+	fi
+
+	rm -f /tmp/get_helm.sh
+	echo "Helm installed successfully."
 }
 
 install_realsense_pkgs(){
@@ -920,101 +775,268 @@ install_eci_camera_hal_deps() {
 	echo "ECI Camera HAL dependencies installed."
 }
 
-install_openvino_oneapi() {
-	echo "Installing OpenVINO and oneAPI packages..."
-	apt update
-	apt install -y --no-install-recommends \
-		openvino \
-		openvino-2025.4.1 \
-		openvino-libraries-2025.4.1 \
-		openvino-libraries-dev-2025.4.1 \
-		openvino-samples-2025.4.1 \
-		openvino-samples-python-2025.4.1 \
-		python3-openvino-2025.4.1 \
-		libopenvino-2025.4.1 \
-		libopenvino-dev-2025.4.1 \
-		libopenvino-auto-batch-plugin-2025.4.1 \
-		libopenvino-auto-plugin-2025.4.1 \
-		libopenvino-hetero-plugin-2025.4.1 \
-		libopenvino-intel-cpu-plugin-2025.4.1 \
-		libopenvino-intel-gpu-plugin-2025.4.1 \
-		libopenvino-intel-npu-plugin-2025.4.1 \
-		libopenvino-ir-frontend-2025.4.1 \
-		libopenvino-onnx-frontend-2025.4.1 \
-		libopenvino-paddle-frontend-2025.4.1 \
-		libopenvino-pytorch-frontend-2025.4.1 \
-		libopenvino-tensorflow-frontend-2025.4.1 \
-		libopenvino-tensorflow-lite-frontend-2025.4.1 \
-		intel-oneapi-dnnl \
-		intel-oneapi-dnnl-devel \
-		intel-oneapi-dnnl-2026.0 \
-		intel-oneapi-dnnl-devel-2026.0 \
-		intel-oneapi-common-licensing-2026.0 \
-		intel-oneapi-common-oneapi-vars-2026.0 \
-		intel-oneapi-common-vars \
-		intel-oneapi-compiler-dpcpp-cpp-runtime-2026.1 \
-		intel-oneapi-compiler-shared-runtime-2026.1 \
-		intel-oneapi-openmp-2026.1 \
-		intel-oneapi-openmp-common-2026.1 \
-		intel-oneapi-tbb-2023.1 \
-		intel-oneapi-tbb-devel-2023.1 \
-		intel-oneapi-tcm-1.5 \
-		intel-oneapi-umf-1.1
-	echo "OpenVINO and oneAPI packages installed successfully."
-}
+# ----- FUTURE: OpenVINO and oneAPI package installation -----
+# Uncomment when openvino/oneAPI packages are added to the ICT template.
+# install_openvino_oneapi() {
+# 	echo "Installing OpenVINO and oneAPI packages..."
+# 	apt update
+# 	apt install -y --no-install-recommends \
+# 		openvino-2025.4.1 \
+# 		openvino-libraries-2025.4.1 \
+# 		openvino-libraries-dev-2025.4.1 \
+# 		openvino-samples-2025.4.1 \
+# 		openvino-samples-python-2025.4.1 \
+# 		python3-openvino-2025.4.1 \
+# 		libopenvino-2025.4.1 \
+# 		libopenvino-dev-2025.4.1 \
+# 		libopenvino-auto-batch-plugin-2025.4.1 \
+# 		libopenvino-auto-plugin-2025.4.1 \
+# 		libopenvino-hetero-plugin-2025.4.1 \
+# 		libopenvino-intel-cpu-plugin-2025.4.1 \
+# 		libopenvino-intel-gpu-plugin-2025.4.1 \
+# 		libopenvino-intel-npu-plugin-2025.4.1 \
+# 		libopenvino-ir-frontend-2025.4.1 \
+# 		libopenvino-onnx-frontend-2025.4.1 \
+# 		libopenvino-paddle-frontend-2025.4.1 \
+# 		libopenvino-pytorch-frontend-2025.4.1 \
+# 		libopenvino-tensorflow-frontend-2025.4.1 \
+# 		libopenvino-tensorflow-lite-frontend-2025.4.1 \
+# 		intel-oneapi-dnnl-2026.0 \
+# 		intel-oneapi-dnnl-devel-2026.0 \
+# 		intel-oneapi-common-licensing-2026.0 \
+# 		intel-oneapi-common-oneapi-vars-2026.0 \
+# 		intel-oneapi-common-vars \
+# 		intel-oneapi-compiler-dpcpp-cpp-runtime-2026.1 \
+# 		intel-oneapi-compiler-shared-runtime-2026.1 \
+# 		intel-oneapi-openmp-2026.1 \
+# 		intel-oneapi-openmp-common-2026.1 \
+# 		intel-oneapi-tbb-2023.1 \
+# 		intel-oneapi-tbb-devel-2023.1 \
+# 		intel-oneapi-tcm-1.5 \
+# 		intel-oneapi-umf-1.1
+# 	echo "OpenVINO and oneAPI packages installed successfully."
+# }
+# ----- END FUTURE OpenVINO/oneAPI -----
 
 install_performance_tools() {
 	echo "Installing performance analysis tools..."
 	apt update
 	apt install -y \
-		linux-bpftool-6.18-intel \
-		linux-intel-pstate-tracer-6.18-intel \
-		linux-perf-6.18-intel \
-		linux-power-tools-6.18-intel \
-		linux-rtla-6.18-intel \
-		linux-usbip-6.18-intel
+		linux-intel-bpftool \
+		linux-intel-cpupower \
+		linux-intel-misc-tools \
+		linux-intel-perf \
+		linux-intel-rtla \
+		linux-intel-usbip
 	echo "Performance analysis tools installed successfully."
 }
 
-install_gpu_npu_pkgs() {
-	echo "Installing NPU,GPU Packages.."
+# LINUX_TOOLS_BIN_ALIAS_BLOCK_BEGIN
+# REMOVE_WHEN_OVERLAY_SHIPS_CANONICAL_BIN_NAMES:
+# The Intel overlay ships kernel user-space tools under linux-intel-* package names and
+# frequently installs the executables with decorated names (e.g. usbip-intel,
+# bpftool_6.18.38) or only under /usr/lib/linux-tools/<kver>/. Canonical's linux-tools-*
+# packages expose them as plain commands on PATH (usbip, bpftool, perf, cpupower, rtla,
+# turbostat, ...). This function reconciles the two by copying every executable shipped
+# by those packages into /usr/local/bin under its undecorated Canonical name.
+# Delete this function and its call in main() once the overlay names match upstream.
+normalize_linux_tools_binary_names() {
+	echo "Normalizing Intel linux-tools binary names to Canonical names..."
 
-	# Create installation directory
-	INSTALL_DIR="/tmp/install_gpu_cpu"
+	local pkgs=(
+		linux-intel-bpftool
+		linux-intel-cpupower
+		linux-intel-misc-tools
+		linux-intel-perf
+		linux-intel-rtla
+		linux-intel-usbip
+		linux-intel-sdsi
+		linux-intel-hyperv-daemons
+	)
+
+	install -d -m 0755 /usr/local/bin
+
+	local pkg file base canonical target
+	for pkg in "${pkgs[@]}"; do
+		if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then
+			echo "  skip ${pkg}: not installed"
+			continue
+		fi
+
+		while IFS= read -r file; do
+			# Only real executables; dpkg -L also lists directories, docs and man pages.
+			[ -f "$file" ] && [ -x "$file" ] || continue
+			case "$file" in
+				/usr/share/*|/usr/src/*|/etc/*|/lib/systemd/*|/usr/lib/systemd/*) continue ;;
+			esac
+
+			base="$(basename "$file")"
+			canonical="$base"
+			# Strip overlay decorations: version suffixes and -intel/_intel markers.
+			canonical="${canonical%%_6.[0-9]*}"
+			canonical="${canonical%%-6.[0-9]*}"
+			canonical="${canonical%-intel}"
+			canonical="${canonical%_intel}"
+			[ -n "$canonical" ] || continue
+
+			# Already reachable on PATH under the canonical name from a standard bin dir.
+			if [ "$canonical" = "$base" ]; then
+				case "$file" in
+					/usr/bin/*|/usr/sbin/*|/bin/*|/sbin/*)
+						echo "  ok ${canonical}: already at ${file}"
+						continue
+						;;
+				esac
+			fi
+
+			target="/usr/local/bin/${canonical}"
+			if [ -e "$target" ] && [ ! -L "$target" ]; then
+				echo "  keep ${target}: real file, not overwriting"
+				continue
+			fi
+
+			cp -f "$file" "$target"
+			chmod 0755 "$target"
+			echo "  copy ${canonical} <- ${file}"
+		done < <(dpkg -L "$pkg")
+	done
+
+	# rtla multiplexes its sub-tools through argv[0]; provide the upstream copies.
+	if [ -e /usr/local/bin/rtla ] || command -v rtla >/dev/null 2>&1; then
+		local rtla_bin
+		rtla_bin="$(command -v rtla || echo /usr/local/bin/rtla)"
+		local alias_name
+		for alias_name in osnoise timerlat hwnoise; do
+			if [ ! -e "/usr/local/bin/${alias_name}" ]; then
+				cp -f "$rtla_bin" "/usr/local/bin/${alias_name}"
+				chmod 0755 "/usr/local/bin/${alias_name}"
+				echo "  copy ${alias_name} <- ${rtla_bin}"
+			fi
+		done
+	fi
+
+	hash -r 2>/dev/null || true
+	echo "linux-tools binary names normalized."
+}
+# LINUX_TOOLS_BIN_ALIAS_BLOCK_END
+
+# ----- FUTURE: download.01.org GPU/NPU deb-based install -----
+# Uncomment and update URLs when switching to download.01.org hosting.
+# install_gpu_npu_pkgs_from_debs() {
+# 	echo "Installing NPU,GPU Packages.."
+#
+# 	# Create installation directory
+# 	INSTALL_DIR="/tmp/install_gpu_cpu"
+# 	mkdir -p "$INSTALL_DIR"
+# 	cd "$INSTALL_DIR"
+#
+# 	# Downloading GPU drivers
+# 	# Intel-graphics-compiler Version: v2.34.4 (from GitHub releases, public)
+# 	# GPU Version: 26.18.38308.1
+# 	debpackage=(
+# 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-core-2_2.34.4+21428_amd64.deb"
+# 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-opencl-2_2.34.4+21428_amd64.deb"
+# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-ocloc_26.18.38308.1-0_amd64.deb"
+# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-opencl-icd_26.18.38308.1-0_amd64.deb"
+# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/libze-intel-gpu1_26.18.38308.1-0_amd64.deb"
+# 		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero_1.27.0+u24.04_amd64.deb"
+# 		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero-devel_1.27.0+u24.04_amd64.deb")
+#
+# 	# Download GPU packages
+# 	for url in "${debpackage[@]}"; do
+# 		echo "Downloading: $url"
+# 		filename=$(basename "$url")
+# 		if wget "$url" -O "$filename"; then
+# 			echo "Successfully downloaded: $filename"
+# 		else
+# 			echo "ERROR: Failed to download $filename"
+# 			exit 1
+# 		fi
+# 	done
+#
+# 	# Downloading NPU drivers
+# 	# Version: v1.33.0.20260529 (from GitHub releases, public)
+# 	echo "Downloading NPU driver package..."
+# 	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.33.0/linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
+# 	npu_file="linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
+#
+# 	if wget "$npu_url" -O "$npu_file"; then
+# 		echo "Successfully downloaded NPU driver package"
+# 		if tar -xf "$npu_file"; then
+# 			echo "Successfully extracted NPU driver package"
+# 		else
+# 			echo "ERROR: Failed to extract NPU driver package"
+# 			exit 1
+# 		fi
+# 	else
+# 		echo "ERROR: Failed to download NPU driver package"
+# 		exit 1
+# 	fi
+#
+# 	# Verify all downloaded .deb files exist
+# 	if ! ls ./*.deb 1> /dev/null 2>&1; then
+# 		echo "ERROR: No .deb files found in $INSTALL_DIR"
+# 		exit 1
+# 	fi
+#
+# 	# Update package manager and install dependencies
+# 	apt update
+# 	apt install libtbb12 -y
+#
+# 	# Purge old packages if they exist
+# 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
+#
+# 	# Install all downloaded .deb packages with error checking
+# 	echo "Installing downloaded packages..."
+# 	if dpkg -i ./*.deb; then
+# 		echo "NPU,GPU Packages installed successfully"
+# 	else
+# 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
+# 		apt --fix-broken install -y || {
+# 			echo "ERROR: Failed to install packages"
+# 			exit 1
+# 		}
+# 	fi
+#
+# 	# Cleanup
+# 	cd /
+# 	rm -rf "$INSTALL_DIR"
+# 	echo "Installation directory cleaned: $INSTALL_DIR"
+# }
+# ----- END FUTURE deb-based install -----
+
+install_gpu_npu_pkgs() {
+	echo "Installing GPU and NPU Packages..."
+
+	# ----- GPU Compute Stack (from Intel overlay repo, priority 2000) -----
+	# The internal overlay repo ships newer versions than the old GitHub .deb
+	# approach (IGC 2.38.2 vs 2.34.4, compute-runtime 26.27.x vs 26.18.x).
+	# These packages are already permitted by the overlay repo priority and
+	# match the ICT template's systemConfig.packages list.
+	apt update
+	apt install -y \
+		intel-igc-core-2 \
+		intel-igc-opencl-2 \
+		intel-ocloc \
+		intel-opencl-icd \
+		libze-intel-gpu1 \
+		level-zero \
+		level-zero-devel \
+		libtbb12
+
+	echo "GPU compute stack installed from overlay repo."
+
+	# ----- NPU Driver (v1.35.0 from internal artifactory) -----
+	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
+	INSTALL_DIR="/tmp/npu-driver"
 	mkdir -p "$INSTALL_DIR"
 	cd "$INSTALL_DIR"
 
-	# Downloading GPU drivers (aligned with template configurations)
-	# Intel-graphics-compiler Version: v2.34.4 (from GitHub releases, public)
-	# GPU Version: 26.18.38308.1
-	debpackage=(
-		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-core-2_2.34.4+21428_amd64.deb"
-		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-opencl-2_2.34.4+21428_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-ocloc_26.18.38308.1-0_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-opencl-icd_26.18.38308.1-0_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/libze-intel-gpu1_26.18.38308.1-0_amd64.deb"
-		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero_1.27.0+u24.04_amd64.deb"
-		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero-devel_1.27.0+u24.04_amd64.deb")
-
-	# Download GPU packages 
-	for url in "${debpackage[@]}"; do
-		echo "Downloading: $url"
-		filename=$(basename "$url")
-		if wget "$url" -O "$filename"; then
-			echo "Successfully downloaded: $filename"
-		else
-			echo "ERROR: Failed to download $filename"
-			exit 1
-		fi
-	done
-
-	# Downloading NPU drivers
-	# Version: v1.33.0.20260529 (from GitHub releases, public)
 	echo "Downloading NPU driver package..."
-	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.33.0/linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
-	npu_file="linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
+	npu_url="https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
+	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 
-	if wget "$npu_url" -O "$npu_file"; then
+	if wget -q "$npu_url" -O "$npu_file"; then
 		echo "Successfully downloaded NPU driver package"
 		if tar -xf "$npu_file"; then
 			echo "Successfully extracted NPU driver package"
@@ -1027,37 +1049,66 @@ install_gpu_npu_pkgs() {
 		exit 1
 	fi
 
-	# Verify all downloaded .deb files exist
+	# Verify .deb files exist
 	if ! ls ./*.deb 1> /dev/null 2>&1; then
 		echo "ERROR: No .deb files found in $INSTALL_DIR"
 		exit 1
 	fi
 
-	# Update package manager and install dependencies
-	apt update
-	apt install libtbb12 -y
-
-	# Purge old packages if they exist
+	# Purge old NPU packages if they exist
 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
 
-	# Install all downloaded .deb packages with error checking
-	echo "Installing downloaded packages..."
+	# Install NPU .deb packages
+	echo "Installing NPU driver packages..."
 	if dpkg -i ./*.deb; then
-		echo "NPU,GPU Packages installed successfully"
+		echo "NPU driver installed successfully"
 	else
 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
 		apt --fix-broken install -y || {
-			echo "ERROR: Failed to install packages"
+			echo "ERROR: Failed to install NPU packages"
 			exit 1
 		}
 	fi
 
-	# Cleanup: 
+	# Cleanup
+	cd /
 	rm -rf "$INSTALL_DIR"
 
 	echo "Installation directory cleaned: $INSTALL_DIR"
 
 }
+
+
+install_intel_lpmd () {
+	# Install dependencies to build intel-lpmd
+	apt install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+	         libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	cd /tmp
+	git clone --branch v0.1.0 https://github.com/intel/intel-lpmd.git lpmd
+	cd lpmd
+	./autogen.sh
+	make
+	sudo make install
+	# Remove restrictive hardware conditions so the service attempts to start
+	# on all platforms. The daemon itself will exit gracefully if unsupported.
+	mkdir -p /etc/systemd/system/intel_lpmd.service.d
+	cat > /etc/systemd/system/intel_lpmd.service.d/override.conf <<EOF
+[Unit]
+# Clear all Condition* directives from the upstream unit
+ConditionPathExists=
+ConditionVirtualization=
+EOF
+	# cleanup install dependencies
+	apt purge -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	apt autoremove -y
+	apt clean
+	# Enable service
+	systemctl --root=/ enable intel_lpmd.service
+	echo "Installed intel-lpmd"
+}
+
+
 
 
 install_kernel() {
@@ -1156,13 +1207,17 @@ main() {
 
 	install_eci_camera_hal_deps
 
-	install_openvino_oneapi
-
 	install_gpu_npu_pkgs
+
+	install_intel_lpmd
 
 	install_kernel
 
 	install_performance_tools
+
+	# LINUX_TOOLS_BIN_ALIAS_BLOCK_BEGIN
+	normalize_linux_tools_binary_names
+	# LINUX_TOOLS_BIN_ALIAS_BLOCK_END
 
 	configure_system_services
 }
