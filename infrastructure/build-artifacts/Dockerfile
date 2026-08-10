@@ -29,6 +29,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 WORKDIR /workspace
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD docker --version > /dev/null 2>&1 || exit 1
+
 # Entrypoint that runs the build orchestrator
 # CMD provides the default mode; overridden by Makefile's "$(MODE)" "$(ICT_IMG)" args
 ENTRYPOINT ["/workspace/infrastructure/build-artifacts/build-installation-artifacts.sh"]

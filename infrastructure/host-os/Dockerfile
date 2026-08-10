@@ -119,4 +119,7 @@ RUN useradd -m -s /bin/bash "${USERNAME}" && \
     usermod -aG sudo,audio,video,render,plugdev,netdev,input "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD bash --version > /dev/null 2>&1 || exit 1
+
 CMD ["/sbin/init"]
