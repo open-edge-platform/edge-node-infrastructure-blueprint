@@ -92,7 +92,7 @@ install_essential_tools() {
 		libnl-3-200 libnl-genl-3-200 iproute2 net-tools iputils-ping tcpdump curl linuxptp dnsmasq-base network-manager \
 		bluez \
 		libtpms0 libtpms-dev \
-		intel-gpu-tools intel-lpmd thermald rpc-go pcm lms metee stress-ng \
+		intel-gpu-tools thermald rpc-go pcm lms metee stress-ng \
 		pahole libbabeltrace1 libdebuginfod1t64 libopencsd1 libtracefs1 libtraceevent1 libpci3 pciutils \
 		vim nano mc less file mawk grep diffutils findutils debianutils ncurses-base ncurses-bin cron msr-tools i2c-tools \
 		lsscsi sg3-utils dosfstools gdisk pigz rpm \
@@ -103,6 +103,30 @@ install_essential_tools() {
 	systemctl --root=/ enable ssh || true
 	systemctl --root=/ enable  chrony || true  
 	echo "Essential tools and dependencies installed."
+}
+
+# The latest intel-lpmd version 0.1.0 .deb package targets Ubuntu 25.10 and cannot
+# be installed on Noble due to unmet dependencies (requires libnl ≥ 3.11, libxml2-16,
+# and glibc ≥ 2.42, whereas Noble only provides 3.7.0 / libxml2.so.2 / 2.39)
+
+build_install_lpmd () {
+	# Install dependencies to build intel-lpmd
+	apt install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+	         libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	cd /tmp
+	git clone --branch v0.1.0 https://github.com/intel/intel-lpmd.git lpmd
+	cd lpmd
+	./autogen.sh
+	make
+	sudo make install
+	# cleanup install dependencies
+	apt remove -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	apt autoremove -y
+	apt clean
+	# Enable service
+	systemctl --root=/ enable intel_lpmd.service
+	echo "Installed intel-lpmd"
 }
 
 enable_display_manager() {
@@ -475,6 +499,8 @@ main() {
 	set_preferred_package_list
 
 	install_essential_tools
+
+	build_install_lpmd
 
 	enable_display_manager
 
