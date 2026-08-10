@@ -54,3 +54,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         util-linux \
         wget \
         xz-utils
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD bash --version > /dev/null 2>&1 || exit 1
