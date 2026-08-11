@@ -678,7 +678,7 @@ fi
 # (e.g. cTDP-Nominal 25W ceiling) it reports the effective value and how to lift
 # it. Returns non-zero only on a hard failure (missing MSR / lock).
 set_msr_pl() {
-	local reg="$1" nm="$2" u="$3" u2="$4" capw="${5:-0}" o n a p1 p2 try w1 w2 reqw
+	local reg="$1" nm="$2" u="$3" u2="$4" capw="${5:-0}" o n a p1 p2 w1 w2 reqw
 	[[ "$HAVE_MSR" -eq 1 && "$u" -gt 0 ]] || return 1
 	o=$(rdmsr -0 "$reg" 2>/dev/null) || return 1
 	if (( (0x$o >> 63) & 1 )); then
@@ -692,7 +692,7 @@ set_msr_pl() {
 	fi
 	n=$(printf '%016x' "$n")
 	p1=0
-	for try in 1 2 3; do
+	for _ in 1 2 3; do
 		wrmsr -a "$reg" "0x$n" 2>/dev/null || return 1
 		sleep 0.3
 		a=$(rdmsr -0 "$reg" 2>/dev/null) || return 1

@@ -320,9 +320,10 @@ install_docker() {
 
 	chmod a+r /etc/apt/keyrings/docker.gpg
 
+	# shellcheck source=/dev/null
 	echo \
 		"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-		$(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+		$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
 		tee /etc/apt/sources.list.d/docker.list > /dev/null
 	apt update
 	apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
@@ -378,8 +379,7 @@ install_realsense_pkgs(){
 }
 install_performance_tools() {
 	echo "Installing performance analysis tools..."
-	wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/
-	if [ $? -eq 0 ]; then
+	if wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/; then
 		echo "Successfully downloaded the debian files"
 		apt install -y  -f --fix-broken -o Dpkg::Options::="--force-overwrite" /tmp/*.deb
 		apt install -f

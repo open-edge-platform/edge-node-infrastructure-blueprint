@@ -2,6 +2,7 @@
 
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
+# shellcheck disable=SC2001,SC2086,SC2094,SC2181
 
 
 ### Global Variables ###

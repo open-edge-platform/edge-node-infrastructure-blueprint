@@ -72,7 +72,7 @@ for pci_dir in "$SYSFS_DRIVER_PATH"/????:??:??.?; do
 
   device_id_file="${pci_dir}/device"
   [[ -f "$device_id_file" ]] || continue
-  device_id=$(cat "$device_id_file" | tr -d '[:space:]')
+  device_id=$(tr -d '[:space:]' < "$device_id_file")
 
   model_name="${MODEL_NAMES[$device_id]:-Unknown NPU ($device_id)}"
 

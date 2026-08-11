@@ -24,6 +24,7 @@ date
 echo "=== container-provision.sh: start ==="
 
 # Source proxy and environment variables
+# shellcheck source=/dev/null
 . /etc/environment 2>/dev/null || true
 
 # ── Disable and stop k3s — container node does not run kubernetes ─────────
@@ -41,7 +42,9 @@ systemctl enable --now docker
 
 # ── Add edge user to docker group ────────────────────────────────────────
 EDGE_USER=$(awk -F: '$3 >= 1000 && $3 < 60000 && $1 != "nobody" && $7 !~ /(nologin|false|sync)/ {print $1; exit}' /etc/passwd)
-[ -n "$EDGE_USER" ] && usermod -aG docker "$EDGE_USER" || true
+if [ -n "$EDGE_USER" ]; then
+    usermod -aG docker "$EDGE_USER" || true
+fi
 
 # ── Wait for Docker daemon to be ready (up to 60 seconds) ────────────────
 echo "Waiting for Docker daemon..."

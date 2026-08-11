@@ -305,7 +305,11 @@ if systemctl is-active --quiet thermald; then
 fi
 # If we abort before the normal restart, bring the daemon back up so the host
 # is never left thermally unmanaged.
-restore_daemon() { (( was_active )) && systemctl start thermald 2>/dev/null || true; }
+restore_daemon() {
+    if (( was_active )); then
+        systemctl start thermald 2>/dev/null || true
+    fi
+}
 
 info "Validating generated config with thermald (test mode)..."
 verify_log="$(mktemp /tmp/thermald-verify.XXXXXX.log)"

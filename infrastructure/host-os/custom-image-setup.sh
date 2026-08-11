@@ -64,7 +64,11 @@ mkdir -p "${BUILD_DIR}"
 log "  Build directory clean: ${BUILD_DIR}"
 
 # Start the build process from where script stoped previously.
-docker rm -f $(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest") 2>/dev/null || true
+# Word splitting is intended here — one ID per line becomes separate arguments.
+mapfile -t stale_containers < <(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest" 2>/dev/null)
+if [[ ${#stale_containers[@]} -gt 0 ]]; then
+    docker rm -f "${stale_containers[@]}" 2>/dev/null || true
+fi
 
 # Build the Ubuntu desktop image
 log "Build Docker image"
@@ -144,7 +148,7 @@ SWAP_PART="${LOOP_DEV}p2"
 ROOT_PART="${LOOP_DEV}p3"
 
 # Wait for partition nodes (udev may be slow inside Docker)
-for i in $(seq 1 10); do
+for _ in $(seq 1 10); do
     [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
     sudo partprobe "${LOOP_DEV}" 2>/dev/null || true
     sleep 1
@@ -158,7 +162,7 @@ if [[ ! -b "${EFI_PART}" || ! -b "${SWAP_PART}" || ! -b "${ROOT_PART}" ]]; then
     EFI_PART="/dev/mapper/$(basename "${LOOP_DEV}")p1"
     SWAP_PART="/dev/mapper/$(basename "${LOOP_DEV}")p2"
     ROOT_PART="/dev/mapper/$(basename "${LOOP_DEV}")p3"
-    for i in $(seq 1 10); do
+    for _ in $(seq 1 10); do
         [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
         sleep 1
     done
@@ -179,6 +183,8 @@ ROOT_UUID=$(sudo blkid -o value -s UUID     "${ROOT_PART}")
 EFI_UUID=$( sudo blkid -o value -s UUID     "${EFI_PART}")
 SWAP_UUID=$(sudo blkid -o value -s UUID     "${SWAP_PART}")
 ROOT_PARTUUID=$(sudo blkid -o value -s PARTUUID "${ROOT_PART}")
+# Captured for completeness alongside the other partition identifiers.
+# shellcheck disable=SC2034
 EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
 [[ -z "${ROOT_UUID}"     ]] && error "ROOT_UUID is empty — blkid failed"
@@ -253,7 +259,7 @@ sudo tee "${MNT}/etc/sysctl.d/99-dmesg.conf" > /dev/null << 'EOF'
 kernel.dmesg_restrict = 0
 EOF
 
-sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null | while read f; do
+sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null | while read -r f; do
     log "  Patching dmesg call in: ${f}"
     sudo sed -i 's/^\(.*dmesg.*\)$/# \1 # disabled — dmesg_restrict/' "${f}"
 done
@@ -291,6 +297,7 @@ for dir in dev dev/pts proc sys run; do
     sudo mkdir -p "${MNT}/${dir}"
     sudo mount --bind "/${dir}" "${MNT}/${dir}"
 done
+# shellcheck disable=SC2012
 KERNEL_VERSION=$(ls -1 ${MNT}/lib/modules | head -n 1)
 
 # Verify we found a valid version directory, then run the tool correctly

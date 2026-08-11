@@ -85,7 +85,7 @@ if [  -z "$new_img" ]; then
     ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file || { echo "USB device setup failed,please check"; exit 1; }
 
 else
-    ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file $new_img || { echo "USB device setup failed,please check"; exit 1; }
+    ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file "$new_img" || { echo "USB device setup failed,please check"; exit 1; }
 
 fi
 

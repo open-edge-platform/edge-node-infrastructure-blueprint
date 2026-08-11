@@ -121,9 +121,7 @@ else
 }
 EOF
     # Create the bootable iso that support uefi && bios formats
-    grub-mkrescue -o alpine-os.iso iso
-    
-    if [ "$?" -eq 0 ]; then
+    if grub-mkrescue -o alpine-os.iso iso; then
         echo "ISO created successfully under $(pwd)"
         
         # Check number of partitions in the ISO

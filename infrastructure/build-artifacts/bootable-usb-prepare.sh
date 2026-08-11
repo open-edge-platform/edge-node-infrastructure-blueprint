@@ -302,7 +302,18 @@ copy_files() {
     echo "Copying files to USB device..."
     echo ""
     echo "OS image copying!!!"
-    os_filename=$(ls $SCRIPT_DIR/usb_files/*.raw.img.gz $SCRIPT_DIR/usb_files/*.raw.gz  $SCRIPT_DIR/usb_files/*.img.gz 2>/dev/null | head -n1)
+    # Collect every candidate image, then take the alphabetically first —
+    # matches the original `ls ... | head -n1` behaviour (ls sorts its output).
+    os_candidates=()
+    for candidate in "$SCRIPT_DIR"/usb_files/*.raw.img.gz \
+                     "$SCRIPT_DIR"/usb_files/*.raw.gz \
+                     "$SCRIPT_DIR"/usb_files/*.img.gz; do
+        [[ -f "$candidate" ]] && os_candidates+=("$candidate")
+    done
+    os_filename=""
+    if [[ ${#os_candidates[@]} -gt 0 ]]; then
+        os_filename=$(printf '%s\n' "${os_candidates[@]}" | sort | head -n1)
+    fi
     if [[ -z "$os_filename" ]]; then
          echo "OS Image file Not found,Please check!!"
 	 return 1

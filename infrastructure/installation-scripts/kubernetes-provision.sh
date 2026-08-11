@@ -26,6 +26,7 @@ date
 echo "=== kubernetes-provision.sh: start ==="
 
 # Source proxy and environment variables
+# shellcheck source=/dev/null
 . /etc/environment 2>/dev/null || true
 # Export so child processes (curl, helm, kubectl, etc.) inherit them
 export http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY 2>/dev/null || true
@@ -79,7 +80,9 @@ if [ -n "$EDGE_USER" ] && [ -f /etc/rancher/k3s/k3s.yaml ]; then
     cp /etc/rancher/k3s/k3s.yaml "/home/${EDGE_USER}/.kube/config"
     chown -R "${EDGE_USER}:${EDGE_USER}" "/home/${EDGE_USER}/.kube"
     chmod 600 "/home/${EDGE_USER}/.kube/config"
-    # Set KUBECONFIG in the user's .bashrc so kubectl works without sudo
+    # Set KUBECONFIG in the user's .bashrc so kubectl works without sudo.
+    # $HOME must stay literal — it is expanded by the user's shell, not here.
+    # shellcheck disable=SC2016
     grep -qxF 'export KUBECONFIG=$HOME/.kube/config' "/home/${EDGE_USER}/.bashrc" || \
         echo 'export KUBECONFIG=$HOME/.kube/config' >> "/home/${EDGE_USER}/.bashrc"
     echo "Kubeconfig copied for ${EDGE_USER}"
@@ -144,10 +147,20 @@ fi
 # applying manifests directly (k3s pulls images at runtime).
 apply_manifests_directly() {
     # Manifests are at /opt/edge/scripts/ (flat layout from hook OS)
-    [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd.yaml" && sleep 15 || true
-    [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
-    [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ] && k apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
+    if [ -f "${INSTALL_SCRIPTS}/nfd.yaml" ]; then
+        if k apply -f "${INSTALL_SCRIPTS}/nfd.yaml"; then
+            sleep 15
+        fi
+    fi
+    if [ -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" ]; then
+        k apply -f "${INSTALL_SCRIPTS}/nfd-node-feature-rules.yaml" || true
+    fi
+    if [ -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" ]; then
+        k apply -f "${INSTALL_SCRIPTS}/gpu-plugin.yaml" || true
+    fi
+    if [ -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" ]; then
+        k apply -f "${INSTALL_SCRIPTS}/npu-plugin.yaml" || true
+    fi
 }
 
 if [ -f "${INSTALL_SCRIPTS}/install-intel-device-plugins.sh" ]; then

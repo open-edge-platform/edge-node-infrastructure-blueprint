@@ -67,7 +67,9 @@ done
 [[ "$DEVICE" =~ ^(cpu|gpu|npu)$ ]] || die "--device must be cpu, gpu, or npu"
 [[ "$API_MODE" =~ ^(sync|async)$ ]] || die "--api must be sync or async"
 [[ "$NITER" =~ ^[0-9]+$ ]]          || die "--niter must be a non-negative integer"
-[[ "$DURATION" =~ ^[0-9]+$ ]] && (( DURATION >= 1 )) || die "--duration must be a positive integer"
+if ! [[ "$DURATION" =~ ^[0-9]+$ ]] || (( DURATION < 1 )); then
+    die "--duration must be a positive integer"
+fi
 [[ -z "$NTHREADS" || ( "$NTHREADS" =~ ^[0-9]+$ && NTHREADS -ge 1 ) ]] || die "--nthreads must be a positive integer"
 
 # ── Runtime auto-detection ──
