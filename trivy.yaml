@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
+# Trivy configuration for the fedaero repository
+# Used by trivy-config-scan (scan-type: config) and trivy-filesystem-scan in CI
+# See: https://aquasecurity.github.io/trivy/latest/docs/references/configuration/config-file/
+
+scan:
+  skip-dirs:
+    - infrastructure/micro-os/build
+    - tmp
+
+severity:
+  - HIGH
+  - CRITICAL

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+---
+# Hadolint configuration for edge node infrastructure Dockerfiles
+# See: https://github.com/hadolint/hadolint#configure
+
+failure-threshold: error
+
+ignore:
+  # Package versions are intentionally unpinned; trusted upstream Intel overlay pins the base OS
+  - DL3008  # Pin versions in apt get install
+  # BuildKit cache mounts (--mount=type=cache) replace the apt-get clean pattern
+  - DL3009  # Delete the apt-get lists after installing
+  # Alpine-based build stages (cdi/Dockerfile) do not pin apk packages
+  - DL3018  # Pin versions in apk add
