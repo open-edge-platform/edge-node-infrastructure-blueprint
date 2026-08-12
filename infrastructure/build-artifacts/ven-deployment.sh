@@ -85,7 +85,7 @@ if [  -z "$new_img" ]; then
     ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file || { echo "USB device setup failed,please check"; exit 1; }
 
 else
-    ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file $new_img || { echo "USB device setup failed,please check"; exit 1; }
+    ./bootable-usb-prepare.sh /dev/nbd0 usb-bootable-files.tar.gz config-file "$new_img" || { echo "USB device setup failed,please check"; exit 1; }
 
 fi
 
@@ -95,7 +95,7 @@ fi
 if [ -e ubuntu-disk.img ]; then
     rm -rf ubuntu-disk.img
 fi
-qemu-img create -f qcow2 ubuntu-disk.img 64G > /dev/null 2>&1 || { echo "creating emt disk image failed to create,please check"; exit 1; }
+qemu-img create -f qcow2 ubuntu-disk.img 64G > /dev/null 2>&1 || { echo "creating ubuntu disk image failed to create,please check"; exit 1; }
 
 echo "Starting the Installation"
 echo ""

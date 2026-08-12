@@ -17,4 +17,7 @@ RUN chmod +x /workspace/infrastructure/micro-os/build-alpine-os.sh
 
 WORKDIR /workspace/infrastructure/micro-os
 
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD test -x /workspace/infrastructure/micro-os/build-alpine-os.sh || exit 1
+
 ENTRYPOINT ["/bin/bash", "-c", "exec /workspace/infrastructure/micro-os/build-alpine-os.sh"]

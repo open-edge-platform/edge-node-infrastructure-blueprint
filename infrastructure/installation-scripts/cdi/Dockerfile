@@ -15,13 +15,15 @@ RUN git clone --depth 1 --branch ${TAG} \
 
 WORKDIR /build/repo
 
-# Sync vendor and build binary
+# Sync vendor and build static binary (CGO_ENABLED=0 avoids musl dynamic link)
 RUN go mod vendor && \
-    GOOS=linux GOARCH=amd64 \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -a -ldflags "-s -w" \
     -mod vendor -o /intel-cdi-specs-generator-gpu ./cmd/cdi-specs-generator
 
 # Minimal runtime stage for extraction
 FROM scratch
 COPY --from=builder /intel-cdi-specs-generator-gpu /intel-cdi-specs-generator-gpu
+# scratch has no shell; HEALTHCHECK NONE is explicit for minimal binary-only images
+HEALTHCHECK NONE
 ENTRYPOINT ["/intel-cdi-specs-generator-gpu"]

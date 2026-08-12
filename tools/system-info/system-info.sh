@@ -141,11 +141,13 @@ fi
 subsection "PTL-relevant firmware blobs in /lib/firmware"
 found_any=false
 for pat in 'xe/*ptl*' 'xe/ptl*' 'i915/*ptl*' 'intel/vpu/*' 'intel/ivpu/*'; do
-  matches=$(ls /lib/firmware/$pat 2>/dev/null)
-  if [[ -n "$matches" ]]; then
-    echo "$matches" | sed 's/^/  /'
+  # $pat must stay unquoted so the shell expands the glob.
+  # shellcheck disable=SC2086
+  for match in /lib/firmware/$pat; do
+    [[ -e "$match" ]] || continue
+    echo "  ${match}"
     found_any=true
-  fi
+  done
 done
 $found_any || echo "  (no PTL-specific firmware blobs found)"
 
@@ -260,7 +262,7 @@ read_sysfs "energy_performance_preference (cpu0)" \
   /sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference
 
 subsection "CPU Cache"
-have lscpu && lscpu -C 2>/dev/null || true
+if have lscpu; then lscpu -C 2>/dev/null || true; fi
 if [[ -d /sys/devices/system/cpu/cpu0/cache ]]; then
   echo
   for idx in /sys/devices/system/cpu/cpu0/cache/index*; do
@@ -289,7 +291,7 @@ else
 fi
 
 subsection "CPU Live Usage"
-have top && top -bn1 | grep -E 'Cpu\(s\)|%Cpu' || true
+if have top; then top -bn1 | grep -E 'Cpu\(s\)|%Cpu' || true; fi
 if have mpstat; then
   echo; mpstat -P ALL 1 1 2>/dev/null || true
 else
@@ -515,7 +517,7 @@ $npu_loaded || echo "WARNING: No NPU kernel driver loaded. PTL NPU 5 needs ivpu/
 subsection "NPU Firmware Blobs"
 for d in /lib/firmware/intel/vpu /lib/firmware/intel/ivpu; do
   if [[ -d "$d" ]]; then
-    ls -1 "$d" 2>/dev/null | sed "s|^|  ${d}/|"
+    find "$d" -maxdepth 1 -mindepth 1 -printf "  ${d}/%f\n" 2>/dev/null | sort
   fi
 done
 
@@ -655,11 +657,11 @@ fi
 
 subsection "EFI / Boot"
 [[ -d /sys/firmware/efi ]] && echo "Booted via UEFI" || echo "Booted via BIOS/Legacy"
-have bootctl && bootctl status 2>/dev/null | head -20 || true
+if have bootctl; then bootctl status 2>/dev/null | head -20 || true; fi
 
 subsection "TPM"
 if [[ -e /dev/tpm0 || -e /dev/tpmrm0 ]]; then
-  echo "TPM device present: $(ls /dev/tpm* 2>/dev/null | tr '\n' ' ')"
+  echo "TPM device present: $(find /dev -maxdepth 1 -name 'tpm*' -printf '%p ' 2>/dev/null)"
   have tpm2_getcap && tpm2_getcap properties-fixed 2>/dev/null | head -20
 else
   echo "No TPM device exposed."
@@ -677,10 +679,10 @@ section "PCI / USB DEVICE SUMMARY"
 # =============================================================================
 
 subsection "Intel PCI devices"
-have lspci && lspci -nn | grep -i 'Intel' || true
+if have lspci; then lspci -nn | grep -i 'Intel' || true; fi
 
 subsection "All PCI devices"
-have lspci && lspci -nn || true
+if have lspci; then lspci -nn || true; fi
 
 subsection "USB devices"
 have lsusb && lsusb || echo "Install: sudo apt install usbutils"

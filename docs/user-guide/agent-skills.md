@@ -14,14 +14,13 @@ The Edge Node Infrastructure Blueprint ships a set of agent skills that let you 
 | `create-image` | Builds a host OS image using the Image Composer Tool or ISO based curation |
 | `create-usb-installation-files` | Packages a complete bootable USB artifact (`usb-installation-files.tar.gz`), optionally running `create-image` first |
 | `validate-platform-config` | Validates a provisioned edge node over SSH — checks k3s pod health, binary paths, cloud-init state, network/proxy settings, and device readiness (GPU VFs, NPU) |
-| `tune-platform-power` | Applies a CPU and/or GPU power profile (`battery`, `balanced`, `performance`, `graphical`) on a provisioned node over SSH |
 | `update-install-packages` | Updates Ubuntu package configuration and installs required packages on a provisioned system |
 
 ## How to Use Skills
 
 Open GitHub Copilot Chat or Claude Code in the repository workspace and describe what you want in natural language. The agent matches your request to the appropriate skill, asks for any missing inputs, then runs the workflow. These skill have been verified by running them from the developer system and pointing to the provisioned target system whereever applicable.
 
-Note that few skills like `validate-platform-config` and `tune-platform-power` run commands on the target system, hence it is expected that during configuration, a user has seeded a public key for passwordless access.
+Note that few skills like `validate-platform-config` run commands on the target system, hence it is expected that during configuration, a user has seeded a public key for passwordless access.
 
 ### Example Prompts
 
@@ -65,6 +64,4 @@ Each skill declares specific required inputs. If you omit them, the agent will a
 |---|---|
 | Image template path (`.yml`) | `create-image` |
 | ICT image path (`.raw.gz`) | `create-usb-installation-files` |
-| Target node SSH address and credentials | `validate-platform-config`, `tune-platform-power`, `update-install-packages` |
-| Power profile (`battery` / `balanced` / `performance` / `graphical`) | `tune-platform-power` |
-| Target (`cpu` / `gpu` / `both`) | `tune-platform-power` |
+| Target node SSH address and credentials | `validate-platform-config`, `update-install-packages` |

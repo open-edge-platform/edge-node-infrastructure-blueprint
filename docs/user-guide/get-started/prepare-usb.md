@@ -36,7 +36,7 @@ Required inputs:
   - Workload orchestration preference (host_type)
   - Single Root I/O Virtualization (SRIOV) toggle
   - Additional system parameters
-  - Installation Mode (Attended or Unattended)
+  - Debug Mode (`false`)
 
 > **Note:** Proxy configuration is optional in unrestricted network environments.
 
@@ -60,7 +60,7 @@ After USB preparation completes:
 
 ### Access the Edge Node
 
-After installation, log in using the credentials specified in the `config-file` during the Ubuntu desktop image preparation.
+After installation, log in using the credentials configured during the Ubuntu desktop image preparation.
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 

@@ -25,8 +25,10 @@ OUT="${OUT:-$WORKDIR/output}"
 OS_INSTALLER_SCRIPT="$(pwd)/../provisioning-scripts/install-os.sh"
 
 # If new files need to be added for provisioning, update the FILES_LIST below with corresponding paths
+# NOTE: Intel device plugin manifests (nfd, nfd-node-feature-rules, gpu-plugin,
+# npu-plugin) are deliberately not bundled here — install-intel-device-plugins.sh
+# renders them on the target at install time via 'kubectl kustomize'.
 readonly -a FILES_LIST=(
-    "$(pwd)/../provisioning-scripts/os-partition.sh"
     "$(pwd)/../provisioning-scripts/cloud-init.yaml"
     "$(pwd)/../installation-scripts/kubernetes-provision.sh"
     "$(pwd)/../installation-scripts/container-provision.sh"
@@ -35,10 +37,6 @@ readonly -a FILES_LIST=(
     "$(pwd)/../installation-scripts/container_setup_sriov.sh"
     "$(pwd)/../installation-scripts/systemd/intel-sriov-vf.service"
     "$(pwd)/../installation-scripts/setup-kernel-depended-pkgs.sh"
-    "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/nfd.yaml"
-    "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/nfd-node-feature-rules.yaml"
-    "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/gpu-plugin.yaml"
-    "$(pwd)/../installation-scripts/resources/intel-device-plugins/manifests/npu-plugin.yaml"
 )
 readonly -a CDI_FILES_LIST=(
     "$(pwd)/../installation-scripts/cdi"

@@ -42,6 +42,8 @@ Container Device Interface Guide <how-to/configure-cdi.md>
 GPU and NPU Device Plugins <how-to/configure-device-plugins.md>
 DL Streamer Pipelines Guide <how-to/build-dlstreamer-pipelines.md>
 Edge Workloads and Benchmarks Guide <how-to/run-edge-benchmarks.md>
+Power Profiles User Guide <how-to/power-profiles.md>
+Thermal Profiles User Guide <how-to/thermal-profiles.md>
 Infrastructure Capabilities <platform-capabilities.md>
 AI Agent Integration <agent-skills.md>
 Troubleshooting <troubleshooting.md>

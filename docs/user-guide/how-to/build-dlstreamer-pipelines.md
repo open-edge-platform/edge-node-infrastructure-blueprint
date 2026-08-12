@@ -35,7 +35,7 @@ docker pull intel/dlstreamer:latest
 Verify it works:
 
 ```bash
-docker run --rm --device intel.com/gpu=card1 intel/dlstreamer:latest gst-inspect-1.0 gvadetect
+docker run --rm --device intel.com/gpu=card0 intel/dlstreamer:latest gst-inspect-1.0 gvadetect
 ```
 
 ### Download Models
@@ -78,7 +78,7 @@ Each example below is a complete, copy-paste-ready command.
 
 ```bash
 docker run --rm \
-  --device intel.com/gpu=card1 \
+  --device intel.com/gpu=card0 \
   -v $(pwd)/models:/models \
   -e MODELS_PATH=/models \
   intel/dlstreamer:latest \
@@ -113,7 +113,7 @@ docker run --rm \
 
 ```bash
 docker run --rm \
-  --device intel.com/gpu=card1 \
+  --device intel.com/gpu=card0 \
   --device intel.com/npu=npu0 \
   -v $(pwd)/models:/models \
   -e MODELS_PATH=/models \
@@ -132,7 +132,7 @@ docker run --rm \
 
 ```bash
 docker run --rm \
-  --device intel.com/gpu=card1 \
+  --device intel.com/gpu=card0 \
   -v $(pwd)/models:/models \
   -e MODELS_PATH=/models \
   -v /tmp/results:/results \
@@ -159,7 +159,7 @@ To use a local video instead of a remote URL, two things change from the example
 
 ```bash
 docker run --rm \
-  --device intel.com/gpu=card1 \
+  --device intel.com/gpu=card0 \
   -v $(pwd)/models:/models \
   -e MODELS_PATH=/models \
   -v /path/to/videos:/videos \

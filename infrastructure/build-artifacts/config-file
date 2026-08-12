@@ -42,16 +42,15 @@ host_type="container"
 # Example: enable_sriov="true"
 enable_sriov="false"
 
-# ------------------ Installation Mode ------------------------
-# Choose the installation mode for the OS deployment.
-# Supported modes:
-#   - attended mode (true): Interactive mode where user can choose disk selection,
-#     user creation, proxy settings, and custom disk partition if required.
-#   - unattended mode (false): Non-interactive OS installation (default).
-# Set to true for attended mode (debug purpose), false for unattended mode.
-# Example: installation_mode="false"
+# ------------------ Debug Mode ------------------------
+# Enable interactive debug installation for troubleshooting.
+# Supported values:
+#   - "true"  : Debug Mode. Interactive prompts for disk selection,
+#               user creation, proxy settings, and custom disk partitioning.
+#   - "false" : Non-interactive OS installation (default).
+# Example: debug_mode="false"
 
-installation_mode="false"
+debug_mode="false"
 
 # -------------------Custom cloud-init Config file---------------------
 # This section is to customize the cloud-init config file as per User Wish
@@ -68,10 +67,10 @@ services:
     disable: []
 
 # === Create custom configuration files ===
-# To create a file, specify its path,permission and content.
+# To create a file, specify its path, permission and content.
 # Note : you can create as many files(shell,text,yaml) as you wish,just expand the write_files: with prefix -path for next file 
-# Note : Make sure scripts/files passing to cloud-init file well tested,if any issues in the script/file error messages 
-#        will be present under /var/log/cloud-init-output.log file on EMT image.
+# Note : Make sure scripts/files passing to cloud-init file well tested, if any issues in the script/file error messages 
+#        will be present under /var/log/cloud-init-output.log file on target image.
 # Example:
 #   write_files:
 #     - path: /etc/cloud/test.sh
@@ -84,7 +83,7 @@ write_files: []
 # === Custom run commands ===
 # List commands or scripts to run at boot.
 # Note : Make sure syntax is correct for the commands,if any issues in commands error messages will be present 
-#        under /var/log/cloud-init-output.log file on EMT image. 
+#        under /var/log/cloud-init-output.log file on target image. 
 # Example:
 #   runcmd:
 #     - systemctl restart myservice

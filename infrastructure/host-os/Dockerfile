@@ -99,7 +99,7 @@ RUN systemctl --root=/ enable NetworkManager   || true && \
     systemctl --root=/ set-default graphical.target
 
 ARG USERNAME=user
-ARG USER_PASSWORD='$6$ENIBDEFAULT$ldaxPVYnIXySCgfxvzBdUwUw6Kyt5DiGzeDe4brEFEIIe2C1.42Vu5pRg1qH8WfkPYvVohvfyLQY6AeQRcRpx1'
+ARG USER_PASSWORD='$6$z62Fexi.jttmcREt$Ltc4kdydbL39UAgY05sWtQ6EyeCjro48EIghXJD8dxw6G4OfWmoF3F9X9ayEaOYqgmcpMoXpjC.IJZPXjr6Vx.'
 
 RUN sed -i 's/#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf
 
@@ -118,5 +118,8 @@ RUN useradd -m -s /bin/bash "${USERNAME}" && \
     usermod -p "${USER_PASSWORD}" "${USERNAME}" && \
     usermod -aG sudo,audio,video,render,plugdev,netdev,input "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD bash --version > /dev/null 2>&1 || exit 1
 
 CMD ["/sbin/init"]

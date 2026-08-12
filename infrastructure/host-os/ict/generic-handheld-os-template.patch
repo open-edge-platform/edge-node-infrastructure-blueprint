@@ -1,7 +1,7 @@
 SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 
---- a/ubuntu24-x86_64-minimal-ptl-pv-raw.yml (upstream @ b21499751a1e50677bbf2b4ea4517adcb67da7d8)
+--- a/ubuntu24-x86_64-minimal-ptl-pv-raw.yml (upstream @ bc18a5b45f1ac7423156dd307b83318cdf2dcc77)
 +++ b/generic-handheld-os-template.yml
 @@ -1,23 +1,8 @@
 -# AI-searchable metadata for template discovery
@@ -47,7 +47,102 @@ SPDX-License-Identifier: Apache-2.0
    # Intel overlay repository (aligned with installer script)
    - codename: "noble"
      url: "https://download.01.org/intel-linux-overlay/ubuntu"
-@@ -281,17 +267,54 @@
+@@ -86,40 +72,21 @@
+     component: "multimedia main non-free kernels"
+     priority: 2000
+     allowPackages:
+-      - libigfxcmrt-dev
+       - libigfxcmrt7
++      - curl
+       - gir1.2-gst-plugins-bad-1.0
+-      - gir1.2-gst-plugins-base-1.0
+       - gir1.2-gstreamer-1.0
+-      - gir1.2-gst-rtsp-server-1.0
+-      - gstreamer1.0-alsa
+-      - gstreamer1.0-gl
+-      - gstreamer1.0-gtk3
+-      - gstreamer1.0-opencv
+       - gstreamer1.0-plugins-bad
+-      - gstreamer1.0-plugins-bad-apps
+-      - gstreamer1.0-plugins-base
+-      - gstreamer1.0-plugins-base-apps
+       - gstreamer1.0-plugins-good
+-      - gstreamer1.0-plugins-ugly
++      - gstreamer1.0-plugins-base
+       - gstreamer1.0-pulseaudio
+-      - gstreamer1.0-qt5
+-      - gstreamer1.0-rtsp
+-      - gstreamer1.0-tools
+-      - gstreamer1.0-x
+-      - intel-media-va-driver
+-      - libgstrtspserver-1.0-dev
+-      - libgstrtspserver-1.0-0
++      # base gstreamer libs (pulled in as deps of the plugins above; the
++      # overlay ships 1.26.x while stock noble only has 1.24.x, so they must
++      # be allowed from the overlay to satisfy the >=1.26 version constraints)
++      - libgstreamer1.0-0
+       - libgstreamer-gl1.0-0
+-      - libgstreamer-opencv1.0-0
+-      - libgstreamer-plugins-bad1.0-0
+-      - libgstreamer-plugins-bad1.0-dev
+       - libgstreamer-plugins-base1.0-0
+-      - libgstreamer-plugins-base1.0-dev
+-      - libgstreamer-plugins-good1.0-0
+-      - libgstreamer1.0-0
+-      - libgstreamer1.0-dev
+-      - libigdgmm-dev
++      - libgstreamer-plugins-bad1.0-0
+       - libigdgmm12
+       - libmfx-gen1.2
+       - libva-dev
+@@ -137,36 +104,13 @@
+       - libwayland-egl1
+       - libwayland-server0
+       - linux-firmware
+-      - mesa-vdpau-drivers
+       - mesa-vulkan-drivers
+-      - libvpl-dev
+-      - libvpl-tools
+-      - libmfx-gen-dev
+-      - onevpl-tools
+-      - qemu-block-extra
+-      - qemu-guest-agent
+-      - qemu-system
+-      - qemu-system-arm
+-      - qemu-system-common
+-      - qemu-system-data
+-      - qemu-system-gui
+-      - qemu-system-mips
+-      - qemu-system-misc
+-      - qemu-system-ppc
+-      - qemu-system-s390x
+-      - qemu-system-sparc
+-      - qemu-system-x86
+-      - qemu-user
+-      - qemu-user-binfmt
+-      - qemu-utils
+       - va-driver-all
+       - vainfo
+       - weston
+       - ffmpeg
+       - wayland-protocols
+       - linuxptp
+-      - qemu-system-modules-opengl
+-      - spice-client-gtk
+       - util-linux-extra
+       - dbus-x11
+       - sg3-utils
+@@ -174,9 +118,6 @@
+       - linux-image-6.18-intel
+       # overlay dependencies
+       - libvpl2
+-      - libspice-client-glib-2.0-8
+-      - libspice-client-gtk-3.0-5
+-      - spice-client-glib-usb-acl-helper
+       - libavcodec62
+       - libavformat62
+       - libavutil60
+@@ -189,17 +130,56 @@
        # additional PTL packages
        - xdp-tools
        - rpc-go
@@ -57,7 +152,10 @@ SPDX-License-Identifier: Apache-2.0
        - libxdp-dev
        - libxdp1
        - intel-media-va-driver-non-free
-       - spice-client-gtk
+-      - spice-client-gtk
++      # Power and Thermal daemons for power and perfromance management
++      - intel-lpmd
++      - thermald
 +  # ----- OpenVINO -----
 +  - codename: "ubuntu24"
 +    url: "https://apt.repos.intel.com/openvino/2025"
@@ -104,18 +202,186 @@ SPDX-License-Identifier: Apache-2.0
    bootloader:
      bootType: efi
      provider: grub
-@@ -360,6 +383,7 @@
+@@ -212,45 +192,28 @@
+     - ocl-icd-libopencl1
+     - openssh-server
+     - net-tools
+-    - libssl3t64
+     - libdrm-amdgpu1
+     - libdrm-common
+     - libdrm-dev
+     - libdrm-intel1
+     - libdrm-nouveau2
+     - libdrm-radeon1
+-    - libdrm-tests
+     - libdrm2
+     - bluez
+     - bsdutils
+-    - cloud-utils
+     - debianutils
+     - diffutils
+     - findutils
+     - grep
+     - grub-efi-amd64-signed
+     - gzip
+-    - ibus-table-cangjie-big
+-    - ibus-table-cangjie3
+-    - ibus-table-cangjie5
+-    - init
+     - language-pack-en
+     - language-pack-en-base
+     - language-pack-gnome-en
+     - language-pack-gnome-en-base
+     - libattr1
+-    - libchewing3
+-    - libchewing3-data
+-    - libm17n-0
+-    - libmarisa0
+-    - libopencc-data
+     - va-driver-all
+-    - libopencc1.1
+-    - libotf1
+-    - libpinyin-data
+-    - libpinyin15
+     - linux-base
+-    - m17n-db
+     - mawk
+     - ncurses-base
+     - ncurses-bin
+@@ -259,8 +222,6 @@
+     - ubuntu-desktop-minimal
+     - ubuntu-minimal
+     - ubuntu-standard
+-    - ubuntu-wallpapers
+-    - wbritish
+     - gdm3
+     - systemd
+     - systemd-resolved
+@@ -274,46 +235,21 @@
+     - efibootmgr
+     # PTL network stack
+     - libbpf1
++    - curl
+     - wget
      - cron
      - ethtool
      - iproute2
 +    - network-manager
      - libtbb12
      # PTL packages
-     - libigfxcmrt-dev
-@@ -485,7 +509,12 @@
+-    - libigfxcmrt-dev
+     - libigfxcmrt7
+     - nano
+     - gir1.2-gst-plugins-bad-1.0
+-    - gir1.2-gst-plugins-base-1.0
+     - gir1.2-gstreamer-1.0
+-    - gir1.2-gst-rtsp-server-1.0
+-    - gstreamer1.0-alsa
+-    - gstreamer1.0-gl
+-    - gstreamer1.0-gtk3
+-    - gstreamer1.0-opencv
+     - gstreamer1.0-plugins-bad
+-    - gstreamer1.0-plugins-bad-apps
+-    - gstreamer1.0-plugins-base
+-    - gstreamer1.0-plugins-base-apps
+     - gstreamer1.0-plugins-good
+-    - gstreamer1.0-plugins-ugly
+     - gstreamer1.0-pulseaudio
+-    - gstreamer1.0-qt5
+-    - gstreamer1.0-rtsp
+-    - gstreamer1.0-tools
+-    - gstreamer1.0-x
+-    - libgstrtspserver-1.0-dev
+-    - libgstrtspserver-1.0-0
+-    - libgstreamer-gl1.0-0
+-    - libgstreamer-opencv1.0-0
+-    - libgstreamer-plugins-bad1.0-0
+-    - libgstreamer-plugins-bad1.0-dev
+-    - libgstreamer-plugins-base1.0-0
+-    - libgstreamer-plugins-base1.0-dev
+-    - libgstreamer-plugins-good1.0-0
+-    - libgstreamer1.0-0
+-    - libgstreamer1.0-dev
+-    - libigdgmm-dev
+     - libigdgmm12
+     - libmfx-gen1.2
+     - libtpms-dev
+@@ -334,158 +270,130 @@
+     - libwayland-server0
+     - linux-firmware
+     - mesa-utils
+-    - libvpl-dev
+-    - libvpl-tools
+-    - libmfx-gen-dev
+-    - onevpl-tools
+-    - ovmf
+-    - ovmf-ia32
+-    - qemu-block-extra
+-    - qemu-guest-agent
+-    - qemu-system
+-    - qemu-system-arm
+-    - qemu-system-common
+-    - qemu-system-data
+-    - qemu-system-gui
+-    - qemu-system-mips
+-    - qemu-system-misc
+-    - qemu-system-ppc
+-    - qemu-system-s390x
+-    - qemu-system-sparc
+-    - qemu-system-x86
+-    - qemu-user
+-    - qemu-user-binfmt
+-    - qemu-utils
+     - vainfo
+     - weston
+     - xserver-xorg-core
+-    - libvirt0
+-    - libvirt-clients
+-    - libvirt-daemon
+-    - libvirt-daemon-config-network
+-    - libvirt-daemon-config-nwfilter
+-    - libvirt-daemon-driver-lxc
+-    - libvirt-daemon-driver-qemu
+-    - libvirt-daemon-driver-storage-gluster
+-    - libvirt-daemon-driver-storage-iscsi-direct
+-    - libvirt-daemon-driver-storage-rbd
+-    - libvirt-daemon-driver-storage-zfs
+-    - libvirt-daemon-driver-vbox
+-    - libvirt-daemon-driver-xen
+-    - libvirt-daemon-system
+-    - libvirt-daemon-system-systemd
+-    - libvirt-dev
+-    - libvirt-doc
+-    - libvirt-login-shell
+     - libvirt-sanlock
+-    - libvirt-wireshark
+-    - libnss-libvirt
+-    - swtpm
+-    - swtpm-tools
+-    - bmap-tools
+-    - adb
+-    - autoconf
+-    - automake
+-    - libtool
+     - cmake
+-    - g++
+-    - gcc
+     - git
+     - intel-gpu-tools
+-    - libssl3
+-    - libssl-dev
++    # libssl-dev hard-depends on "libssl3t64 (= <its own version>)". The resolver
++    # resolves the transitive libssl3t64 (pulled in by many base packages) to the
++    # -updates build 3.0.13-0ubuntu3.11, so libssl-dev must be pinned to the same
++    # -updates version or the exact "=" dep conflicts. Do NOT also list libssl3t64
++    # explicitly — that routes it through a path that stages the GA build instead.
++    - libssl-dev_3.0.13-0ubuntu3.11
+     - make
+     - mosquitto
+     - mosquitto-clients
      - build-essential
      - apt-transport-https
-     - default-jre
+-    - default-jre
 -    - docker-compose
 +    # Docker CE engine (pre-installed, disabled by default; cloud-init enables on first boot)
 +    - docker-ce
@@ -125,8 +391,45 @@ SPDX-License-Identifier: Apache-2.0
 +    - docker-compose-plugin
      - ffmpeg
      - git-lfs
-     - gnuplot
-@@ -530,20 +559,56 @@
+-    - gnuplot
+-    - lbzip2
+     - libglew-dev
+     - libglm-dev
+     - libsdl2-dev
+     - mc
+     - openssl
+     - pciutils
+-    - python3-pandas
+     - python3-pip
+-    - python3-seaborn
+-    - terminator
+-    - wmctrl
+     - wayland-protocols
+-    - gdbserver
+-    - iperf3
+     - msr-tools
+-    - powertop
+     - linuxptp
+     - lsscsi
+-    - tpm2-tools
+-    - tpm2-abrmd
+-    - binutils
+-    - cifs-utils
+     - i2c-tools
+-    - xdotool
+     - gnupg
+     - lsb-release
+-    - qemu-system-modules-opengl
+     - socat
+-    - virt-viewer
+     - rpm
+     # additional packages
+     - tcpdump
+-    - usb-modeswitch
+-    - fwupd
+-    - clinfo
+-    - xvfb
+-    - xnest
      - mesa-vulkan-drivers
      - xdp-tools
      - rpc-go
@@ -136,11 +439,12 @@ SPDX-License-Identifier: Apache-2.0
      - libxdp-dev
      - libxdp1
      - intel-media-va-driver-non-free
-     - spice-client-gtk
+-    - spice-client-gtk
+-    # linux-tools dependencies (must be installed before dpkg -i of linux-tools packages)
+-    - libtraceevent1
+-    - libtracefs1
 +    - firefox
 +    - firmware-sof-signed
-     - libdrm-tests
--
 +    - cloud-init
 +    - chrony
 +    - sg3-utils
@@ -148,12 +452,25 @@ SPDX-License-Identifier: Apache-2.0
 +    # -- Performance & Profiling Tools ------------------------------------------
 +    # Runtime deps for the Intel mainline-tracking 6.18 kernel tooling .debs
 +    # (linux-perf, linux-kbuild, linux-misc-tools, rtla)
-+    - pahole
-+    - libconfig9
-+    - libbabeltrace1
+     - pahole
+     - libconfig9
+     - libbabeltrace1
 +    - libdebuginfod1t64
-+    - libopencsd1
+     - libopencsd1
 +    - libtracefs1
++    # Additional linux-tools runtime deps (from upstream 2026.1 refresh)
++    - libtraceevent1
+     - libnuma1
+     - libslang2
+     - libpython3.12t64
+-    - libdebuginfod1t64
+     - libdw1t64
+     - libnl-3-200
+     - libnl-genl-3-200
+     - libpci3
+-    - firmware-sof-signed
+-    - network-manager
+-
 +    # Intel Performance Counter Monitor - CPU/uncore/PCIe counters
 +    - pcm
 +    # Multi-purpose CPU / memory / I/O benchmark
@@ -162,22 +479,18 @@ SPDX-License-Identifier: Apache-2.0
 +    - stress-ng
 +    # Flexible I/O tester for storage benchmarking
 +    - fio
-+    # OpenGL / GPU benchmark (glmark2)
-+    - glmark2
 +    # -- Intel AI / Media Stack -------------------------------------------------
-+    # Intel OpenVINO Runtime & Toolkit (latest 2025.x via apt)
-+    - openvino
 +    # oneVPL runtime - H.264 / HEVC / AV1 HW encode & decode via VA-API
 +    - libvpl2
-+    # oneAPI oneDNN - runtime library + development headers for custom kernels
-+    - intel-oneapi-dnnl
-+    - intel-oneapi-dnnl-devel
 +    # Intel RealSense SDK
 +    - librealsense2-dkms
 +    - librealsense2
 +    - librealsense2-utils
 +    - librealsense2-dev
 +    - librealsense2-gl
++    # Power and Thermal daamons for power and perfromance management
++    - intel-lpmd
++    - thermald
  
    additionalFiles:
      - local: ../additionalfiles/ptl/01-network-manager-all.yaml
@@ -186,17 +499,20 @@ SPDX-License-Identifier: Apache-2.0
 -      final: /etc/netplan/50-cloud-init.yaml
  
    kernel:
-     version: "260427t075939z-r2"
-@@ -553,7 +618,25 @@
-         - linux-image-6.18-intel_260427t075939z-r2
-         - linux-headers-6.18-intel_260427t075939z-r2
- 
+-    version: "260427t075939z-r2"
+     cmdline: "xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"
+     enableExtraModules: "intel_vpu uas"
+-    packages:
+-        - linux-image-6.18-intel_260427t075939z-r2
+-        - linux-headers-6.18-intel_260427t075939z-r2
+-  
++
 +  users:
 +    - name: user
 +      password: $6$xXo2NxaLDQE6xrCa$lwcawer1BMsC63xx5jHHrVSI4625We6CMv0nzmflYiXVldJC/9gXFqYoe5KTu8lBnuc6W8MxE0eGLUUt1RiJw.
 +      groups: ["sudo", "video", "render", "audio"]
 +      hash_algo: sha512
-+
+ 
    configurations:
 +    # ----------------------------------------------------------------------------------
 +    # Cloud-init: restrict to NoCloud datasource only
@@ -213,22 +529,35 @@ SPDX-License-Identifier: Apache-2.0
      # Install Intel Graphics Compiler and compute runtime packages for PTL
      - cmd: "mkdir -p /tmp/gpu-packages"
      - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.28.4+20760_amd64.deb"
-@@ -563,7 +646,7 @@
+@@ -495,7 +403,7 @@
      - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
      - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero_1.22.4+u24.04_amd64.deb"
      - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero-devel_1.22.4+u24.04_amd64.deb"
 -   
 +
-     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
+     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\" || true"
      # Install NPU driver for PTL
-     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
-@@ -586,4 +669,24 @@
+     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null "
+@@ -519,6 +427,15 @@
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-perf_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-perf.deb"
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
      - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
--    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
-\ No newline at end of file
 +    - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
++    # Install hotfix kernel packages
++    - cmd: "mkdir -p /tmp/kernel-hotfix"
++    - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/hotfix/linux-intel-6.18/linux-image-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb -O /tmp/kernel-hotfix/linux-image-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb"
++    - cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/hotfix/linux-intel-6.18/linux-headers-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb -O /tmp/kernel-hotfix/linux-headers-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb"
++    # Verify SHA-256 against pinned hashes
++    - cmd: "cd /tmp/kernel-hotfix && printf '%s  %s\n' '998cb2daafee4d07616e561074830427950421955cabb876cecdfa8c2e738068' 'linux-image-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb' '651afe5a312bc796564e62b50c83031b5bba493fd79827524226df5ce07ab1f9' 'linux-headers-6.18.23-lts-preprod-v6.18.23-linux-260708t100001z_6.18.23-260708t100001z-40_amd64.deb' | sha256sum -c -"
++    - cmd: "find /tmp/kernel-hotfix -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
++    # Install libcpupower1 first — required by other linux-tools debs
+     - cmd: "dpkg -i /tmp/linux-tools/libcpupower1.deb"
+     - cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\" || true"
+     # Pin linux-tools packages to prevent apt from downgrading or removing them
+@@ -526,3 +443,23 @@
+     # Fix broken deps but ignore systemd-boot EFI variable error (not accessible in chroot)
+     - cmd: "apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\" || true"
+     - cmd: "dpkg --configure -a --force-configure-any || true"
 +    # ----------------------------------------------------------------------------------
 +    # Pre-install K3s and Docker CE (both disabled by default)
 +    # On first boot, cloud-init reads host_type from /etc/cloud/config-file and

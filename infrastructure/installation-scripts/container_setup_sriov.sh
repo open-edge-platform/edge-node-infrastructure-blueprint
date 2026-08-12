@@ -23,12 +23,12 @@ DEVICE=$(cat /sys/bus/pci/devices/0000:00:02.0/device)
 function remove_sriov_vf() {
   echo -e "Remove provisioning dev-id: $DEVICE\n"
   echo '0' | tee -a /sys/class/drm/card0/device/sriov_numvfs
-  echo $VENDOR $DEVICE | tee -a /sys/bus/pci/drivers/vfio-pci/remove_id
+  echo "$VENDOR" "$DEVICE" | tee -a /sys/bus/pci/drivers/vfio-pci/remove_id
 #  rmmod vfio-pci
 }
 
 function validate_sriov_vf(){
-  TotalVFs=`lspci | grep -i vga | cut -b 1-7 | cut -d "." -f2 | tail -n 1`
+  TotalVFs=$(lspci | grep -i vga | cut -b 1-7 | cut -d "." -f2 | tail -n 1)
   if [[ $TotalVFs != "$NUMVFS" ]]; then
     echo -e "SRIOV enumeration failed."
     # Remove SRIOV VFs
@@ -40,7 +40,7 @@ function validate_sriov_vf(){
 }
 
 function validate_vfio(){
-  vfioDev=`ls /dev/vfio/`
+  vfioDev=$(ls /dev/vfio/)
   count=0
 
   for vfioDevNum in $vfioDev;

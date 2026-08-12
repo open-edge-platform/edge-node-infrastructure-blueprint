@@ -68,13 +68,65 @@ install_essential_tools() {
 	echo "Installing essential tools and dependencies..."
 	apt update
 	export DEBIAN_FRONTEND=noninteractive
-	apt install -y  linux-firmware mesa-vulkan-drivers  cmake intel-media-va-driver-non-free libigfxcmrt7 git-lfs git intel-gpu-tools openssh-server mc i2c-tools libvirt-sanlock mosquitto openssl socat libigdgmm12 vainfo nano curl net-tools linuxptp util-linux-extra mosquitto-clients pciutils libva-drm2 libdrm-intel1 libva2 libdrm-radeon1 libdrm-amdgpu1 libdrm-nouveau2 libdrm2 ocl-icd-libopencl1 lsscsi msr-tools python3-pip gir1.2-gstreamer-1.0 gnupg apt-transport-https gir1.2-gst-plugins-bad-1.0 mesa-utils build-essential libdrm-dev docker-compose libdrm-common lsb-release libssl3 rsync make vim chrony firmware-sof-signed iputils-ping tcpdump file less build-essential dosfstools gdisk wireless-regdb gstreamer1.0-plugins-good  gstreamer1.0-plugins-bad gstreamer1.0-pulseaudio va-driver-all pigz rpm  intel-lpmd thermald
+	apt install -y \
+		systemd systemd-resolved udev initramfs-tools bsdutils gzip util-linux util-linux-extra \
+		linux-base grub2-common grub-pc-bin grub-efi-amd64 grub-efi-amd64-bin grub-efi-amd64-signed efibootmgr shim-signed \
+		ubuntu-minimal ubuntu-standard ubuntu-desktop-minimal \
+		language-pack-en language-pack-en-base language-pack-gnome-en language-pack-gnome-en-base \
+		linux-firmware firmware-sof-signed wireless-regdb \
+		openssl libssl-dev \
+		build-essential cmake make git git-lfs apt-transport-https gnupg lsb-release rsync \
+		python3-pip python3-netifaces libpython3.12t64 \
+		libattr1 libconfig9 libnuma1 libslang2 libdw1t64 \
+		libdrm2 libdrm-common libdrm-dev libdrm-intel1 libdrm-radeon1 libdrm-amdgpu1 libdrm-nouveau2 \
+		mesa-vulkan-drivers mesa-utils intel-media-va-driver-non-free libigfxcmrt7 libigdgmm12 ocl-icd-libopencl1 \
+		libva2 libva-drm2 libva-dev libva-glx2 libva-wayland2 libva-x11-2 libvpl2 libmfx-gen1.2 vainfo \
+		ffmpeg libavcodec62 libavformat62 libavutil60 libavdevice62 libavfilter11 libswresample6 libswscale9 \
+		libwayland-bin libwayland-client0 libwayland-cursor0 libwayland-dev libwayland-doc libwayland-egl-backend-dev \
+		libwayland-egl1 libwayland-server0 weston libweston-10-0 \
+		xserver-xorg-core libglew-dev libglm-dev libsdl2-dev \
+		gir1.2-gst-plugins-bad-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good \
+		gstreamer1.0-plugins-base gstreamer1.0-pulseaudio libgstreamer1.0-0 libgstreamer-gl1.0-0 \
+		libgstreamer-plugins-base1.0-0 libgstreamer-plugins-bad1.0-0 va-driver-all \
+		libxdp1 libxdp-dev xdp-tools \
+		libnl-3-200 libnl-genl-3-200 iproute2 net-tools iputils-ping tcpdump curl linuxptp dnsmasq-base network-manager \
+		bluez \
+		libtpms0 libtpms-dev \
+		intel-gpu-tools thermald rpc-go pcm lms metee stress-ng \
+		pahole libbabeltrace1 libdebuginfod1t64 libopencsd1 libtracefs1 libtraceevent1 libpci3 pciutils \
+		vim nano mc less file mawk grep diffutils findutils debianutils ncurses-base ncurses-bin cron msr-tools i2c-tools \
+		lsscsi sg3-utils dosfstools gdisk pigz rpm \
+		openssh-server chrony mosquitto mosquitto-clients socat dbus-x11 docker-compose efivar efibootmgr
 	
 	systemctl --root=/ disable systemd-timesyncd || true
 	systemctl --root=/ mask    systemd-timesyncd || true
 	systemctl --root=/ enable ssh || true
 	systemctl --root=/ enable  chrony || true  
 	echo "Essential tools and dependencies installed."
+}
+
+# The latest intel-lpmd version 0.1.0 .deb package targets Ubuntu 25.10 and cannot
+# be installed on Noble due to unmet dependencies (requires libnl ≥ 3.11, libxml2-16,
+# and glibc ≥ 2.42, whereas Noble only provides 3.7.0 / libxml2.so.2 / 2.39)
+
+build_install_lpmd () {
+	# Install dependencies to build intel-lpmd
+	apt install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+	         libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	cd /tmp
+	git clone --branch v0.1.0 https://github.com/intel/intel-lpmd.git lpmd
+	cd lpmd
+	./autogen.sh
+	make
+	sudo make install
+	# cleanup install dependencies
+	apt remove -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+	apt autoremove -y
+	apt clean
+	# Enable service
+	systemctl --root=/ enable intel_lpmd.service
+	echo "Installed intel-lpmd"
 }
 
 enable_display_manager() {
@@ -268,9 +320,10 @@ install_docker() {
 
 	chmod a+r /etc/apt/keyrings/docker.gpg
 
+	# shellcheck source=/dev/null
 	echo \
 		"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-		$(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+		$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
 		tee /etc/apt/sources.list.d/docker.list > /dev/null
 	apt update
 	apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
@@ -326,8 +379,7 @@ install_realsense_pkgs(){
 }
 install_performance_tools() {
 	echo "Installing performance analysis tools..."
-	wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/
-	if [ $? -eq 0 ]; then
+	if wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/; then
 		echo "Successfully downloaded the debian files"
 		apt install -y  -f --fix-broken -o Dpkg::Options::="--force-overwrite" /tmp/*.deb
 		apt install -f
@@ -434,7 +486,6 @@ install_kernel() {
 	echo "=== Step 5: Creating Generic Boot Symlinks ==="
 	ln -sf "vmlinuz-$KERNEL_VERSION" /boot/vmlinuz-intel
 	ln -sf "initrd.img-$KERNEL_VERSION" /boot/initrd.img-intel
-	echo "Linux kernel installed."
 }
 
 main() {
@@ -448,6 +499,8 @@ main() {
 	set_preferred_package_list
 
 	install_essential_tools
+
+	build_install_lpmd
 
 	enable_display_manager
 
