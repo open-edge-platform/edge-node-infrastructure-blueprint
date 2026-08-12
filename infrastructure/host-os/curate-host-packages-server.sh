@@ -218,7 +218,6 @@ EOF
 }
 
 
-#TODO 		intel-mipi-gmsl-dkms  kernel 6.18 not supported
 install_essential_tools() {
 	echo "Installing essential tools and dependencies..."
 	apt update
@@ -781,6 +780,10 @@ install_eci_camera_hal_deps() {
 		echo "WARNING: Some libia/ipu75xa packages may not be available yet"
 	# Also install any remaining libia-*-ipu75xa0 runtime packages via wildcard
 	DEBIAN_FRONTEND=noninteractive apt-get install -y $(apt-cache search 'libia-.*-ipu75xa0' | awk '{print $1}') 2>/dev/null || true
+	# Install intel-mipi-gmsl-dkms (DKMS source only; module builds on first boot via dkms autoinstall)
+	DEBIAN_FRONTEND=noninteractive apt-get install -y intel-mipi-gmsl-dkms 2>/dev/null || \
+		echo "WARNING: intel-mipi-gmsl-dkms not available or failed to install"
+
 	echo "ECI Camera HAL dependencies installed."
 }
 
@@ -929,123 +932,47 @@ normalize_linux_tools_binary_names() {
 }
 # LINUX_TOOLS_BIN_ALIAS_BLOCK_END
 
-# ----- FUTURE: download.01.org GPU/NPU deb-based install -----
-# Uncomment and update URLs when switching to download.01.org hosting.
-# install_gpu_npu_pkgs_from_debs() {
-# 	echo "Installing NPU,GPU Packages.."
-#
-# 	# Create installation directory
-# 	INSTALL_DIR="/tmp/install_gpu_cpu"
-# 	mkdir -p "$INSTALL_DIR"
-# 	cd "$INSTALL_DIR"
-#
-# 	# Downloading GPU drivers
-# 	# Intel-graphics-compiler Version: v2.34.4 (from GitHub releases, public)
-# 	# GPU Version: 26.18.38308.1
-# 	debpackage=(
-# 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-core-2_2.34.4+21428_amd64.deb"
-# 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-opencl-2_2.34.4+21428_amd64.deb"
-# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-ocloc_26.18.38308.1-0_amd64.deb"
-# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-opencl-icd_26.18.38308.1-0_amd64.deb"
-# 		"https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/libze-intel-gpu1_26.18.38308.1-0_amd64.deb"
-# 		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero_1.27.0+u24.04_amd64.deb"
-# 		"https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero-devel_1.27.0+u24.04_amd64.deb")
-#
-# 	# Download GPU packages
-# 	for url in "${debpackage[@]}"; do
-# 		echo "Downloading: $url"
-# 		filename=$(basename "$url")
-# 		if wget "$url" -O "$filename"; then
-# 			echo "Successfully downloaded: $filename"
-# 		else
-# 			echo "ERROR: Failed to download $filename"
-# 			exit 1
-# 		fi
-# 	done
-#
-# 	# Downloading NPU drivers
-# 	# Version: v1.33.0.20260529 (from GitHub releases, public)
-# 	echo "Downloading NPU driver package..."
-# 	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.33.0/linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
-# 	npu_file="linux-npu-driver-v1.33.0.20260529-26625960453-ubuntu2404.tar.gz"
-#
-# 	if wget "$npu_url" -O "$npu_file"; then
-# 		echo "Successfully downloaded NPU driver package"
-# 		if tar -xf "$npu_file"; then
-# 			echo "Successfully extracted NPU driver package"
-# 		else
-# 			echo "ERROR: Failed to extract NPU driver package"
-# 			exit 1
-# 		fi
-# 	else
-# 		echo "ERROR: Failed to download NPU driver package"
-# 		exit 1
-# 	fi
-#
-# 	# Verify all downloaded .deb files exist
-# 	if ! ls ./*.deb 1> /dev/null 2>&1; then
-# 		echo "ERROR: No .deb files found in $INSTALL_DIR"
-# 		exit 1
-# 	fi
-#
-# 	# Update package manager and install dependencies
-# 	apt update
-# 	apt install libtbb12 -y
-#
-# 	# Purge old packages if they exist
-# 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
-#
-# 	# Install all downloaded .deb packages with error checking
-# 	echo "Installing downloaded packages..."
-# 	if dpkg -i ./*.deb; then
-# 		echo "NPU,GPU Packages installed successfully"
-# 	else
-# 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
-# 		apt --fix-broken install -y || {
-# 			echo "ERROR: Failed to install packages"
-# 			exit 1
-# 		}
-# 	fi
-#
-# 	# Cleanup
-# 	cd /
-# 	rm -rf "$INSTALL_DIR"
-# 	echo "Installation directory cleaned: $INSTALL_DIR"
-# }
-# ----- END FUTURE deb-based install -----
+install_gpu_npu_pkgs_from_deb() {
+	echo "Installing NPU,GPU Packages.."
 
-install_gpu_npu_pkgs() {
-	echo "Installing GPU and NPU Packages..."
-
-	# ----- GPU Compute Stack (from Intel overlay repo, priority 2000) -----
-	# The internal overlay repo ships newer versions than the old GitHub .deb
-	# approach (IGC 2.38.2 vs 2.34.4, compute-runtime 26.27.x vs 26.18.x).
-	# These packages are already permitted by the overlay repo priority and
-	# match the ICT template's systemConfig.packages list.
-	apt update
-	apt install -y \
-		intel-igc-core-2 \
-		intel-igc-opencl-2 \
-		intel-ocloc \
-		intel-opencl-icd \
-		libze-intel-gpu1 \
-		level-zero \
-		level-zero-devel \
-		libtbb12
-
-	echo "GPU compute stack installed from overlay repo."
-
-	# ----- NPU Driver (v1.35.0 from internal artifactory) -----
-	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
-	INSTALL_DIR="/tmp/npu-driver"
+	# Create installation directory
+	INSTALL_DIR="/tmp/install_gpu_cpu"
 	mkdir -p "$INSTALL_DIR"
 	cd "$INSTALL_DIR"
 
+	# Downloading GPU drivers (aligned with overlay repo versions)
+	# Intel-graphics-compiler Version: v2.38.2 (from GitHub releases, public)
+	# GPU compute-runtime Version: 26.27.39122.11
+	# Level-zero Version: v1.32.0 (packages renamed: level-zero→libze1, level-zero-devel→libze-dev)
+	debpackage=(
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-core-2_2.38.2+22051_amd64.deb"
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-opencl-2_2.38.2+22051_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-ocloc_26.27.39122.11-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-opencl-icd_26.27.39122.11-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/libze-intel-gpu1_26.27.39122.11-0_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze1_1.32.0%2Bu24.04_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze-dev_1.32.0%2Bu24.04_amd64.deb")
+
+	# Download GPU packages
+	for url in "${debpackage[@]}"; do
+		echo "Downloading: $url"
+		filename=$(basename "$url")
+		if wget "$url" -O "$filename"; then
+			echo "Successfully downloaded: $filename"
+		else
+			echo "ERROR: Failed to download $filename"
+			exit 1
+		fi
+	done
+
+	# Downloading NPU drivers
+	# Version: v1.35.0.20260722 (from internal artifactory)
+	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
 	echo "Downloading NPU driver package..."
 	npu_url="https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 
-	if wget -q "$npu_url" -O "$npu_file"; then
+	if wget "$npu_url" -O "$npu_file"; then
 		echo "Successfully downloaded NPU driver package"
 		if tar -xf "$npu_file"; then
 			echo "Successfully extracted NPU driver package"
@@ -1058,23 +985,27 @@ install_gpu_npu_pkgs() {
 		exit 1
 	fi
 
-	# Verify .deb files exist
+	# Verify all downloaded .deb files exist
 	if ! ls ./*.deb 1> /dev/null 2>&1; then
 		echo "ERROR: No .deb files found in $INSTALL_DIR"
 		exit 1
 	fi
 
-	# Purge old NPU packages if they exist
+	# Update package manager and install dependencies
+	apt update
+	apt install libtbb12 -y
+
+	# Purge old packages if they exist
 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
 
-	# Install NPU .deb packages
-	echo "Installing NPU driver packages..."
+	# Install all downloaded .deb packages with error checking
+	echo "Installing downloaded packages..."
 	if dpkg -i ./*.deb; then
-		echo "NPU driver installed successfully"
+		echo "NPU,GPU Packages installed successfully"
 	else
 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
 		apt --fix-broken install -y || {
-			echo "ERROR: Failed to install NPU packages"
+			echo "ERROR: Failed to install packages"
 			exit 1
 		}
 	fi
@@ -1082,10 +1013,83 @@ install_gpu_npu_pkgs() {
 	# Cleanup
 	cd /
 	rm -rf "$INSTALL_DIR"
-
 	echo "Installation directory cleaned: $INSTALL_DIR"
-
 }
+
+# ----- COMMENTED: overlay-repo GPU + artifactory NPU install -----
+# install_gpu_npu_pkgs() {
+# 	echo "Installing GPU and NPU Packages..."
+#
+# 	# ----- GPU Compute Stack (from Intel overlay repo, priority 2000) -----
+# 	# The internal overlay repo ships newer versions than the old GitHub .deb
+# 	# approach (IGC 2.38.2 vs 2.34.4, compute-runtime 26.27.x vs 26.18.x).
+# 	# These packages are already permitted by the overlay repo priority and
+# 	# match the ICT template's systemConfig.packages list.
+# 	apt update
+# 	apt install -y \
+# 		intel-igc-core-2 \
+# 		intel-igc-opencl-2 \
+# 		intel-ocloc \
+# 		intel-opencl-icd \
+# 		libze-intel-gpu1 \
+# 		level-zero \
+# 		level-zero-devel \
+# 		libtbb12
+#
+# 	echo "GPU compute stack installed from overlay repo."
+#
+# 	# ----- NPU Driver (v1.35.0 from internal artifactory) -----
+# 	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
+# 	INSTALL_DIR="/tmp/npu-driver"
+# 	mkdir -p "$INSTALL_DIR"
+# 	cd "$INSTALL_DIR"
+#
+# 	echo "Downloading NPU driver package..."
+# 	npu_url="https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
+# 	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
+#
+# 	if wget -q "$npu_url" -O "$npu_file"; then
+# 		echo "Successfully downloaded NPU driver package"
+# 		if tar -xf "$npu_file"; then
+# 			echo "Successfully extracted NPU driver package"
+# 		else
+# 			echo "ERROR: Failed to extract NPU driver package"
+# 			exit 1
+# 		fi
+# 	else
+# 		echo "ERROR: Failed to download NPU driver package"
+# 		exit 1
+# 	fi
+#
+# 	# Verify .deb files exist
+# 	if ! ls ./*.deb 1> /dev/null 2>&1; then
+# 		echo "ERROR: No .deb files found in $INSTALL_DIR"
+# 		exit 1
+# 	fi
+#
+# 	# Purge old NPU packages if they exist
+# 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
+#
+# 	# Install NPU .deb packages
+# 	echo "Installing NPU driver packages..."
+# 	if dpkg -i ./*.deb; then
+# 		echo "NPU driver installed successfully"
+# 	else
+# 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
+# 		apt --fix-broken install -y || {
+# 			echo "ERROR: Failed to install NPU packages"
+# 			exit 1
+# 		}
+# 	fi
+#
+# 	# Cleanup
+# 	cd /
+# 	rm -rf "$INSTALL_DIR"
+#
+# 	echo "Installation directory cleaned: $INSTALL_DIR"
+#
+# }
+# ----- END COMMENTED overlay-repo install -----
 
 
 install_intel_lpmd () {
@@ -1248,7 +1252,7 @@ main() {
 
 	install_eci_camera_hal_deps
 
-	install_gpu_npu_pkgs
+	install_gpu_npu_pkgs_from_deb
 
 	install_intel_lpmd
 
