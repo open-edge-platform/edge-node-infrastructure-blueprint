@@ -615,6 +615,15 @@ install_cloud_init() {
 datasource_list: [NoCloud, None]
 EOF
 
+	# FIX_DHCP_REBOOT_BEGIN
+	# Fix: Disable cloud-init network management so NetworkManager handles
+	# DHCP persistently on every boot. Without this, cloud-init only configures
+	# network on first boot (bringup=True) and skips on 2nd+ boots (bringup=False).
+	cat >/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg <<'EOF'
+network: {config: disabled}
+EOF
+	# FIX_DHCP_REBOOT_END
+
 	# Local cloud-init configuration
 	cat >/etc/cloud/cloud.cfg.d/99-local.cfg <<'EOF'
 #cloud-config
@@ -1154,15 +1163,47 @@ configure_system_services() {
 	# Remove ICT-generated ubuntu-noble.list — duplicates the Ubuntu 24.04 native ubuntu.sources (DEB822 format)
 	rm -f /etc/apt/sources.list.d/ubuntu-noble.list
 
-	# Create netplan config for NetworkManager
+	# FIX_DHCP_REBOOT_BEGIN
+	# Fix: Netplan with explicit DHCP config for all ethernet interfaces.
+	# The original only declared renderer=NetworkManager with no interface
+	# definitions, relying on cloud-init's 50-cloud-init.yaml which is
+	# only generated on first boot.
 	mkdir -p /etc/netplan
 	cat > /etc/netplan/01-network-manager-all.yaml <<'EOF'
 # Let NetworkManager manage all devices
 network:
   version: 2
   renderer: NetworkManager
+  ethernets:
+    all-en:
+      match:
+        name: "en*"
+      dhcp4: true
+      dhcp6: true
 EOF
 	chmod 600 /etc/netplan/01-network-manager-all.yaml
+
+	# Remove cloud-init generated netplan to avoid conflicts
+	rm -f /etc/netplan/50-cloud-init.yaml
+
+	# Fix: Ensure NetworkManager actively manages all interfaces.
+	# Docker-based Ubuntu images may have managed=false, causing
+	# interfaces to show as "unmanaged" on 2nd boot.
+	mkdir -p /etc/NetworkManager/conf.d
+	cat > /etc/NetworkManager/conf.d/10-manage-all.conf <<'EOF'
+[device]
+wifi.scan-rand-mac-address=no
+
+[ifupdown]
+managed=true
+
+[main]
+plugins=keyfile
+
+[keyfile]
+unmanaged-devices=none
+EOF
+	# FIX_DHCP_REBOOT_END
 
 	echo "System services configured."
 }

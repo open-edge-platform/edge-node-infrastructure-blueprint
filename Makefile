@@ -183,6 +183,7 @@ build: check-proxy check-docker build-base
 		-e NO_PROXY="$${NO_PROXY:-}" \
 		-e MICRO_OS_REBUILD="$${MICRO_OS_REBUILD:-false}" \
 		-e HOST_OS_REBUILD="$${HOST_OS_REBUILD:-false}" \
+		-e ENABLE_SWAP_RESUME="$${ENABLE_SWAP_RESUME:-0}" \
 		-e HOST_REPO_ROOT="$$PWD" \
 		-e HOST_UID="$$(id -u)" \
 		-e HOST_GID="$$(id -g)" \

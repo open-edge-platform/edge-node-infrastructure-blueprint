@@ -18,6 +18,11 @@ MNT="${BUILD_DIR}/mnt"
 KERNEL_SUFFIX="intel"
 IMAGE_REBUILD="${HOST_OS_REBUILD:-false}"
 IMAGE_TAG_MISSING="false"
+# FIX_SWAP_RESUME_BEGIN
+# Set ENABLE_SWAP_RESUME=1 to add resume=UUID=<swap-uuid> to kernel cmdline
+# This enables hibernation/resume from swap partition.
+ENABLE_SWAP_RESUME="${ENABLE_SWAP_RESUME:-0}"
+# FIX_SWAP_RESUME_END
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -228,6 +233,16 @@ log "  Extraction complete"
 
 log "Fix runtime configuration on mounted image"
 
+
+if [[ -e "${MNT}/.dockerenv" ]]; then
+    sudo rm -f "${MNT}/.dockerenv"
+    log "  Removed ${MNT}/.dockerenv"
+fi
+
+# Remove default ubuntu user name
+
+
+
 # Remove default ubuntu user name 
 sudo chroot "${MNT}" userdel -r ubuntu >/dev/null 2>&1 || true
 
@@ -350,6 +365,15 @@ log "  GRUB modules at : ${GRUB_CFG_DIR}"
 # Grub config for booting the image
 mountpoint -q "${MNT}/boot/efi" || die "EFI partition not mounted"
 
+# FIX_SWAP_RESUME_BEGIN
+# Build kernel cmdline with optional swap resume parameter
+KERNEL_CMDLINE="root=PARTUUID=${ROOT_PARTUUID} ro rootdelay=5 console=tty0 console=ttyS0,115200n8 \"xe.force_probe=*\" xe.max_vfs=7 modprobe.blacklist=i915 udmabuf.list_limit=8192"
+if [[ "${ENABLE_SWAP_RESUME}" == "1" ]]; then
+    KERNEL_CMDLINE="${KERNEL_CMDLINE} resume=UUID=${SWAP_UUID}"
+    log "  Swap resume enabled: resume=UUID=${SWAP_UUID}"
+fi
+# FIX_SWAP_RESUME_END
+
 sudo mkdir -p "${GRUB_CFG_DIR}"
 sudo tee "${GRUB_CFG_DIR}/grub.cfg" > /dev/null << EOF
 
@@ -364,7 +388,7 @@ insmod search_fs_uuid
 search --no-floppy --set=root --fs-uuid ${ROOT_UUID}
 
 menuentry "Ubuntu Server (${KERNEL_VERSION})" {
-    linux  /boot/${VMLINUZ_NAME} root=PARTUUID=${ROOT_PARTUUID} ro rootdelay=5 console=tty0 console=ttyS0,115200n8 "xe.force_probe=*" xe.max_vfs=7 modprobe.blacklist=i915 udmabuf.list_limit=8192
+    linux  /boot/${VMLINUZ_NAME} ${KERNEL_CMDLINE}
     initrd /boot/${INITRD_NAME}
 }
 
