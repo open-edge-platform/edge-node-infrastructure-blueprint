@@ -319,10 +319,17 @@ build_install_lpmd () {
 	./autogen.sh
 	make
 	sudo make install
-	# cleanup install dependencies
-	apt remove -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
-		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
-	apt autoremove -y
+	# Remove restrictive hardware conditions so the service attempts to start
+	# on all platforms. The daemon itself will exit gracefully if unsupported.
+	mkdir -p /etc/systemd/system/intel_lpmd.service.d
+	cat > /etc/systemd/system/intel_lpmd.service.d/override.conf <<EOF
+[Unit]
+# Clear all Condition* directives from the upstream unit
+ConditionPathExists=
+ConditionVirtualization=
+EOF
+	# NOTE: Not purging build dependencies — they are shared with dkms,
+	# build-essential, intel-mipi-gmsl-dkms, and librealsense2-dkms.
 	apt clean
 	# Enable service
 	systemctl --root=/ enable intel_lpmd.service
