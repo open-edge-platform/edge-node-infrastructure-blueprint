@@ -112,13 +112,13 @@ packageRepositories:
       # Only internal-repo dependency of these 7 is libigdgmm12, already listed
       # above. Everything else they need (libc6, libgcc-s1, libstdc++6, libzstd1,
       # zlib1g, ocl-icd-libopencl1) comes from the Ubuntu archive.
-      - intel-igc-core-2
-      - intel-igc-opencl-2
-      - intel-ocloc
-      - intel-opencl-icd
-      - libze-intel-gpu1
-      - level-zero
-      - level-zero-devel
+      #- intel-igc-core-2
+      #- intel-igc-opencl-2
+      #- intel-ocloc
+      #- intel-opencl-icd
+      #- libze-intel-gpu1
+      #- level-zero
+      #- level-zero-devel
       - libmfx-gen1.2
       - libva-dev
       - libva-drm2
@@ -259,6 +259,13 @@ packageRepositories:
       # GStreamer icamerasrc plugin (Recommends of libcamhal0, not auto-pulled)
       - gstreamer1.0-icamera
       - libgsticamerainterface-1.0-1
+      # MIPI GMSL deserializer DKMS module (builds on first boot via dkms autoinstall)
+      - intel-mipi-gmsl-dkms
+      # v4l-utils >= 1.30 required by intel-mipi-gmsl-dkms (Ubuntu archive only has 1.26)
+      - v4l-utils
+      - libv4l-0t64
+      - libv4l2rds0t64
+      - libv4lconvert0t64
 
 systemConfig:
   name: minimal
@@ -337,23 +344,15 @@ systemConfig:
     - gstreamer1.0-pulseaudio
     - libigdgmm12
     - intel-gpu-tools
-
-    # ----- Intel GPU Compute Stack (compute-runtime, IGC, Level Zero) -----
-    # Remove these to disable: OpenCL / Level Zero GPU compute
-    #
-    # Installs the stack from the INTERNAL repo. Every name here must ALSO stay
-    # in that repo's allowPackages (see the matching block there for versions,
-    # rationale and the disabled GitHub-.deb fallback) — otherwise the resolver
-    # falls back to the older Ubuntu archive build, or the package is not found
-    # at all. Keep the two lists in sync: add here => add there, remove here =>
-    # remove there.
-    - intel-igc-core-2
-    - intel-igc-opencl-2
-    - intel-ocloc
-    - intel-opencl-icd
-    - libze-intel-gpu1
-    - level-zero
-    - level-zero-devel
+    # DISABLED: GPU packages are now installed via wget/dpkg in configurations:
+    # section below. Uncomment to switch back to the internal overlay repo.
+    #  - intel-igc-core-2
+    #  - intel-igc-opencl-2
+    #  - intel-ocloc
+    #  - intel-opencl-icd
+    #  - libze-intel-gpu1
+    #  - level-zero
+    #  - level-zero-devel
     - libmfx-gen1.2
     - libtpms-dev
     - libtpms0
@@ -491,6 +490,8 @@ systemConfig:
     - libia-*-ipu75xa0
     - gstreamer1.0-icamera
     - libgsticamerainterface-1.0-1
+    # MIPI GMSL deserializer DKMS module (builds on first boot via dkms autoinstall)
+    - intel-mipi-gmsl-dkms
 
     # intel-lpmd v0.1.0 build dependencies (source build in configurations section)
     # These are installed by ICT (network available) so they're present in chroot.
@@ -538,36 +539,21 @@ systemConfig:
     # so later apt steps cannot re-pull it.
     - cmd: "printf 'Package: systemd-boot systemd-boot-efi\\nPin: release *\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/no-systemd-boot"
     - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
-    # Ensure GPU packages download dir exists (upstream MR1 wgets to it without mkdir)
-    #- cmd: "mkdir -p /tmp/gpu-packages"
 
-    # Install Intel Graphics Compiler and compute runtime packages for PTL
-    #
-    # DISABLED — superseded by the internal repo. These same 7 packages are now
-    # taken from the internal Artifactory repo via allowPackages + packages (see
-    # "Intel GPU Compute Stack" in both lists), which serves NEWER builds:
-    #   intel-igc-core-2 / intel-igc-opencl-2   repo 2.38.2            vs 2.34.4+21428 here
-    #   intel-ocloc / intel-opencl-icd /
-    #   libze-intel-gpu1                        repo 26.27.39122.11-0  vs 26.18.38308.1-0 here
-    #   level-zero / level-zero-devel           repo 1.27.0            vs 1.27.0+u24.04 here
-    #
-    # Kept commented rather than deleted so the GitHub fallback is one uncomment
-    # away. Do NOT re-enable while the allowPackages entries are active: this
-    # dpkg -i would downgrade IGC underneath the newer compute-runtime, and
-    # intel-opencl-icd pins intel-igc-opencl-2 (>= 2.38.2, << 2.38.2+~) — the
-    # half-upgraded state that breaks the OpenCL stack. Remove the entries from
-    # allowPackages and packages first if you ever need these back.
-    # Intel-graphics-compiler Version: v2.34.4 (from GitHub releases, public)
-    # GPU Version:  26.18.38308.1
-    #- cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-core-2_2.34.4+21428_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.34.4+21428_amd64.deb"
-    #- cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.34.4/intel-igc-opencl-2_2.34.4+21428_amd64.deb -O /tmp/gpu-packages/intel-igc-opencl-2_2.34.4+21428_amd64.deb"
-    #- cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-ocloc_26.18.38308.1-0_amd64.deb -O /tmp/gpu-packages/intel-ocloc_26.18.38308.1-0_amd64.deb"
-    #- cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/intel-opencl-icd_26.18.38308.1-0_amd64.deb -O /tmp/gpu-packages/intel-opencl-icd_26.18.38308.1-0_amd64.deb"
-    #- cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.18.38308.1/libze-intel-gpu1_26.18.38308.1-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.18.38308.1-0_amd64.deb"
-    #- cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero_1.27.0+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero_1.27.0+u24.04_amd64.deb"
-    #- cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.27.0/level-zero-devel_1.27.0+u24.04_amd64.deb -O /tmp/gpu-packages/level-zero-devel_1.27.0+u24.04_amd64.deb"
-
-    #- cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
+    # ----- Intel GPU Compute Stack (wget from GitHub releases) -----
+    # Intel-graphics-compiler Version: v2.38.2
+    # GPU compute-runtime Version: 26.27.39122.11
+    # Level-zero Version: v1.32.0
+    - cmd: "mkdir -p /tmp/gpu-packages"
+    - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-core-2_2.38.2+22051_amd64.deb -O /tmp/gpu-packages/intel-igc-core-2_2.38.2+22051_amd64.deb"
+    - cmd: "wget -q https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-opencl-2_2.38.2+22051_amd64.deb -O /tmp/gpu-packages/intel-igc-opencl-2_2.38.2+22051_amd64.deb"
+    - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-ocloc_26.27.39122.11-0_amd64.deb -O /tmp/gpu-packages/intel-ocloc_26.27.39122.11-0_amd64.deb"
+    - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-opencl-icd_26.27.39122.11-0_amd64.deb -O /tmp/gpu-packages/intel-opencl-icd_26.27.39122.11-0_amd64.deb"
+    - cmd: "wget -q https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/libze-intel-gpu1_26.27.39122.11-0_amd64.deb -O /tmp/gpu-packages/libze-intel-gpu1_26.27.39122.11-0_amd64.deb"
+    - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze1_1.32.0%2Bu24.04_amd64.deb -O /tmp/gpu-packages/libze1_1.32.0+u24.04_amd64.deb"
+    - cmd: "wget -q https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze-dev_1.32.0%2Bu24.04_amd64.deb -O /tmp/gpu-packages/libze-dev_1.32.0+u24.04_amd64.deb"
+    - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
+    - cmd: "rm -rf /tmp/gpu-packages"
 
     # Install NPU driver for PTL
     # Version: v1.35.0.20260722-29947505341 (from GitHub releases, public)

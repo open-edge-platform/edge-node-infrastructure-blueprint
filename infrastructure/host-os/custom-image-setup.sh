@@ -252,11 +252,6 @@ ff02::2     ip6-allrouters
 EOF
 log "  hostname and hosts file written"
 
-# Clear the source list added before
-sudo rm -f "${MNT}/etc/apt/sources.list"
-sudo rm -f "${MNT}/etc/apt/sources.list.d/"*.list
-sudo rm -f "${MNT}/etc/apt/sources.list.d/"*.sources
-
 sudo tee "${MNT}/etc/apt/sources.list.d/ubuntu.sources" > /dev/null << 'EOF'
 Types: deb
 URIs: http://archive.ubuntu.com/ubuntu
