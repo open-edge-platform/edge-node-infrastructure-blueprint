@@ -685,6 +685,10 @@ EOF
 
 	# Disable Docker by default; cloud-init activates per host_type
 	systemctl --root=/ disable docker || true
+
+	# Remove Docker APT source so the target device won't try to reach download.docker.com
+	rm -f /etc/apt/sources.list.d/docker.list /etc/apt/keyrings/docker.gpg
+
 	echo "Docker installed (disabled by default; cloud-init enables per host_type)."
 }	
 
@@ -1111,10 +1115,8 @@ install_intel_lpmd () {
 ConditionPathExists=
 ConditionVirtualization=
 EOF
-	# cleanup install dependencies
-	apt purge -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
-		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
-	apt autoremove -y
+	# NOTE: Not purging build dependencies — they are shared with dkms,
+	# build-essential, intel-mipi-gmsl-dkms, and librealsense2-dkms.
 	apt clean
 	# Enable service
 	systemctl --root=/ enable intel_lpmd.service
@@ -1248,6 +1250,10 @@ main() {
 
 	install_helm
 
+	# Kernel must be installed before DKMS packages (librealsense2-dkms,
+	# intel-mipi-gmsl-dkms) so that headers are available for module builds.
+	install_kernel
+
 	install_realsense_pkgs
 
 	install_eci_camera_hal_deps
@@ -1255,8 +1261,6 @@ main() {
 	install_gpu_npu_pkgs_from_deb
 
 	install_intel_lpmd
-
-	install_kernel
 
 	install_performance_tools
 

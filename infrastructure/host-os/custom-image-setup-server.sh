@@ -157,11 +157,11 @@ log "  Created: ${RAW_IMG}"
 # Create GPT partition table: 512MB EFI + 4GB swap + rest root
 log "Partition (GPT: 512MB EFI + 4GB swap + rest root)"
 
-sgdisk -Z "${RAW_IMG}"
-sgdisk -n 1:0:+512M -t 1:ef00 -c 1:"EFI-SYSTEM" "${RAW_IMG}"
-sgdisk -n 2:0:+4G   -t 2:8200 -c 2:"SWAP"        "${RAW_IMG}"
-sgdisk -n 3:0:0     -t 3:8300 -c 3:"LINUX-ROOT"   "${RAW_IMG}"
-sgdisk -p "${RAW_IMG}"
+sgdisk -Z \
+    -n 1:0:+512M -t 1:ef00 -c 1:"EFI-SYSTEM" \
+    -n 2:0:+4G   -t 2:8200 -c 2:"SWAP"        \
+    -n 3:0:0     -t 3:8300 -c 3:"LINUX-ROOT"   \
+    -p "${RAW_IMG}"
 
 # Attach loop device and get partition paths
 log "Attach loop device"
@@ -266,10 +266,7 @@ ff02::2     ip6-allrouters
 EOF
 log "  hostname and hosts file written"
 
-# Clear the source list added before
-sudo rm -f "${MNT}/etc/apt/sources.list"
-sudo rm -f "${MNT}/etc/apt/sources.list.d/"*.list
-sudo rm -f "${MNT}/etc/apt/sources.list.d/"*.sources
+
 
 sudo tee "${MNT}/etc/apt/sources.list.d/ubuntu.sources" > /dev/null << 'EOF'
 Types: deb
