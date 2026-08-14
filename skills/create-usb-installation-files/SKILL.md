@@ -14,10 +14,14 @@ description: Package bootable USB installation artifacts (HookOS, host image, de
 - image from tool
 - image composer
 - default usb image build
+- server image build
+- headless usb image build
+- server image build
+- headless usb image build
 
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
-- build_mode: `standard-image|image-from-tool|reuse-image` — infer from user wording; only ask when genuinely ambiguous
+- build_mode: `standard-image|server-image|image-from-tool|reuse-image` — infer from user wording; only ask when genuinely ambiguous
 - `ict_img`: required only for `image-from-tool` mode when no image was produced in the same session; absolute or repo-relative path to `.raw.gz` or `.raw.img.gz`
 
 All other paths (`target_template`, `os_image_composer_repo`, etc.) use defaults — never prompt for them unless the user explicitly overrides.
@@ -32,22 +36,24 @@ Run all checks silently — report failures only, no prompts:
 - [ ] `make --version`
 - [ ] `proxy.env` present at repo root (auto-created by `make`; user can pass `skip-proxy=true` to bypass)
 - [ ] If `ict_img` was given: `test -f <ict_img>` and extension is `.raw.gz` or `.raw.img.gz`
-- [ ] **Sudo probe** (before any `sudo` step): `sudo -n true`. If non-zero, stop and tell the user to run `sudo -v`, or add a scoped `NOPASSWD` entry, or fix tty_tickets: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo probe** (before any `sudo` step): `sudo -n true`. If non-zero, stop and tell the user to run `sudo -v`, or add a scoped `NOPASSWD` entry, or fix tty_tickets: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. See [AGENTS.md](../../AGENTS.md). 
 
 ## Steps
 1. Collect required inputs and determine flow:
-  - Infer `build_mode` from user wording when possible (`ict`/`image from tool`/`image composer` → `image-from-tool`; no qualifier or `standard` → `standard-image`).
+  - Infer `build_mode` from user wording when possible (`ict`/`image from tool`/`image composer` → `image-from-tool`; `server`/`headless`/`companion`/`uav` → `server-image`; no qualifier or `standard`/`handheld`/`backpack` → `standard-image`).
   - Ask user to choose mode only if no unambiguous inference is possible.
   - Once mode is confirmed, collect only inputs required for that mode (do not ask for unrelated inputs).
   - Flow A (`build_mode=standard-image`): no extra inputs; proceed directly to build.
-  - Flow B (`build_mode=image-from-tool`):
+  - Flow B (`build_mode=server-image`): no extra inputs; proceed directly to build.
+  - Flow C (`build_mode=image-from-tool`):
     - If `ict_img` was already provided by the user: use it directly without any reuse/rebuild prompt.
     - If `ict_img` was NOT provided: probe expected ICT output path, show found image(s) with timestamps, ask one question to reuse or rebuild.
     - If rebuilding or no image found and `create_image_first=yes`: run `create-image` skill, then collect artifact path.
-  - Flow C (`build_mode=reuse-image`): no additional inputs; proceed directly to build.
-2. If Flow B requires image creation, run `create-image` skill to generate a host image and collect artifact path.
+  - Flow D (`build_mode=reuse-image`): no additional inputs; proceed directly to build.
+2. If Flow C requires image creation, run `create-image` skill to generate a host image and collect artifact path.
 3. Set build command arguments:
   - `build_mode=standard-image`: `make build` (or `make build MODE=standard-image`)
+  - `build_mode=server-image`: `make build MODE=server-image`
   - `build_mode=image-from-tool`: `make build MODE=image-from-tool ICT_IMG="<ICT_IMG>"`
   - `build_mode=reuse-image`: `make build MODE=reuse-image`
   - To skip proxy: append `skip-proxy=true` to any command above
