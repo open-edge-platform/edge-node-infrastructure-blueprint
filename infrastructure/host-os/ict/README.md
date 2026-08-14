@@ -8,8 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
  Intel® Core™ Ultra processor platforms using
 [Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
-and the provided template
-[`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml).
+and the provided templates:
+
+- **Desktop:** [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml)
+- **Server (headless):** [`generic-companion-os-server-template.yml`](./generic-companion-os-server-template.yml)
 
 ---
 
@@ -76,7 +78,11 @@ Copy the upstream template to a working location and edit it for your
 environment:
 
 ```bash
+# Desktop image
 cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+
+# Server (headless) image
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-companion-os-server-template.yml my-ubuntu24-server.yml
 ```
 
 Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.

@@ -71,7 +71,7 @@ cd edge-node-infrastructure-blueprint
 
 From the repository root, run one of the following build modes.
 
-> Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
+> Note:If your development environment is behind a firewall, add proxy configuration to the `.proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 
 #### Option 1: Build from a Standard 24.04 Minimal desktop image
 
