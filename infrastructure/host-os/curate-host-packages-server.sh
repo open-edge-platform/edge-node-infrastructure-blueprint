@@ -843,7 +843,12 @@ install_performance_tools() {
 		linux-intel-misc-tools \
 		linux-intel-perf \
 		linux-intel-rtla \
-		linux-intel-usbip
+		linux-intel-usbip \
+		linux-intel-hyperv-daemons \
+		libcpupower-intel-dev \
+		linux-config-6.18 \
+		linux-kbuild-6.18.38
+
 	echo "Performance analysis tools installed successfully."
 }
 

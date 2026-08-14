@@ -291,7 +291,7 @@ packageRepositories:
   #   pkey: "https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
   - codename: "isar"
     url: "https://eci.intel.com/repos/noble"
-    pkey: "[trusted=yes]"
+    pkey: "https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
     component: "main"
     priority: 600
     allowPackages:
