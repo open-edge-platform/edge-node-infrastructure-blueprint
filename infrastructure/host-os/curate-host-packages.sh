@@ -351,13 +351,32 @@ instal_k3s() {
 	
 	echo "k3s installed successfully."
 }
+
+# helm latest version to install
+INSTALL_HELM_VERSION="v4.2.4"
+# Git comit of the installer script
+COMMIT_HASH="3900f434fd3ef2b84065dc04508df48f288dba00"
+SCRIPT_URL="https://raw.githubusercontent.com/helm/helm/${COMMIT_HASH}/scripts/get-helm-3"
+# Matching SHA-256 hash for that exact commit
+EXPECTED_HASH="38b65f882d9cae3891755bdb03becc6a01ae6f9cb24826c191f219ddfee70a5d"
+
 install_helm() {
 	echo "Installing Helm..."
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    chmod 700 get_helm.sh
-    ./get_helm.sh
-    rm get_helm.sh
-    echo "Helm installed successfully."
+	if ! curl -fsSL -o get_helm.sh "$SCRIPT_URL"; then
+		echo "Failed to download Helm installer." >&2
+		rm -f get_helm.sh
+		return 1
+	fi
+	ACTUAL_HASH=$(sha256sum get_helm.sh | awk '{print $1}')
+	if [[ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]]; then
+		echo "Helm installer checksum verification failed." >&2
+		rm -f get_helm.sh
+		return 1
+	fi
+	chmod 700 get_helm.sh
+	./get_helm.sh
+	rm -f get_helm.sh
+	echo "Helm installed successfully."
 }
 
 install_realsense_pkgs(){
