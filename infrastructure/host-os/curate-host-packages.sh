@@ -353,7 +353,7 @@ instal_k3s() {
 }
 
 # Install latest helm version v4.2.4
-# Git comit of the installer script
+# Git commit of the installer script
 COMMIT_HASH="3900f434fd3ef2b84065dc04508df48f288dba00"
 SCRIPT_URL="https://raw.githubusercontent.com/helm/helm/${COMMIT_HASH}/scripts/get-helm-3"
 # Matching SHA-256 hash for that exact commit
