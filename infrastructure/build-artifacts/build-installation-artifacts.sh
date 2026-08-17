@@ -143,6 +143,36 @@ fi
 
 }
 
+# Build developer-src.tar.gz from the current branch/commit.
+build-developer-src(){
+    local REPO_ROOT="/workspace"
+    local OUT_TARBALL="out/developer-src.tar.gz"
+
+    mkdir -p out
+
+    if [ ! -d "${REPO_ROOT}/.git" ]; then
+        echo "WARNING: ${REPO_ROOT} is not a git checkout — skipping developer-src.tar.gz creation"
+        return 0
+    fi
+
+    # Mark the mounted workspace as a safe directory (uid mismatch between host and container).
+    git config --global --add safe.directory "${REPO_ROOT}" >/dev/null 2>&1 || true
+
+    local BRANCH COMMIT
+    BRANCH=$(git -C "${REPO_ROOT}" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    COMMIT=$(git -C "${REPO_ROOT}" rev-parse HEAD 2>/dev/null || echo "unknown")
+    echo "Packaging developer source from branch '${BRANCH}' at commit ${COMMIT}"
+
+    # git archive captures the committed tree (HEAD) — matches the branch in use.
+    if git -C "${REPO_ROOT}" archive --format=tar --prefix=developer-src/ HEAD \
+        | pigz > "${OUT_TARBALL}"; then
+        echo "Created ${OUT_TARBALL} ($(du -h "${OUT_TARBALL}" | awk '{print $1}'))"
+    else
+        rm -f "${OUT_TARBALL}"
+        echo "WARNING: git archive failed — developer-src.tar.gz will not be shipped"
+    fi
+}
+
 # Pack the ISO image,Ubuntu Image,config-file 
 pack-artifacts(){
 
@@ -169,8 +199,12 @@ fi
 if eval "$tar_cmd" > /dev/null; then
     echo "usb-bootable-files.tar.gz created"
     echo "Creating usb-installation-files.tar.gz..."
+    installation_files=(bootable-usb-prepare.sh config-file usb-bootable-files.tar.gz ven-deployment.sh)
+    if [[ -f developer-src.tar.gz ]]; then
+        installation_files+=(developer-src.tar.gz)
+    fi
     # Use pigz for parallel compression
-    if tar -I pigz -cf usb-installation-files.tar.gz bootable-usb-prepare.sh config-file usb-bootable-files.tar.gz ven-deployment.sh; then
+    if tar -I pigz -cf usb-installation-files.tar.gz "${installation_files[@]}"; then
         echo ""
 	echo ""
 	echo ""
@@ -262,6 +296,8 @@ build-cdi-generator
 build-alpine-os
 
 create-alpine-os-iso
+
+build-developer-src
 
 pack-artifacts
 

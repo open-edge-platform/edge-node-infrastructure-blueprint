@@ -330,25 +330,69 @@ install_docker() {
 
 	systemctl --root=/ enable docker || true
 	echo "Docker installed and running."
-}	
-instal_k3s() {
+}
+
+# k3s version "v1.36.3+k3s1"
+# Git commit of the installer script
+COMMIT_HASH="5aed4d7beddeb3e67120da477c876ac9efd70318"
+SCRIPT_URL="https://raw.githubusercontent.com/k3s-io/k3s/${COMMIT_HASH}/install.sh"
+# Matching SHA-256 hash for that exact commit
+EXPECTED_HASH="46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad"
+
+install_k3s() {
 	echo "Installing k3s..."
+	local script_path="/tmp/k3s-install.sh"
+	local actual_hash
+
+	# Try to download from specified commit hash first, then fallback to latest
 	for i in 1 2 3; do
-		curl -sfL --max-time 120 --retry 3 \
-			https://get.k3s.io -o /tmp/k3s-install.sh && break
-		echo "  k3s download attempt $i failed, retrying..."
+		if curl -sfL --max-time 120 --retry 3 "$SCRIPT_URL" -o "$script_path"; then
+			echo "  Successfully downloaded k3s installer from commit."
+			break
+		else
+			echo "  k3s download attempt $i from commit failed, retrying..."
+			if [ $i -eq 3 ]; then
+				echo "  Falling back to latest k3s installer..."
+				if curl -sfL --max-time 120 --retry 3 https://get.k3s.io -o "$script_path"; then
+					echo "  Successfully downloaded latest k3s installer."
+					break
+				else
+					echo "ERROR: Failed to download k3s installer from both sources" >&2
+					return 1
+				fi
+			fi
+		fi
 		sleep 10
 	done
 
-	chmod +x /tmp/k3s-install.sh
+	# Verify script downloaded successfully
+	if [ ! -f "$script_path" ]; then
+		echo "ERROR: k3s install script not found at $script_path" >&2
+		return 1
+	fi
+
+	# Verify hash if expected hash is set
+	if [ -n "$EXPECTED_HASH" ] && [ "$EXPECTED_HASH" != "0" ]; then
+		actual_hash=$(sha256sum "$script_path" | awk '{print $1}')
+		if [ "$actual_hash" != "$EXPECTED_HASH" ]; then
+			echo "CRITICAL: Script integrity failure!" >&2
+			echo "  Expected hash: $EXPECTED_HASH" >&2
+			echo "  Actual hash:   $actual_hash" >&2
+			return 1
+		fi
+		echo "  Hash verification passed."
+	else
+		echo "  WARNING: Skipping hash verification (no expected hash set)"
+	fi
+
+	chmod +x "$script_path"
 
 	INSTALL_K3S_EXEC="server --disable=traefik" \
 		INSTALL_K3S_SKIP_ENABLE=true \
 		INSTALL_K3S_SKIP_START=true \
-		sh /tmp/k3s-install.sh
+		sh "$script_path"
 
 	systemctl --root=/ enable k3s || true
-	
 	echo "k3s installed successfully."
 }
 
@@ -530,7 +574,7 @@ main() {
 
 	install_docker
 
-	instal_k3s
+	install_k3s
 
 	install_helm
 
