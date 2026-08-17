@@ -352,8 +352,7 @@ instal_k3s() {
 	echo "k3s installed successfully."
 }
 
-# helm latest version to install
-INSTALL_HELM_VERSION="v4.2.4"
+# Install latest helm version v4.2.4
 # Git comit of the installer script
 COMMIT_HASH="3900f434fd3ef2b84065dc04508df48f288dba00"
 SCRIPT_URL="https://raw.githubusercontent.com/helm/helm/${COMMIT_HASH}/scripts/get-helm-3"
