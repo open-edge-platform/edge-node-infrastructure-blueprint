@@ -62,7 +62,8 @@ These packages are required before composing any image:
 sudo apt install systemd-ukify mmdebstrap
 ```
 
-Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
+Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites)
+if you face issues installing packages using apt.
 
 > **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
 > issues. Ensure you have version 1.4.3 or later. On Ubuntu OS version 23.04 or later, the
@@ -72,9 +73,9 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ## Configure the Template
 
-Update the credentials before building. Both variables must be non-empty,
-and `PASSWORD` must contain a SHA-512 hash. The template uses
-`$USERNAME` and `$PASSWORD` placeholders for these values:
+Update the credentials in the template file before building. Both variables must be non-empty,
+`PASSWORD` must contain a SHA-512 hash. The template uses `<USERNAME>` and `<PASSWORD>`
+placeholders for these values:
 
 ```bash
 USERNAME='<your-username>'
@@ -82,14 +83,14 @@ PASSWORD="$(openssl passwd -6 '<your-password>')"
 # Or: PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 ```
 In `<ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml`,
-set the user name ($USERNAME) and password ($PASSWORD) using the `USERNAME`
+set the user name <USERNAME> and password <PASSWORD> using the `USERNAME`
 and `PASSWORD` variables. Here, `ENIB-HOME` is the root directory of this project,
 not the Image Composer Tool.
 
 ```bash
  users:
-    - name: $USERNAME
-      password: $PASSWORD
+    - name: <USERNAME>
+      password: <PASSWORD>
       groups: ["sudo", "video", "render", "audio"]
       hash_algo: sha512
 ```
