@@ -75,15 +75,16 @@ From the repository root, run one of the following build modes.
 
 #### Option 1: Build from a Standard 24.04 Minimal desktop image
 
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image.
 
-Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials. These are required and must not be null or empty; the build exits before starting if either variable is unset or empty:
+Before building, update the `<USERNAME>` and `<PASSWORD>` variables with your own credentials. These are
+required and must not be null or empty; the build exits before starting if either variable is unset or empty.
 
 ```bash
-export USERNAME='<your-username>'
+USERNAME='<your-username>'
 # Generate the SHA-512 password hash with one of the following methods.
 # Using openssl (requires `openssl` to be installed)
-export PASSWORD="$(openssl passwd -6 '<your-password>')"
+PASSWORD="$(openssl passwd -6 '<your-password>')"
 
 # Or using mkpasswd (requires `whois` to be installed)
 export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
