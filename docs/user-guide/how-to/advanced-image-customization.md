@@ -75,7 +75,7 @@ mkpasswd --method=sha-512 'your-password-here'
 Now, you can adapt this template to suit your use case. The advanced customization options are discussed
 below in the [Package curation and template customization](#package-curation-and-template-customization) section.
 
-### Validate the Template
+### Validate the template
 
 Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
@@ -84,7 +84,7 @@ build (fast, no root required):
 ./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
 ---
-### Build the Image
+### Build the image
 
 Run the build with elevated privileges so that the tool can manage loop devices
 and chroot environments. Pass `-E` to preserve your proxy and environment variables:
