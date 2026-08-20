@@ -73,22 +73,21 @@ From the repository root, run one of the following build modes.
 
 > Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 
-#### Option 1: Build from a Standard 24.04 Minimal desktop image
-
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image.
-
-Before building, update the `<USERNAME>` and `<PASSWORD>` variables with your own credentials. These are
-required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
+These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
 
 ```bash
-USERNAME='<your-username>'
+export USERNAME='<your-username>'
 # Generate the SHA-512 password hash with one of the following methods.
 # Using openssl (requires `openssl` to be installed)
-PASSWORD="$(openssl passwd -6 '<your-password>')"
+export PASSWORD="$(openssl passwd -6 '<your-password>')"
 
 # Or using mkpasswd (requires `whois` to be installed)
 export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 ```
+#### Option 1: Build from a Standard 24.04 Minimal desktop image
+
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image.
 
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 
