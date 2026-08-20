@@ -54,7 +54,7 @@ jobs:
         id: skill-scan
         uses: open-edge-platform/geti-ci/actions/skill-scan@0745e2b1612e4c25c3e83eb37bddeba8743a2439 # skill-scan/v0.1.1
         with:
-          skills-path: .agents/skills/
+          skills-path: skills/
           severity-level: ${{ github.event_name == 'pull_request' && 'HIGH' || github.event.inputs.severity || 'LOW' }}
           fail-on-findings: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
 
@@ -86,7 +86,7 @@ jobs:
         id: skill-validator
         uses: open-edge-platform/geti-ci/actions/skill-validator@3fd1ebf48e46ec6584850e20616763e73ddf94e9 # skill-validator/v0.2.2
         with:
-          skills-path: .agents/skills/
+          skills-path: skills/
           strict: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
           fail-on-findings: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
           allow-dirs: "evals,example-prompts,benchmark"
