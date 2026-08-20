@@ -59,7 +59,7 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ### Configure the template
 
-Update the credentials before building. Both variables must be non-empty,
+Update the credentials in the template file before building. Both variables must be non-empty,
 and `PASSWORD` must contain a SHA-512 hash. 
 
 ```bash
