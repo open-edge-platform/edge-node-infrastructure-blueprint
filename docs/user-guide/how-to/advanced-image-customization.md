@@ -90,6 +90,16 @@ build (fast, no root required):
 ```bash
 ./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
+---
+### Build the Image
+
+Run the build with elevated privileges so that the tool can manage loop devices
+and chroot environments. Pass `-E` to preserve your proxy and environment
+variables:
+
+```bash
+sudo -E ./image-composer-tool build <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
+```
 
 ### Build output
 
