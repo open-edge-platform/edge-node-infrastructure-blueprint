@@ -1,0 +1,19 @@
+{
+  "skill_name": "create-image",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run plan for building the default Ubuntu host image with the create-image skill. Use the generic handheld ICT template and default paths. Check the prerequisites and explain exactly where the workflow stops if a required tool is unavailable; do not run a real clone, build, sudo command, or network call.",
+      "expected_output": "Provide a fail-closed precondition report and a dry-run build plan with default paths, working-template isolation, validation, the confirmation point, expected artifacts, and rollback guidance. Do not claim that an image was built.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Uses the default generic-handheld-os-template.yml and a separate work- template path, explicitly preserving the source template",
+        "Lists the documented prerequisite checks and says the workflow stops with an install hint when a required tool is missing",
+        "Describes the 2026.1-Release image-composer checkout, binary build, copied-template validation, and privileged build in the correct order",
+        "Places the only confirmation gate immediately before the privileged build and identifies expected .raw.gz/SBOM artifacts without claiming they exist",
+        "Includes cleanup guidance for the working template and failed partial output"
+      ]
+    }
+  ]
+}

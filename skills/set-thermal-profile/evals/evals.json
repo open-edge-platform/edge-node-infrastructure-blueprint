@@ -1,0 +1,19 @@
+{
+  "skill_name": "set-thermal-profile",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run plan for the default warm thermal profile on an Intel host, with no CHRG option. Do not modify thermald. Show the trip ordering, cooling-device checks, generated XML/Planned Changes content, confirmation gate, sole-authority flags, and rollback path.",
+      "expected_output": "Provide a dry-run-only thermal plan with fail-closed checks, warm trip points, confirmation outcome, expected thermald authority settings, and rollback guidance without claiming service changes.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves warm to Fan 60 C, Processor 75 C, and powerclamp 85 C with Fan < Processor < powerclamp ordering",
+        "Lists script, thermald/applicability, Intel/x86, cooling-device, and sudo checks while preserving an unprivileged dry-run",
+        "Places generated XML and Planned Changes before confirmation and records dry_run_only without service-change claims",
+        "Uses default charge=false and explains absent cooling devices and expected sole-authority flags: --ignore-default-control and no --adaptive",
+        "Provides config backup/restore guidance and disable=true as the kernel-default thermal-control rollback"
+      ]
+    }
+  ]
+}

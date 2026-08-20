@@ -1,0 +1,19 @@
+{
+  "skill_name": "create-usb-installation-files",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a dry-run plan for packaging USB installation files from an ICT image at /tmp/ubuntu-host.raw.gz. Select image-from-tool mode, use repository defaults, and do not run Docker, make, sudo, deployment, or network operations. Explain the checks and confirmation points that would occur.",
+      "expected_output": "Provide the selected mode, input validation, precondition checks, effective command, expected archive validation, optional VEN confirmation, and rollback guidance without claiming a build or deployment occurred.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Selects image-from-tool mode from the supplied .raw.gz path and does not ask to rebuild or reuse another image",
+        "Checks the repository, target files, Docker/buildx, make, proxy handling, ICT image extension/existence, and sudo requirement before privileged work",
+        "Builds the documented make command and expected output path without overwriting the ICT source template",
+        "Names all four required top-level archive entries and places the optional VEN deployment confirmation after packaging",
+        "Includes rollback guidance for packaged/intermediate output and any image created in the session"
+      ]
+    }
+  ]
+}
