@@ -91,8 +91,6 @@ not the Image Composer Tool.
  users:
     - name: <USERNAME>
       password: <PASSWORD>
-      groups: ["sudo", "video", "render", "audio"]
-      hash_algo: sha512
 ```
 Run the commands from the Image Composer Tool repository. `sudo -E` preserves
 the exported variables so the placeholders are available during the build.
