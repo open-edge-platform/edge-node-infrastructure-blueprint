@@ -72,41 +72,29 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ## Configure the Template
 
-Copy the upstream template to a working location and edit it for your
-environment:
+Update the credentials before building. Both variables must be non-empty,
+and `PASSWORD` must contain a SHA-512 hash. The template uses
+`$USERNAME` and `$PASSWORD` placeholders for these values:
 
 ```bash
-cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+USERNAME='<your-username>'
+PASSWORD="$(openssl passwd -6 '<your-password>')"
+# Or: PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 ```
-
-Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
-
-Key fields to review and update before building:
-
-### User Credentials
-
-Replace the default `user` user `password` hash with your own
-SHA-512 hashed password, and update the SSH `authorized_keys` entries:
-
-```yaml
-users:
-  - name: user
-    password: "<SHA-512-hashed-password>"
-```
-
-Generate the password hash using one of the following methods:
+In `<ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml`,
+set the user name ($USERNAME) and password ($PASSWORD) using the `USERNAME`
+and `PASSWORD` variables. Here, `ENIB-HOME` is the root directory of this project,
+not the Image Composer Tool.
 
 ```bash
-# Using openssl (requires `openssl` to be installed)
-openssl passwd -6 'your-password-here'
-
-# Using mkpasswd (requires `whois` to be installed)
-mkpasswd --method=sha-512 'your-password-here'
+ users:
+    - name: $USERNAME
+      password: $PASSWORD
+      groups: ["sudo", "video", "render", "audio"]
+      hash_algo: sha512
 ```
-
-> **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
-
----
+Run the commands from the Image Composer Tool repository. `sudo -E` preserves
+the exported variables so the placeholders are available during the build.
 
 ## Validate the Template
 
@@ -114,7 +102,7 @@ Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
 
 ```bash
-./image-composer-tool validate my-ubuntu24.yml
+./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
 
 ---
@@ -126,7 +114,7 @@ and chroot environments. Pass `-E` to preserve your proxy and environment
 variables:
 
 ```bash
-sudo -E ./image-composer-tool build my-ubuntu24.yml
+sudo -E ./image-composer-tool build <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
 
 ---
@@ -208,14 +196,17 @@ If the build fails with errors like `failed: bad status: 404 Not Found` or 
 
 ### Mirror Issues
 
-Standard Ubuntu mirrors may occasionally be unreliable or return stale metadata. If you encounter intermittent download failures or hash-sum mismatches during the build, update the `packageRepositories` section in your template to use other open-source mirrors. For example, using the Kernel.org mirror:
+Standard Ubuntu mirrors may occasionally be unreliable or return stale metadata.
+If you encounter intermittent download failures or hash-sum mismatches during the
+build, update the `packageRepositories` section in your template to use other
+open-source mirrors. For example, using the Kernel.org mirror:
 
 ```yaml
 packageRepositories:
-  - codename: "noble"
-    url: "http://mirrors.edge.kernel.org/ubuntu/"
-    component: "main restricted universe multiverse"
-    priority: 500
+   - codename: "noble"
+      url: "http://mirrors.edge.kernel.org/ubuntu/"
+      component: "main restricted universe multiverse"
+      priority: 500
 ```
 
 To find the fastest mirror for your region, you can optionally use `mirrorselect`:
@@ -225,7 +216,8 @@ sudo snap install mirrorselect
 mirrorselect --country us
 ```
 
-Replace `us` with your country code (for example, `de`, `in`, `sg`) and use the returned URL in `packageRepositories`.
+Replace `us` with your country code (for example, `de`, `in`, `sg`) and use the
+returned URL in `packageRepositories`.
 
 After updating the mirror, clean and rebuild:
 

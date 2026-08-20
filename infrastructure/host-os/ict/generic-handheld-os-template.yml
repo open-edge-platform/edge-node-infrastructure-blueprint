@@ -375,7 +375,7 @@ systemConfig:
         - linux-headers-6.18-intel_260427t075939z-r2
   users:
     - name: user
-      password: $6$xXo2NxaLDQE6xrCa$lwcawer1BMsC63xx5jHHrVSI4625We6CMv0nzmflYiXVldJC/9gXFqYoe5KTu8lBnuc6W8MxE0eGLUUt1RiJw.
+      password: $6$hd/Lk7mXqW6j.ZYq$kQv8eqiPq4oIvdMbIi2ly07R6swsTiBsbnkOkZWnHckH.LE0MxDbolfFIQg/KCq8LEp5Iep.bEdBOsZ9zk/LK1
       groups: ["sudo", "video", "render", "audio"]
       hash_algo: sha512
 

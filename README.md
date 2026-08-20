@@ -77,21 +77,16 @@ From the repository root, run one of the following build modes.
 
 Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
 
-Before building, update the default user credentials in `infrastructure/host-os/Dockerfile`. Replace the default `USERNAME` and `USER_PASSWORD` hash with your own values:
+Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials. These are required and must not be null or empty; the build exits before starting if either variable is unset or empty:
 
 ```bash
-ARG USERNAME=<your-username>
-ARG USER_PASSWORD='<SHA-512-hashed-password>'
-```
-
-Generate the password hash using one of the following methods:
-
-```bash
+export USERNAME='<your-username>'
+# Generate the SHA-512 password hash with one of the following methods.
 # Using openssl (requires `openssl` to be installed)
-openssl passwd -6 'your-password-here'
+export PASSWORD="$(openssl passwd -6 '<your-password>')"
 
-# Using mkpasswd (requires `whois` to be installed)
-mkpasswd --method=sha-512 'your-password-here'
+# Or using mkpasswd (requires `whois` to be installed)
+export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 ```
 
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.

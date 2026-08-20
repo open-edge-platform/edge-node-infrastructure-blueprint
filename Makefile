@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-.PHONY: all build build-cdi-generator lint shellcheck clean coverage license list help
+.PHONY: all build check-build-credentials build-cdi-generator lint shellcheck clean coverage license list help
 SHELL := bash -eu -o pipefail
 
 # Find all shell scripts
@@ -35,6 +35,12 @@ ETC_ENV        := /etc/environment
 $(PROXY_FILE): $(PROXY_TEMPLATE)
 	@cp $(PROXY_TEMPLATE) $(PROXY_FILE)
 	@echo "Created $(PROXY_FILE) from $(PROXY_TEMPLATE) — edit freely, it is git-ignored."
+
+check-build-credentials:
+	@if [[ -z "$${USERNAME:-}" || -z "$${PASSWORD:-}" ]]; then \
+		echo "ERROR: USERNAME and PASSWORD must be exported and can't be null before building." >&2; \
+		exit 1; \
+	fi
 
 check-docker:
 	@# Help: Check if Docker is installed and functional
@@ -132,7 +138,7 @@ build-base:
 		-t $(BASE_IMAGE) \
 		infrastructure/enib-base-container
 
-build: check-proxy check-docker build-base
+build: check-build-credentials check-proxy check-docker build-base
 	@echo "---MAKEFILE BUILD---"
 	@echo "Preparing USB Installation Artifacts (containerized in Ubuntu 24.04)"
 	@set -a; . $(PROXY_FILE) 2>/dev/null || true; set +a; \
@@ -190,6 +196,8 @@ build: check-proxy check-docker build-base
 		-e NO_PROXY="$${NO_PROXY:-}" \
 		-e MICRO_OS_REBUILD="$${MICRO_OS_REBUILD:-false}" \
 		-e HOST_OS_REBUILD="$${HOST_OS_REBUILD:-false}" \
+		-e USERNAME="$${USERNAME:-}" \
+		-e PASSWORD="$${PASSWORD:-}" \
 		-e HOST_REPO_ROOT="$$PWD" \
 		-e HOST_UID="$$(id -u)" \
 		-e HOST_GID="$$(id -g)" \
