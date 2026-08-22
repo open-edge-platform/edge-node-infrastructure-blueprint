@@ -704,19 +704,66 @@ EOF
 
 instal_k3s() {
 	echo "Installing k3s..."
+	
+	# k3s version and integrity verification
+	# Git commit of the installer script
+	local COMMIT_HASH="5aed4d7beddeb3e67120da477c876ac9efd70318"
+	local SCRIPT_URL="https://raw.githubusercontent.com/k3s-io/k3s/${COMMIT_HASH}/install.sh"
+	# Matching SHA-256 hash for that exact commit
+	local EXPECTED_HASH="46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad"
+	
+	local script_path="/tmp/k3s-install.sh"
+	local actual_hash
+
+	# Try to download from specified commit hash first, then fallback to latest
 	for i in 1 2 3; do
-		curl -sfL --max-time 120 --retry 3 \
-			https://get.k3s.io -o /tmp/k3s-install.sh && break
-		echo "  k3s download attempt $i failed, retrying..."
+		if curl -sfL --max-time 120 --retry 3 "$SCRIPT_URL" -o "$script_path"; then
+			echo "  Successfully downloaded k3s installer from commit."
+			break
+		else
+			echo "  k3s download attempt $i from commit failed, retrying..."
+			if [ $i -eq 3 ]; then
+				echo "  Falling back to latest k3s installer..."
+				if curl -sfL --max-time 120 --retry 3 https://get.k3s.io -o "$script_path"; then
+					echo "  Successfully downloaded latest k3s installer."
+					echo "  WARNING: Using latest version - hash verification will be skipped"
+					EXPECTED_HASH=""
+					break
+				else
+					echo "ERROR: Failed to download k3s installer from both sources" >&2
+					return 1
+				fi
+			fi
+		fi
 		sleep 10
 	done
 
-	chmod +x /tmp/k3s-install.sh
+	# Verify script downloaded successfully
+	if [ ! -f "$script_path" ]; then
+		echo "ERROR: k3s install script not found at $script_path" >&2
+		return 1
+	fi
+
+	# Verify hash if expected hash is set
+	if [ -n "$EXPECTED_HASH" ]; then
+		actual_hash=$(sha256sum "$script_path" | awk '{print $1}')
+		if [ "$actual_hash" != "$EXPECTED_HASH" ]; then
+			echo "CRITICAL: Script integrity failure!" >&2
+			echo "  Expected hash: $EXPECTED_HASH" >&2
+			echo "  Actual hash:   $actual_hash" >&2
+			return 1
+		fi
+		echo "  Hash verification passed."
+	else
+		echo "  WARNING: Skipping hash verification (no expected hash set)"
+	fi
+
+	chmod +x "$script_path"
 
 	INSTALL_K3S_EXEC="server --disable=traefik" \
 		INSTALL_K3S_SKIP_ENABLE=true \
 		INSTALL_K3S_SKIP_START=true \
-		sh /tmp/k3s-install.sh
+		sh "$script_path"
 
 	# K3s disabled by default; cloud-init activates per host_type
 	systemctl --root=/ disable k3s || true
@@ -963,6 +1010,18 @@ install_gpu_npu_pkgs_from_deb() {
 	# Intel-graphics-compiler Version: v2.38.2 (from GitHub releases, public)
 	# GPU compute-runtime Version: 26.27.39122.11
 	# Level-zero Version: v1.32.0 (packages renamed: level-zero→libze1, level-zero-devel→libze-dev)
+
+	declare -A package_checksums=(
+		["intel-igc-core-2_2.38.2+22051_amd64.deb"]="3dbcbe4e716d62e9bd43a4a476d724cf772b4581dbcdd096d70df382e7ccad7e"
+		["intel-igc-opencl-2_2.38.2+22051_amd64.deb"]="e265d191590efd5491bfbbd148c144fdd40aea51e0b57f8651130d2da20b8186"
+		["intel-ocloc_26.27.39122.11-0_amd64.deb"]="794a77217b3fd4c3f1381c2bb2c3c11a7f81e338b55b8a11e6c3b5070d138f98"
+		["intel-opencl-icd_26.27.39122.11-0_amd64.deb"]="6e447a783c99fb5634df298c135a81165be07db98672df96cdf413d22f3e6ac4"
+		["libze-intel-gpu1_26.27.39122.11-0_amd64.deb"]="58420df60d4bf8ac79aba03f7de1b8b60a93e995b18142391077ff735ce7b74b"
+		["libze1_1.32.0+u24.04_amd64.deb"]="3c846af24f84a89150f6a4c6adcb4ea4ebef74dc119fe44f4e269bfaa72c7ba6"
+		["libze-dev_1.32.0+u24.04_amd64.deb"]="4b783ed5fb937a55a7a0f3a8bc66af252f362e82476ebc0304da36173c9f2eb8"
+		["linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"]="398343e53fdac6023ad0856ef88bb6011b1e12447a112be55e85e27ef7f96c66"
+	)
+
 	debpackage=(
 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-core-2_2.38.2+22051_amd64.deb"
 		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-opencl-2_2.38.2+22051_amd64.deb"
@@ -972,12 +1031,47 @@ install_gpu_npu_pkgs_from_deb() {
 		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze1_1.32.0%2Bu24.04_amd64.deb"
 		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze-dev_1.32.0%2Bu24.04_amd64.deb")
 
-	# Download GPU packages
+	# Function to verify file integrity with SHA-256
+	verify_checksum() {
+		local file="$1"
+		local expected_hash="$2"
+		local actual_hash
+
+		if [ "$expected_hash" = "REPLACE_WITH_ACTUAL_SHA256" ]; then
+			echo "  WARNING: No checksum defined for $file - skipping verification"
+			echo "  SECURITY RISK: Package integrity not verified!"
+			return 0
+		fi
+
+		actual_hash=$(sha256sum "$file" | awk '{print $1}')
+		if [ "$actual_hash" != "$expected_hash" ]; then
+			echo "CRITICAL: Package integrity failure for $file!" >&2
+			echo "  Expected hash: $expected_hash" >&2
+			echo "  Actual hash:   $actual_hash" >&2
+			return 1
+		fi
+		echo "  Checksum verification passed for $file"
+		return 0
+	}
+
+	# Download and verify GPU packages
+	echo "Downloading and verifying GPU packages..."
 	for url in "${debpackage[@]}"; do
 		echo "Downloading: $url"
 		filename=$(basename "$url")
 		if wget "$url" -O "$filename"; then
 			echo "Successfully downloaded: $filename"
+			
+			# Verify checksum
+			if [ -n "${package_checksums[$filename]}" ]; then
+				if ! verify_checksum "$filename" "${package_checksums[$filename]}"; then
+					echo "ERROR: Checksum verification failed for $filename"
+					rm -f "$filename"
+					exit 1
+				fi
+			else
+				echo "  WARNING: No checksum found for $filename in verification table"
+			fi
 		else
 			echo "ERROR: Failed to download $filename"
 			exit 1
@@ -993,6 +1087,14 @@ install_gpu_npu_pkgs_from_deb() {
 
 	if wget "$npu_url" -O "$npu_file"; then
 		echo "Successfully downloaded NPU driver package"
+		
+		# Verify NPU package checksum
+		if ! verify_checksum "$npu_file" "${package_checksums[$npu_file]}"; then
+			echo "ERROR: NPU package checksum verification failed"
+			rm -f "$npu_file"
+			exit 1
+		fi
+		
 		if tar -xf "$npu_file"; then
 			echo "Successfully extracted NPU driver package"
 		else
@@ -1000,8 +1102,8 @@ install_gpu_npu_pkgs_from_deb() {
 			exit 1
 		fi
 	else
-		echo "ERROR: Failed to download NPU driver package"
-		exit 1
+			echo "ERROR: Failed to download NPU driver package"
+			exit 1
 	fi
 
 	# Verify all downloaded .deb files exist
