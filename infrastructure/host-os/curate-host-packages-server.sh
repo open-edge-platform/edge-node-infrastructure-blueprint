@@ -442,7 +442,13 @@ install_essential_tools() {
 		xdp-tools \
 		xfsprogs \
 		xxd \
-		zstd
+		zstd \
+	|| {
+		echo "WARNING: Package postinst failed (expected on WSL2 — no DMI sysfs). Recovering..."
+		echo '#!/bin/sh' > /var/lib/dpkg/info/libcamhal-common.postinst
+		echo 'exit 0' >> /var/lib/dpkg/info/libcamhal-common.postinst
+		dpkg --configure -a || true
+	}
 
 
 	systemctl --root=/ disable systemd-timesyncd || true
