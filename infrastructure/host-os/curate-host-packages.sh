@@ -211,14 +211,15 @@ EOF
 	# Configure APT preferences for ECI packages
 	configure_eci_apt_preferences
 	
-	# Install camera packages
+	# Install camera packages (may fail in WSL/Docker due to circular dependencies and DMI requirements)
+	echo "Installing Intel camera HAL packages..."
 	apt update
 	export DEBIAN_FRONTEND=noninteractive
 	
 	# Pre-configure debconf to avoid interactive prompts (especially for DKMS packages)
 	echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 	
-	apt install -y \
+	if apt install -y \
 		libcamhal-ipu75xa0 \
 		libcamhal-ipu75xa \
 		libcamera-tools \
@@ -227,9 +228,35 @@ EOF
 		libia-*-ipu75xa0 \
 		gstreamer1.0-icamera \
 		libgsticamerainterface-1.0-1 \
-		intel-mipi-gmsl-dkms
-	
-	echo "Intel camera packages installed successfully."
+		intel-mipi-gmsl-dkms; then
+		echo "SUCCESS: Intel camera HAL packages installed successfully"
+	else
+		# Camera package installation failed - attempt recovery
+		echo "Camera package installation failed, attempting recovery..."
+		dpkg --configure -a || true
+		apt-get install -f -y || true
+		
+		# Verify recovery succeeded - check for ANY broken packages
+		if dpkg -l | grep -qE "^iU|^iF|^iH"; then
+			echo "WARNING: Camera packages failed to install and recovery unsuccessful"
+			echo "Broken packages:"
+			dpkg -l | grep -E "^iU|^iF|^iH"
+			echo "Removing broken camera packages to prevent interference with other installations..."
+			# Remove all broken camera packages
+			dpkg --purge --force-all \
+				libcamhal-ipu75xa0 \
+				libcamhal-ipu75xa \
+				libcamera-tools \
+				libcamhal-common \
+				libcamhal0 \
+				gstreamer1.0-icamera \
+				libgsticamerainterface-1.0-1 \
+				intel-mipi-gmsl-dkms 2>/dev/null || true
+			echo "Continuing without camera support..."
+		else
+			echo "Camera packages recovered successfully after dpkg/apt fix"
+		fi
+	fi
 }
 
 
