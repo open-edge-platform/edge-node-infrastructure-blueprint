@@ -97,19 +97,46 @@ if [ -e ubuntu-disk.img ]; then
 fi
 qemu-img create -f qcow2 ubuntu-disk.img 64G > /dev/null 2>&1 || { echo "creating ubuntu disk image failed to create,please check"; exit 1; }
 
+# Prepare a per-run OVMF NVRAM (VARS) file so that EFI boot variables written
+# by the installer (efibootmgr) actually persist across the post-install reboot.
+OVMF_CODE=""
+for c in /usr/share/OVMF/OVMF_CODE_4M.fd /usr/share/OVMF/OVMF_CODE.fd /usr/share/edk2/ovmf/OVMF_CODE.fd; do
+    if [ -f "$c" ]; then OVMF_CODE="$c"; break; fi
+done
+OVMF_VARS_TEMPLATE=""
+for v in /usr/share/OVMF/OVMF_VARS_4M.fd /usr/share/OVMF/OVMF_VARS.fd /usr/share/edk2/ovmf/OVMF_VARS.fd; do
+    if [ -f "$v" ]; then OVMF_VARS_TEMPLATE="$v"; break; fi
+done
+if [ -z "$OVMF_CODE" ] || [ -z "$OVMF_VARS_TEMPLATE" ]; then
+    echo "Error: OVMF_CODE/OVMF_VARS split firmware not found. Install 'ovmf' package."
+    exit 1
+fi
+# Match VARS size to the CODE variant (4M code needs 4M vars).
+case "$OVMF_CODE" in
+    *OVMF_CODE_4M.fd)
+        if [ -f /usr/share/OVMF/OVMF_VARS_4M.fd ]; then
+            OVMF_VARS_TEMPLATE=/usr/share/OVMF/OVMF_VARS_4M.fd
+        fi
+        ;;
+esac
+rm -f OVMF_VARS.fd
+cp "$OVMF_VARS_TEMPLATE" OVMF_VARS.fd
+
 echo "Starting the Installation"
 echo ""
 echo "Please see the installation status on VNC viewer.Enter $host_ip:5999 on vnc viewer"
-# Added -cpu host,+vms It will support nested VM configuration as well
 if ! sudo -E qemu-system-x86_64  \
   -m 4G   -enable-kvm  \
   -cpu host,+vmx \
   -machine q35,accel=kvm \
-  -bios /usr/share/qemu/OVMF.fd  \
+  -drive if=pflash,format=raw,readonly=on,file="$OVMF_CODE" \
+  -drive if=pflash,format=raw,file=OVMF_VARS.fd \
   -vnc :99 \
-  -drive file=ubuntu-disk.img,format=qcow2 \
+  -serial mon:stdio \
+  -drive file=ubuntu-disk.img,format=qcow2,if=none,id=hdd \
+  -device ide-hd,drive=hdd,bus=ide.0,bootindex=0 \
   -device usb-ehci,id=ehci  \
-  -device usb-storage,bus=ehci.0,drive=usb,removable=on  \
+  -device usb-storage,bus=ehci.0,drive=usb,removable=on,bootindex=1 \
   -drive file=/dev/nbd0,format=raw,id=usb,if=none; then
     echo "Installation VM launch Failed,Please check!!"
 fi

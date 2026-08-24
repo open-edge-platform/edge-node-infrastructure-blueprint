@@ -56,10 +56,20 @@ OVERRIDE_FILE="${OVERRIDE_DIR}/override.conf"
 COOLING_GLOB="/sys/class/thermal/cooling_device*"
 PKG_SENSOR="x86_pkg_temp"
 ZONE_NAME="CPU_Zone"
+RAPL_CONSTRAINT_FILE="/sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw"
 
 # The command line thermald must run with for our config to be authoritative.
 # --adaptive is deliberately omitted: on DPTF/GDDV platforms it makes the
 # firmware adaptive tables override thermal-conf.xml.
+# NOTE: --disable-active-power only skips thermald's *secondary* RAPL MMIO
+# shadow device (rapl_controller_mmio); it does NOT stop thermald from
+# unconditionally creating its primary "rapl_controller" device on
+# /sys/.../intel-rapl:0/, which force-writes constraint_0_power_limit_uw to
+# the platform's PPCC/ACPI max power the moment thermald starts (thd_cdev_rapl.cpp
+# update()->read_ppcc_power_limits()), regardless of any CLI flag. The only way
+# to stop that write from clobbering a custom cap is to give thermald our own
+# limit via a <PPCC> block in thermal-conf.xml (see --rapl-cap), so it resets
+# to OUR value instead of the platform default.
 EXEC_START="${THERMALD_BIN} --systemd --dbus-enable --ignore-default-control"
 
 # ---- output helpers -------------------------------------------------------
@@ -152,6 +162,7 @@ done
 # Ordering is what makes the escalation correct: fan first, clamp last.
 (( FAN_C < PROC_C )) || die "Fan trip ($FAN_C) must be < Processor trip ($PROC_C)"
 (( PROC_C < CLAMP_C )) || die "Processor trip ($PROC_C) must be < powerclamp trip ($CLAMP_C)"
+
 # Sanity vs silicon Tjmax (~110C) and a plausible floor.
 (( CLAMP_C < 105 )) || die "powerclamp trip ($CLAMP_C) too close to Tjmax; use < 105"
 (( FAN_C >= 30 )) || warn "Fan trip ($FAN_C C) is near/below idle temp; CPU may stay throttled."
@@ -190,6 +201,20 @@ fi
 (( USE_CLAMP )) || warn "No 'intel_powerclamp' device; STEP 3 (passive) will be omitted."
 (( USE_FAN + USE_PROC + USE_CLAMP )) || die "None of the expected cooling devices are present; refusing to write an empty zone."
 
+# ---- read the currently-applied RAPL cap (e.g. from set_power_profile.sh) --
+# Embedding it as thermald's own PPCC max means thermald's startup reset lands
+# on this value instead of the platform's ACPI/DPTF default.
+RAPL_CAP_UW=""
+if [[ -r "$RAPL_CONSTRAINT_FILE" ]]; then
+    RAPL_CAP_UW="$(cat "$RAPL_CONSTRAINT_FILE" 2>/dev/null || true)"
+    is_int "${RAPL_CAP_UW:-}" || RAPL_CAP_UW=""
+fi
+if [[ -n "$RAPL_CAP_UW" ]]; then
+    info "Current RAPL PL1 cap: $(( RAPL_CAP_UW / 1000000 ))W (from ${RAPL_CONSTRAINT_FILE}); embedding as PPCC max."
+else
+    warn "Could not read ${RAPL_CONSTRAINT_FILE}; no PPCC block will be embedded."
+fi
+
 # ---- generate the XML ------------------------------------------------------
 gen_xml() {
     printf '%s\n' '<?xml version="1.0"?>'
@@ -201,6 +226,24 @@ gen_xml() {
     printf '%s\n' '        <ProductName>*</ProductName>'
     printf '%s\n' '        <Preference>QUIET</Preference>'
     printf '%s\n' ''
+    if [[ -n "$RAPL_CAP_UW" ]]; then
+        local max_mw min_mw
+        max_mw=$(( RAPL_CAP_UW / 1000 ))
+        min_mw=$(awk -v v="$max_mw" 'BEGIN{ m=v*0.3; printf "%d", (m<2000)?2000:m }')
+        printf '%s\n' '        <!-- thermald always force-writes its RAPL cooling device to this PPCC'
+        printf '%s\n' '             limit at startup (see thd_cdev_rapl.cpp update()); giving it the cap'
+        printf '%s\n' '             already applied (e.g. by set_power_profile.sh) means that reset lands'
+        printf '%s\n' '             on our value, not the platform default. -->'
+        printf '%s\n' '        <PPCC>'
+        printf '%s\n' '            <PowerLimitIndex>0</PowerLimitIndex>'
+        printf '            <PowerLimitMaximum>%d</PowerLimitMaximum>\n' "$max_mw"
+        printf '            <PowerLimitMinimum>%d</PowerLimitMinimum>\n' "$min_mw"
+        printf '%s\n' '            <TimeWindowMinimum>20</TimeWindowMinimum>'
+        printf '%s\n' '            <TimeWindowMaximum>60</TimeWindowMaximum>'
+        printf '%s\n' '            <StepSize>1000</StepSize>'
+        printf '%s\n' '        </PPCC>'
+        printf '%s\n' ''
+    fi
     printf '%s\n' '        <ThermalSensors>'
     printf '%s\n' '            <ThermalSensor>'
     printf '                <Type>%s</Type>\n' "$PKG_SENSOR"
@@ -270,6 +313,7 @@ if (( DRY_RUN )); then
     printf '    %-16s %sC (passive)\n'      "Processor trip:"  "$PROC_C"
     printf '    %-16s %sC (passive)\n'      "powerclamp trip:" "$CLAMP_C"
     printf '    %-16s %s\n'                 "CHRG device:"     "$( ((USE_CHRG)) && echo 'yes' || echo 'no' )"
+    printf '    %-16s %s\n'                 "RAPL cap:"        "$( [[ -n "$RAPL_CAP_UW" ]] && echo "$(( RAPL_CAP_UW / 1000000 ))W (via PPCC, read from sysfs)" || echo 'none' )"
     printf '    %-16s %s\n'                 "Config target:"   "${OUTPUT_OVERRIDE:-$CONF_FILE}"
     printf '    %-16s %s\n'                 "Override:"        "$OVERRIDE_FILE"
     printf '    %-16s %s\n'                 "ExecStart:"       "$EXEC_START"

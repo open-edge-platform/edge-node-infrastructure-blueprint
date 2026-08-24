@@ -3,6 +3,10 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
+## Documentation
+
+Full documentation is available at the [Edge Node Infrastructure Blueprint docs](https://docs.openedgeplatform.intel.com/dev/edge-ai-suites/ai-suite-federal-and-aerospace/edge-node-infrastructure-blueprint/index.html).
+
 ## Introduction
 
 The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
@@ -73,26 +77,21 @@ From the repository root, run one of the following build modes.
 
 > Note:If your development environment is behind a firewall, add proxy configuration to the `.proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 
+Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
+These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+
+```bash
+export USERNAME='<your-username>'
+# Generate the SHA-512 password hash with one of the following methods.
+# Using openssl (requires `openssl` to be installed)
+export PASSWORD="$(openssl passwd -6 '<your-password>')"
+
+# Or using mkpasswd (requires `whois` to be installed)
+export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
+```
 #### Option 1: Build from a Standard 24.04 Minimal desktop image
 
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image:
-
-Before building, update the default user credentials in `infrastructure/host-os/Dockerfile`. Replace the default `USERNAME` and `USER_PASSWORD` hash with your own values:
-
-```bash
-ARG USERNAME=<your-username>
-ARG USER_PASSWORD='<SHA-512-hashed-password>'
-```
-
-Generate the password hash using one of the following methods:
-
-```bash
-# Using openssl (requires `openssl` to be installed)
-openssl passwd -6 'your-password-here'
-
-# Using mkpasswd (requires `whois` to be installed)
-mkpasswd --method=sha-512 'your-password-here'
-```
+Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image.
 
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 

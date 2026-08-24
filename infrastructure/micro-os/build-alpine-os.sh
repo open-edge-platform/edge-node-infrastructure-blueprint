@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 
 # Alpine configuration
-ALPINE_VERSION="3.14"
+ALPINE_VERSION="3.21"
 ARCH="x86_64"
 MIRROR="https://dl-cdn.alpinelinux.org/alpine"
 
@@ -71,13 +71,22 @@ mount_filesystems() {
 
 # Download and extract Alpine rootfs
 download_and_extract_rootfs() {
+    local tarball="alpine-minirootfs-$ALPINE_VERSION.0-$ARCH.tar.gz"
+
     echo "Downloading Alpine minirootfs..."
     cd "$WORKDIR"
-    wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/alpine-minirootfs-$ALPINE_VERSION.0-$ARCH.tar.gz"
+    wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/$tarball"
+    wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/$tarball.sha256"
+
+    echo "Verifying checksum..."
+    if ! sha256sum -c "$tarball.sha256"; then
+        echo "ERROR: Checksum verification failed for $tarball!"
+        exit 1
+    fi
 
     echo "Extracting..."
     # Use pigz for faster parallel decompression
-    tar -I pigz -xf alpine-minirootfs-*.tar.gz -C "$ROOTFS"
+    tar -I pigz -xf "$tarball" -C "$ROOTFS"
 }
 
 # Configure Alpine repositories and network
@@ -162,6 +171,11 @@ mount -t devtmpfs devtmpfs /dev 2>/dev/null
 mdev -s
 depmod -a 2>/dev/null
 
+# Display / framebuffer
+modprobe simpledrm  2>/dev/null
+modprobe drm        2>/dev/null
+modprobe fbcon      2>/dev/null
+
 # Storage
 modprobe sd_mod    2>/dev/null
 modprobe ahci      2>/dev/null
@@ -175,6 +189,10 @@ modprobe xhci-pci  2>/dev/null
 modprobe ehci-pci  2>/dev/null
 modprobe usb-storage 2>/dev/null
 modprobe uas       2>/dev/null
+
+# Network
+modprobe igc       2>/dev/null
+modprobe igb       2>/dev/null
 
 #  Keyboard input drivers
 modprobe hid       2>/dev/null

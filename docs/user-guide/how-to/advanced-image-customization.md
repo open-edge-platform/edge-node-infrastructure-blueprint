@@ -59,23 +59,11 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ### Configure the template
 
-Copy the upstream template to the Image Composer Tool home directory where you must have the `image-composer-tool` binary.
+Update the credentials `<USERNAME>` and `<PASSWORD>` in the template file before building.
 
-```bash
-cp ../edge-node-infrastructure-blueprint/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
-```
-
-Now, you can adapt this template to suit your use case. The advanced customization options are discussed below in the [Package curation and template customization](#package-curation-and-template-customization) section.
-
-For a quick trial, you only need to update the user credentials for the target system before building. Replace the default `user` user `password` hash with your own SHA-512 hashed password:
-
-```yaml
-users:
-  - name: user
-    password: "<SHA-512-hashed-password>"
-```
-
-Generate the password hash using one of the following methods:
+In <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml, set the values
+for `users.name` and `users.password` as desired. 
+The password must contain a SHA-512 hash generated using the following tools:
 
 ```bash
 # Using openssl (requires `openssl` to be installed)
@@ -84,8 +72,8 @@ openssl passwd -6 'your-password-here'
 # Using mkpasswd (requires `whois` to be installed)
 mkpasswd --method=sha-512 'your-password-here'
 ```
-
-> **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
+Now, you can adapt this template to suit your use case. The advanced customization options are discussed
+below in the [Package curation and template customization](#package-curation-and-template-customization) section.
 
 ### Validate the template
 
@@ -93,17 +81,16 @@ Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
 
 ```bash
-./image-composer-tool validate my-ubuntu24.yml
+./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
-
+---
 ### Build the image
 
 Run the build with elevated privileges so that the tool can manage loop devices
-and chroot environments. Pass `-E` to preserve your proxy and environment
-variables:
+and chroot environments. Pass `-E` to preserve your proxy and environment variables:
 
 ```bash
-sudo -E ./image-composer-tool build my-ubuntu24.yml
+sudo -E ./image-composer-tool build <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
 ```
 
 ### Build output

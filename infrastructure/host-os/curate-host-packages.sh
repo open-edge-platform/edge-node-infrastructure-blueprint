@@ -570,17 +570,15 @@ install_docker() {
 
 	systemctl --root=/ enable docker || true
 	echo "Docker installed and running."
-}	
+}
+
 install_k3s() {
-	echo "Installing k3s..."
-	
-	# k3s version and integrity verification
-	# Git commit of the installer script
-	local COMMIT_HASH="5aed4d7beddeb3e67120da477c876ac9efd70318"
-	local SCRIPT_URL="https://raw.githubusercontent.com/k3s-io/k3s/${COMMIT_HASH}/install.sh"
+	# k3s version "v1.36.3+k3s1"
+	COMMIT_HASH="5aed4d7beddeb3e67120da477c876ac9efd70318"
+	SCRIPT_URL="https://raw.githubusercontent.com/k3s-io/k3s/${COMMIT_HASH}/install.sh"
 	# Matching SHA-256 hash for that exact commit
-	local EXPECTED_HASH="46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad"
-	
+	EXPECTED_HASH="46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad"
+	echo "Installing k3s..."
 	local script_path="/tmp/k3s-install.sh"
 	local actual_hash
 
@@ -595,8 +593,6 @@ install_k3s() {
 				echo "  Falling back to latest k3s installer..."
 				if curl -sfL --max-time 120 --retry 3 https://get.k3s.io -o "$script_path"; then
 					echo "  Successfully downloaded latest k3s installer."
-					echo "  WARNING: Using latest version - hash verification will be skipped"
-					EXPECTED_HASH=""
 					break
 				else
 					echo "ERROR: Failed to download k3s installer from both sources" >&2
@@ -614,7 +610,7 @@ install_k3s() {
 	fi
 
 	# Verify hash if expected hash is set
-	if [ -n "$EXPECTED_HASH" ]; then
+	if [ -n "$EXPECTED_HASH" ] && [ "$EXPECTED_HASH" != "0" ]; then
 		actual_hash=$(sha256sum "$script_path" | awk '{print $1}')
 		if [ "$actual_hash" != "$EXPECTED_HASH" ]; then
 			echo "CRITICAL: Script integrity failure!" >&2
@@ -632,19 +628,34 @@ install_k3s() {
 	INSTALL_K3S_EXEC="server --disable=traefik" \
 		INSTALL_K3S_SKIP_ENABLE=true \
 		INSTALL_K3S_SKIP_START=true \
-		sh "$script_path"
+		bash "$script_path"
 
 	systemctl --root=/ enable k3s || true
-	
 	echo "k3s installed successfully."
 }
+
 install_helm() {
+	# Install latest helm version v4.2.4
+	COMMIT_HASH="3900f434fd3ef2b84065dc04508df48f288dba00"
+	SCRIPT_URL="https://raw.githubusercontent.com/helm/helm/${COMMIT_HASH}/scripts/get-helm-3"
+	# Matching SHA-256 hash for that exact commit
+	EXPECTED_HASH="38b65f882d9cae3891755bdb03becc6a01ae6f9cb24826c191f219ddfee70a5d"
 	echo "Installing Helm..."
-    curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    chmod 700 get_helm.sh
-    ./get_helm.sh
-    rm get_helm.sh
-    echo "Helm installed successfully."
+	if ! curl -fsSL -o get_helm.sh "$SCRIPT_URL"; then
+		echo "Failed to download Helm installer." >&2
+		rm -f get_helm.sh
+		return 1
+	fi
+	ACTUAL_HASH=$(sha256sum get_helm.sh | awk '{print $1}')
+	if [[ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]]; then
+		echo "Helm installer checksum verification failed." >&2
+		rm -f get_helm.sh
+		return 1
+	fi
+	chmod 700 get_helm.sh
+	bash ./get_helm.sh
+	rm -f get_helm.sh
+	echo "Helm installed successfully."
 }
 
 install_realsense_pkgs(){
