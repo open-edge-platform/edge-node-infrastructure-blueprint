@@ -36,11 +36,8 @@ autoinstall:
     install: false
   drivers:
     install: false
-  # Force the non-HWE kernel so the installer does not pull in
-  # linux-{image,headers,generic}-generic-hwe-24.04 -> linux-image-7.0.0-*
+  # Skip kernel specification - use the kernel from ISO to avoid network download
   # We install a 6.18.23 hotfix kernel later in curate-host-packages.sh.
-  kernel:
-    package: linux-generic
   user-data:
     users:
     - name: user
