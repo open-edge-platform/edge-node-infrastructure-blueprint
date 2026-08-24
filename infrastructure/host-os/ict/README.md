@@ -91,13 +91,17 @@ Key fields to review and update before building:
 
 ### User Credentials
 
-Replace the default `user` user `password` hash with your own
-SHA-512 hashed password, and update the SSH `authorized_keys` entries:
+> **Important:** You **must** update the `<username>` and `<password>` placeholders
+> in the template before building the image. The build will fail or produce an
+> unusable image if these placeholders are left unchanged.
+
+Replace `<username>` with your desired login name and `<password>` with a
+SHA-512 hashed password:
 
 ```yaml
 users:
-  - name: user
-    password: "<SHA-512-hashed-password>"
+  - name: <username>
+    password: <password>
 ```
 
 Generate the password hash using one of the following methods:
