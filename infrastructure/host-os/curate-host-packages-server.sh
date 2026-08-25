@@ -217,6 +217,31 @@ Pin-Priority: 600
 EOF
 }
 
+configure_oep_test_repo() {
+	echo "Configuring OEP test repository (india-build)..."
+
+	# APT proxy: bypass the corporate proxy for the internal build server
+	cat > /etc/apt/apt.conf.d/80-oep-test-proxy << 'EOF'
+Acquire::http::Proxy::india-build.ch.intel.com DIRECT;
+EOF
+
+	# Sources list (trusted internal repo — no GPG key published)
+	cat > /etc/apt/sources.list.d/oep-test.list << 'EOF'
+# temporary APT repo FOR TESTING PURPOSES ONLY
+deb [trusted=yes] http://india-build.ch.intel.com:6081 isar main
+deb-src [trusted=yes] http://india-build.ch.intel.com:6081 isar main
+EOF
+
+	# Pin all packages from this origin at priority 1000
+	cat > /etc/apt/preferences.d/oep-test << 'EOF'
+Package: *
+Pin: origin india-build.ch.intel.com
+Pin-Priority: 1000
+EOF
+
+	echo "OEP test repository configured."
+}
+
 
 install_essential_tools() {
 	echo "Installing essential tools and dependencies..."
@@ -1358,6 +1383,8 @@ main() {
 	create_mozilla_ppa_sources
 
 	set_preferred_package_list
+
+	configure_oep_test_repo
 
 	install_essential_tools
 
