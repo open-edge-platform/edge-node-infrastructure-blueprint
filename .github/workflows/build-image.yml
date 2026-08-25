@@ -33,6 +33,14 @@ jobs:
           sudo apt-get clean
           df -h /
 
+      - name: Generate ephemeral build credentials
+        run: |
+          username="ci-builder"
+          password="$(openssl passwd -6 "$(openssl rand -base64 32)")"
+          echo "::add-mask::$password"
+          echo "USERNAME=$username" >> "$GITHUB_ENV"
+          echo "PASSWORD=$password" >> "$GITHUB_ENV"
+
       - name: Install ICT prerequisites
         run: |
           sudo apt-get update
@@ -48,6 +56,11 @@ jobs:
           git clone https://github.com/open-edge-platform/image-composer-tool.git --depth 1 -b main /tmp/image-composer-tool
           cd /tmp/image-composer-tool
           go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
+
+      - name: Configure template credentials
+        run: |
+          template="$GITHUB_WORKSPACE/infrastructure/host-os/ict/generic-handheld-os-template.yml"
+          sed -i "s|<USERNAME>|${USERNAME}|; s|<PASSWORD>|${PASSWORD}|" "$template"
 
       - name: Build ICT image from template
         run: |
@@ -84,6 +97,14 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           sudo apt-get clean
           df -h /
+
+      - name: Generate ephemeral build credentials
+        run: |
+          username="ci-builder"
+          password="$(openssl passwd -6 "$(openssl rand -base64 32)")"
+          echo "::add-mask::$password"
+          echo "USERNAME=$username" >> "$GITHUB_ENV"
+          echo "PASSWORD=$password" >> "$GITHUB_ENV"
 
       - name: Build image
         run: |
