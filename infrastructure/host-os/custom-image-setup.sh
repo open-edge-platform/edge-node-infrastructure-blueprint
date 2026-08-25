@@ -259,10 +259,10 @@ sudo tee "${MNT}/etc/sysctl.d/99-dmesg.conf" > /dev/null << 'EOF'
 kernel.dmesg_restrict = 0
 EOF
 
-sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null | while read -r f; do
+while IFS= read -r f; do
     log "  Patching dmesg call in: ${f}"
     sudo sed -i 's/^\(.*dmesg.*\)$/# \1 # disabled — dmesg_restrict/' "${f}"
-done
+done < <(sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null || true)
 
 # Fix /etc/profile.d scripts
 sudo sed -i 's|^\(.*\. "$i".*\)$|{ \1; } 2>/dev/null \|\| true|g' "${MNT}/etc/profile"
