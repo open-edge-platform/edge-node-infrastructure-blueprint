@@ -4,9 +4,8 @@
 .PHONY: all build check-build-credentials build-cdi-generator lint shellcheck clean coverage license list help
 SHELL := bash -eu -o pipefail
 
-# Find all shell scripts
-SH_FILES := $(shell find . -type f -name '*.sh' 2>/dev/null)
-
+# Find all shell scripts, excluding ./ci
+SH_FILES := $(shell find . -type f -name '*.sh' ! -path './ci/*' -print 2>/dev/null)
 BASE_IMAGE := edge-base-builder:ubuntu24.04
 BUILD_ARTIFACTS_IMAGE := build-edge-blueprint-artifacts:latest
 MICRO_OS_IMAGE := micro-os-builder:ubuntu24.04
@@ -219,7 +218,6 @@ shellcheck:
 	@# Help: Lint shell scripts with shellcheck
 	shellcheck --version
 	shellcheck -x -S style \
-		-e SC1001,SC1003,SC1090,SC1091,SC2001,SC2002,SC2006,SC2012,SC2015,SC2016,SC2028,SC2034,SC2046,SC2048,SC2053,SC2064,SC2086,SC2094,SC2112,SC2124,SC2128,SC2140,SC2145,SC2155,SC2162,SC2164,SC2179,SC2181,SC2231,SC2252,SC2320 \
 		$(SH_FILES)
 
 clean:

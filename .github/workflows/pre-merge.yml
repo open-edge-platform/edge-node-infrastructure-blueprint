@@ -22,10 +22,10 @@ jobs:
         with:
           persist-credentials: false
       - name: "Verify Branch Name"
-        uses: open-edge-platform/orch-ci/verify-branch-name@547a9b246177a30455df6b332eded93577a6d5ca  # v2026.1.4
+        uses: open-edge-platform/orch-ci/verify-branch-name@e3b491bff957021b31ce083b0f3e81fb75d4c974  # v2026.1.4
   pre-merge-pipeline:
     needs: pre-checks
-    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@547a9b246177a30455df6b332eded93577a6d5ca  # v2026.1.4
+    uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@e3b491bff957021b31ce083b0f3e81fb75d4c974  # v2026.1.4
     with:
       run_build: false
       run_lint: true
