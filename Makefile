@@ -4,9 +4,8 @@
 .PHONY: all build check-build-credentials build-cdi-generator lint shellcheck clean coverage license list help
 SHELL := bash -eu -o pipefail
 
-# Find all shell scripts
-SH_FILES := $(shell find . -type f -name '*.sh' 2>/dev/null)
-
+# Find all shell scripts, excluding ./ci
+SH_FILES := $(shell find . -type f -name '*.sh' ! -path './ci/*' -print 2>/dev/null)
 BASE_IMAGE := edge-base-builder:ubuntu24.04
 BUILD_ARTIFACTS_IMAGE := build-edge-blueprint-artifacts:latest
 MICRO_OS_IMAGE := micro-os-builder:ubuntu24.04
