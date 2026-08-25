@@ -265,7 +265,6 @@ install_essential_tools() {
 		git \
 		git-lfs \
 		gnupg \
-		gstreamer1.0-icamera \
 		gstreamer1.0-libcamera \
 		gstreamer1.0-plugins-bad \
 		gstreamer1.0-plugins-base \
@@ -298,11 +297,6 @@ install_essential_tools() {
 		libavformat62 \
 		libavutil60 \
 		libbluetooth3 \
-		libcamera-tools \
-		libcamhal-common \
-		libcamhal-ipu75xa \
-		libcamhal-ipu75xa0 \
-		libcamhal0 \
 		grub-pc-bin \
 		libdebuginfod1t64 \
 		libdrm-amdgpu1 \
@@ -320,7 +314,6 @@ install_essential_tools() {
 		libgstreamer1.0-0 \
 		libgstreamer1.0-dev \
 		libgstreamer-gl1.0-0 \
-		libgsticamerainterface-1.0-1 \
 		libigdgmm12 \
 		libigfxcmrt7 \
 		libip4tc2 \
@@ -444,6 +437,43 @@ install_essential_tools() {
 		xxd \
 		zstd
 
+	# Camera HAL packages - installed separately due to circular dependencies in WSL/Docker
+	echo "Installing camera HAL packages..."
+	if apt install -y --no-install-recommends \
+		gstreamer1.0-icamera \
+		libcamera-tools \
+		libcamhal-common \
+		libcamhal-ipu75xa \
+		libcamhal-ipu75xa0 \
+		libcamhal0 \
+		libgsticamerainterface-1.0-1; then
+		echo "SUCCESS: Camera HAL packages installed successfully"
+	else
+		# Camera package installation failed - attempt recovery
+		echo "Camera package installation failed, attempting recovery..."
+		dpkg --configure -a || true
+		apt-get install -f -y || true
+		
+		# Verify recovery succeeded - check for ANY broken packages
+		if dpkg -l | grep -qE "^iU|^iF|^iH"; then
+			echo "WARNING: Camera packages failed to install and recovery unsuccessful"
+			echo "Broken packages:"
+			dpkg -l | grep -E "^iU|^iF|^iH"
+			echo "Removing broken camera packages to prevent interference with other installations..."
+			# Remove all broken camera packages
+			dpkg --purge --force-all \
+				gstreamer1.0-icamera \
+				libcamera-tools \
+				libcamhal-common \
+				libcamhal-ipu75xa \
+				libcamhal-ipu75xa0 \
+				libcamhal0 \
+				libgsticamerainterface-1.0-1 2>/dev/null || true
+			echo "Continuing without camera support..."
+		else
+			echo "Camera packages recovered successfully after dpkg/apt fix"
+		fi
+	fi
 
 	systemctl --root=/ disable systemd-timesyncd || true
 	systemctl --root=/ mask    systemd-timesyncd || true
