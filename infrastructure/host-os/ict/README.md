@@ -8,8 +8,10 @@ SPDX-License-Identifier: Apache-2.0
 This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
  Intel® Core™ Ultra processor platforms using
 [Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
-and the provided template
-[`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml).
+and the provided templates:
+
+- **Desktop:** [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml)
+- **Server (headless):** [`generic-companion-os-server-template.yml`](./generic-companion-os-server-template.yml)
 
 ---
 
@@ -75,6 +77,34 @@ if you face issues installing packages using apt.
 
 Update the credentials `<USERNAME>` and `<PASSWORD>` in the template file before building.
 
+```bash
+# Desktop image
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
+
+# Server (headless) image
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-companion-os-server-template.yml my-ubuntu24-server.yml
+```
+
+Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
+
+Key fields to review and update before building:
+
+### User Credentials
+
+> **Important:** You **must** update the `<username>` and `<password>` placeholders
+> in the template before building the image. The build will fail or produce an
+> unusable image if these placeholders are left unchanged.
+
+Replace `<username>` with your desired login name and `<password>` with a
+SHA-512 hashed password:
+
+```yaml
+users:
+  - name: <username>
+    password: <password>
+```
+
+Generate the password hash using one of the following methods:
 In <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml, set the values
 for `users.name` and `users.password` as desired. 
 The password must contain a SHA-512 hash generated using the following tools:

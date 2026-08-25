@@ -1,0 +1,180 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+# syntax=docker/dockerfile:1
+# This Dockerfile creates a HEADLESS SERVER host operating system image for
+# edge node infrastructure. It uses Ubuntu 24.04 as the base image and installs
+# essential packages for system initialization and networking. No display
+# manager or desktop environment is installed; the system boots to
+# multi-user.target and is accessed via console or SSH. GPU/NPU/SR-IOV and
+# media acceleration remain fully functional via /dev/dri and /dev/accel
+# render/accel nodes (no display server required).
+#
+# Server counterpart of ./Dockerfile (desktop). Keep the two in sync when
+# updating shared packages, kernel, or driver versions.
+#
+# Aligned with: generic-handheld-os-server-template.yml
+#TODO find correct server image
+FROM ubuntu:24.04 AS host-os-base
+
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+# TLS_WORKAROUND_BLOCK_BEGIN
+# REMOVE_WHEN_USING_EXTERNAL_ARTIFACTORY:
+# Temporary args for internal Artifactory TLS trust-chain bootstrap/workaround.
+# Remove once external/publicly trusted Artifactory is used.
+ARG ALLOW_INSECURE_INTERNAL_REPO_TLS=0
+ARG INTERNAL_CA_CERT_B64
+ARG INTERNAL_CA_CERT_FILE
+# TLS_WORKAROUND_BLOCK_END
+
+ENV http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy} \
+    HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    ALLOW_INSECURE_INTERNAL_REPO_TLS=${ALLOW_INSECURE_INTERNAL_REPO_TLS} \
+    INTERNAL_CA_CERT_B64=${INTERNAL_CA_CERT_B64} \
+    INTERNAL_CA_CERT_FILE=${INTERNAL_CA_CERT_FILE} \
+    DEBIAN_FRONTEND=noninteractive
+
+# Configure APT for optimal performance
+RUN rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache && \
+    echo 'Acquire::http::Pipeline-Depth "10";' > /etc/apt/apt.conf.d/99parallel && \
+    echo 'Acquire::Languages "none";' > /etc/apt/apt.conf.d/99no-translations && \
+    echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99no-recommends
+
+# Base system: init, networking, boot tooling
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        base-files \
+        bash \
+        bsdutils \
+        coreutils \
+        dash \
+        debianutils \
+        diffutils \
+        findutils \
+        gpgv \
+        grep \
+        gzip \
+        hostname \
+        init \
+        login \
+        mawk \
+        mount \
+        ncurses-base \
+        ncurses-bin \
+        sed \
+        util-linux \
+    apt \
+    apt-transport-https \
+    apt-utils \
+    ca-certificates \
+    udev \
+    iproute2 \
+    isc-dhcp-client \
+    netplan.io \
+    openssh-server \
+    openssh-sftp-server \
+    ubuntu-server-minimal \
+    linux-base \
+    grub-efi-amd64 \
+    grub2-common \
+        systemd \
+        systemd-sysv \
+    systemd-resolved \
+        dbus \
+        sudo \
+        network-manager \
+        initramfs-tools \
+        software-properties-common \
+        gnupg \
+        curl \
+        grub-efi-amd64-bin \
+        grub-efi-amd64-signed \
+        shim-signed \
+        efibootmgr \
+        linux-firmware
+
+# Headless server: GPU/media userspace only (no xorg / GNOME / GDM / plymouth)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    add-apt-repository universe && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        bash-completion \
+        libgl1-mesa-dri \
+        mesa-va-drivers \
+        va-driver-all \
+        pciutils \
+        kmod
+
+
+# Final image custom-image
+FROM host-os-base
+
+ARG http_proxy
+ARG https_proxy
+ARG no_proxy
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+ENV http_proxy=${http_proxy} \
+    https_proxy=${https_proxy} \
+    no_proxy=${no_proxy} \
+    HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    DEBIAN_FRONTEND=noninteractive
+
+# Copy and run custom package/kernel installation script
+COPY curate-host-packages-server.sh /usr/local/bin/curate-host-packages-server.sh
+RUN chmod +x /usr/local/bin/curate-host-packages-server.sh && \
+    /usr/local/bin/curate-host-packages-server.sh && \
+    rm -f /usr/local/bin/curate-host-packages-server.sh
+
+# Enable required services (headless: boot to multi-user.target)
+RUN systemctl --root=/ enable NetworkManager   || true && \
+    systemctl --root=/ enable systemd-resolved  || true && \
+    systemctl --root=/ set-default multi-user.target
+
+# Kernel cmdline configuration (aligned with template kernel.cmdline)
+# xe.max_vfs=7         — SR-IOV: allow up to 7 GPU virtual functions
+# xe.force_probe=*     — force Xe driver probe on all supported devices
+# modprobe.blacklist=i915 — use Xe driver instead of legacy i915
+# udmabuf.list_limit=8192 — increase DMA-BUF allocation limit
+# console=tty0 console=ttyS0,115200n8 — serial console for headless debugging
+RUN mkdir -p /etc/default/grub.d && \
+    echo 'GRUB_CMDLINE_LINUX_DEFAULT="xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"' \
+    > /etc/default/grub.d/99-minimal-ubuntu-server.cfg
+
+# Extra kernel modules (aligned with template kernel.enableExtraModules)
+RUN echo "i915" >> /etc/initramfs-tools/modules && \
+    echo "intel_vpu" >> /etc/initramfs-tools/modules && \
+    echo "uas" >> /etc/initramfs-tools/modules
+
+ARG USERNAME=user
+ARG USER_PASSWORD='$6$ENIBDEFAULT$ldaxPVYnIXySCgfxvzBdUwUw6Kyt5DiGzeDe4brEFEIIe2C1.42Vu5pRg1qH8WfkPYvVohvfyLQY6AeQRcRpx1'
+
+RUN truncate -s 0 /etc/machine-id && rm -f /var/lib/dbus/machine-id
+
+# Hostname (aligned with template systemConfig.hostname)
+RUN echo "minimal-server-ubuntu" > /etc/hostname
+
+# User setup (aligned with template users section)
+RUN useradd -m -s /bin/bash "${USERNAME}" && \
+    usermod -p "${USER_PASSWORD}" "${USERNAME}" && \
+    usermod -aG sudo,video,render,audio "${USERNAME}" && \
+    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+CMD ["/sbin/init"]
