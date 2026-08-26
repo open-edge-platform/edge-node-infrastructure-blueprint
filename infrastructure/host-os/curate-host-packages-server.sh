@@ -75,14 +75,14 @@ download_file_with_tls_handling() {
 	url="$1"
 	out_file="$2"
 
-	curl_opts="-fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120"
+	curl_opts=(-fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120)
 
 	if [ -n "${INTERNAL_CA_CERT_FILE}" ]; then
-		if curl ${curl_opts} --cacert "${INTERNAL_CA_CERT_FILE}" "${url}" -o "${out_file}"; then
+		if curl "${curl_opts[@]}" --cacert "${INTERNAL_CA_CERT_FILE}" "${url}" -o "${out_file}"; then
 			return 0
 		fi
 	else
-		if curl ${curl_opts} "${url}" -o "${out_file}"; then
+		if curl "${curl_opts[@]}" "${url}" -o "${out_file}"; then
 			return 0
 		fi
 	fi
@@ -91,7 +91,7 @@ download_file_with_tls_handling() {
 		# REMOVE_WHEN_USING_EXTERNAL_ARTIFACTORY:
 		# Temporary fallback for internal certificate chain problems only.
 		echo "WARNING: TLS verification failed. Retrying with insecure mode because ALLOW_INSECURE_INTERNAL_REPO_TLS=1"
-		curl ${curl_opts} -k "${url}" -o "${out_file}"
+		curl "${curl_opts[@]}" -k "${url}" -o "${out_file}"
 		return $?
 	fi
 
@@ -442,7 +442,13 @@ install_essential_tools() {
 		xdp-tools \
 		xfsprogs \
 		xxd \
-		zstd
+		zstd \
+	|| {
+		echo "WARNING: Package postinst failed (expected on WSL2 — no DMI sysfs). Recovering..."
+		echo '#!/bin/sh' > /var/lib/dpkg/info/libcamhal-common.postinst
+		echo 'exit 0' >> /var/lib/dpkg/info/libcamhal-common.postinst
+		dpkg --configure -a || true
+	}
 
 
 	systemctl --root=/ disable systemd-timesyncd || true
@@ -456,7 +462,7 @@ install_essential_tools() {
 	mkdir build
 	cd build
 	cmake ..
-	make -j$(nproc)
+	make -j"$(nproc)"
 	sudo cp -r bin/* /usr/local/bin/
 	echo 'msr' | sudo tee /etc/modules-load.d/intel-pcm.conf > /dev/null
 	cd /
@@ -682,7 +688,8 @@ install_docker() {
 
 	echo \
 		"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-		$(. /etc/os-release && echo $VERSION_CODENAME) stable" | \
+		$(# shellcheck source=/dev/null
+		. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
 		tee /etc/apt/sources.list.d/docker.list > /dev/null
 	apt update
 	apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
@@ -840,7 +847,9 @@ install_eci_camera_hal_deps() {
 		libipu75xa-dev 2>/dev/null || \
 		echo "WARNING: Some libia/ipu75xa packages may not be available yet"
 	# Also install any remaining libia-*-ipu75xa0 runtime packages via wildcard
-	DEBIAN_FRONTEND=noninteractive apt-get install -y $(apt-cache search 'libia-.*-ipu75xa0' | awk '{print $1}') 2>/dev/null || true
+	# shellcheck disable=SC2046
+	DEBIAN_FRONTEND=noninteractive apt-get install -y \
+		$(apt-cache search 'libia-.*-ipu75xa0' | awk '{print $1}') 2>/dev/null || true
 	# Install intel-mipi-gmsl-dkms (DKMS source only; module builds on first boot via dkms autoinstall)
 	DEBIAN_FRONTEND=noninteractive apt-get install -y intel-mipi-gmsl-dkms 2>/dev/null || \
 		echo "WARNING: intel-mipi-gmsl-dkms not available or failed to install"
@@ -943,7 +952,9 @@ normalize_linux_tools_binary_names() {
 
 		while IFS= read -r file; do
 			# Only real executables; dpkg -L also lists directories, docs and man pages.
-			[ -f "$file" ] && [ -x "$file" ] || continue
+			if [ ! -f "$file" ] || [ ! -x "$file" ]; then
+				continue
+			fi
 			case "$file" in
 				/usr/share/*|/usr/src/*|/etc/*|/lib/systemd/*|/usr/lib/systemd/*) continue ;;
 			esac

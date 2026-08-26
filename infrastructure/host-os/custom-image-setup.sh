@@ -173,7 +173,10 @@ done
 # Fallback to kpartx if losetup -P didn't create partition nodes
 if [[ ! -b "${EFI_PART}" || ! -b "${SWAP_PART}" || ! -b "${ROOT_PART}" ]]; then
     log "  losetup -P partition nodes missing — falling back to kpartx"
+    # Remove any stale device-mapper entries for this loop device first
+    sudo kpartx -dv "${LOOP_DEV}" 2>/dev/null || true
     sudo kpartx -av "${LOOP_DEV}"
+    sudo udevadm settle 2>/dev/null || sleep 2
     USING_KPARTX=true
     EFI_PART="/dev/mapper/$(basename "${LOOP_DEV}")p1"
     SWAP_PART="/dev/mapper/$(basename "${LOOP_DEV}")p2"
@@ -208,7 +211,7 @@ EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
 log "Mount and extract rootfs"
 mkdir -p "${MNT}"
-sudo mount "${ROOT_PART}" "${MNT}"
+sudo mount -t ext4 "${ROOT_PART}" "${MNT}"
 sudo mkdir -p "${MNT}/boot/efi"
 sudo mount "${EFI_PART}" "${MNT}/boot/efi"
 

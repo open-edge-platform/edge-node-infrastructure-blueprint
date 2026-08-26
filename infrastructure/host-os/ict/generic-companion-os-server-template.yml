@@ -975,8 +975,8 @@ systemConfig:
       - linux-image-6.18-intel_260717t053932z-r2
       - linux-headers-6.18-intel_260717t053932z-r2
   users:
-    - name: user
-      password: $6$xXo2NxaLDQE6xrCa$lwcawer1BMsC63xx5jHHrVSI4625We6CMv0nzmflYiXVldJC/9gXFqYoe5KTu8lBnuc6W8MxE0eGLUUt1RiJw.
+    - name: <username>
+      password: <password> 
       groups: ["sudo", "video", "render", "audio"]
       hash_algo: sha512
   configurations:

@@ -227,7 +227,13 @@ EOF
 		libia-*-ipu75xa0 \
 		gstreamer1.0-icamera \
 		libgsticamerainterface-1.0-1 \
-		intel-mipi-gmsl-dkms
+		intel-mipi-gmsl-dkms \
+	|| {
+		echo "WARNING: Camera package postinst failed (expected on WSL2 — no DMI sysfs). Recovering..."
+		echo '#!/bin/sh' > /var/lib/dpkg/info/libcamhal-common.postinst
+		echo 'exit 0' >> /var/lib/dpkg/info/libcamhal-common.postinst
+		dpkg --configure -a || true
+	}
 	
 	echo "Intel camera packages installed successfully."
 }
@@ -308,7 +314,7 @@ install_essential_tools() {
 	mkdir build
 	cd build
 	cmake ..
-	make -j$(nproc)
+	make -j"$(nproc)"
 	sudo cp -r bin/* /usr/local/bin/
 	echo 'msr' | sudo tee /etc/modules-load.d/intel-pcm.conf > /dev/null
 	cd /
@@ -873,31 +879,31 @@ install_linux_tools() {
 	
 	echo "Moving kernel tools to canonical names..."
 	mkdir -p /usr/local/bin /usr/local/sbin
-	[ -x /usr/sbin/bpftool-intel ] && mv /usr/sbin/bpftool-intel /usr/local/sbin/bpftool || true
-	[ -x /usr/bin/perf-intel ] && mv /usr/bin/perf-intel /usr/local/bin/perf || true
-	[ -x /usr/bin/cpupower-intel ] && mv /usr/bin/cpupower-intel /usr/local/bin/cpupower || true
-	[ -x /usr/bin/rtla-intel ] && mv /usr/bin/rtla-intel /usr/local/bin/rtla || true
-	[ -x /usr/sbin/usbip-intel ] && mv /usr/sbin/usbip-intel /usr/local/sbin/usbip || true
-	[ -x /usr/sbin/usbipd-intel ] && mv /usr/sbin/usbipd-intel /usr/local/sbin/usbipd || true
+	if [ -x /usr/sbin/bpftool-intel ]; then mv /usr/sbin/bpftool-intel /usr/local/sbin/bpftool || true; fi
+	if [ -x /usr/bin/perf-intel ]; then mv /usr/bin/perf-intel /usr/local/bin/perf || true; fi
+	if [ -x /usr/bin/cpupower-intel ]; then mv /usr/bin/cpupower-intel /usr/local/bin/cpupower || true; fi
+	if [ -x /usr/bin/rtla-intel ]; then mv /usr/bin/rtla-intel /usr/local/bin/rtla || true; fi
+	if [ -x /usr/sbin/usbip-intel ]; then mv /usr/sbin/usbip-intel /usr/local/sbin/usbip || true; fi
+	if [ -x /usr/sbin/usbipd-intel ]; then mv /usr/sbin/usbipd-intel /usr/local/sbin/usbipd || true; fi
 	# Copy bpftool and usbip to bin as well for non-root shells whose PATH omits sbin
-	[ -x /usr/local/sbin/bpftool ] && cp /usr/local/sbin/bpftool /usr/local/bin/bpftool || true
-	[ -x /usr/local/sbin/usbip ] && cp /usr/local/sbin/usbip /usr/local/bin/usbip || true
+	if [ -x /usr/local/sbin/bpftool ]; then cp /usr/local/sbin/bpftool /usr/local/bin/bpftool || true; fi
+	if [ -x /usr/local/sbin/usbip ]; then cp /usr/local/sbin/usbip /usr/local/bin/usbip || true; fi
 	# rtla sub-commands: create symlinks pointing to the rtla binary (rtla dispatches on argv[0])
-	[ -x /usr/local/bin/rtla ] && for t in hwnoise osnoise timerlat; do ln -sf /usr/local/bin/rtla /usr/local/bin/$t; done || true
+	if [ -x /usr/local/bin/rtla ]; then for t in hwnoise osnoise timerlat; do ln -sf /usr/local/bin/rtla /usr/local/bin/"$t" || true; done; fi
 	# Move other power tools to /usr/local/bin for consistency
-	for t in turbostat intel-speed-select x86_energy_perf_policy; do [ -x /usr/sbin/$t ] && mv /usr/sbin/$t /usr/local/bin/$t || true; done
-	[ -x /usr/sbin/intel_pstate_tracer.py ] && mv /usr/sbin/intel_pstate_tracer.py /usr/local/bin/intel_pstate_tracer || true
+	for t in turbostat intel-speed-select x86_energy_perf_policy; do if [ -x "/usr/sbin/$t" ]; then mv "/usr/sbin/$t" "/usr/local/bin/$t" || true; fi; done
+	if [ -x /usr/sbin/intel_pstate_tracer.py ]; then mv /usr/sbin/intel_pstate_tracer.py /usr/local/bin/intel_pstate_tracer || true; fi
 	# Update bash completions to canonical names
-	[ -f /usr/share/bash-completion/completions/bpftool-intel ] && mv /usr/share/bash-completion/completions/bpftool-intel /usr/share/bash-completion/completions/bpftool || true
-	[ -f /usr/share/bash-completion/completions/perf-intel ] && mv /usr/share/bash-completion/completions/perf-intel /usr/share/bash-completion/completions/perf || true
+	if [ -f /usr/share/bash-completion/completions/bpftool-intel ]; then mv /usr/share/bash-completion/completions/bpftool-intel /usr/share/bash-completion/completions/bpftool || true; fi
+	if [ -f /usr/share/bash-completion/completions/perf-intel ]; then mv /usr/share/bash-completion/completions/perf-intel /usr/share/bash-completion/completions/perf || true; fi
 	# Rename man pages to canonical names
-	for f in /usr/share/man/man1/{perf,rtla,bpftool,cpupower}-intel*.1.gz; do [ -e "$f" ] || continue; b=$(basename "$f"); n=$(echo "$b" | sed 's/-intel//'); [ "$b" = "$n" ] || mv "$f" "/usr/share/man/man1/$n"; done; true
+	for f in /usr/share/man/man1/{perf,rtla,bpftool,cpupower}-intel*.1.gz; do [ -e "$f" ] || continue; b=$(basename "$f"); n="${b/-intel/}"; if [ "$b" != "$n" ]; then mv "$f" "/usr/share/man/man1/$n" || true; fi; done
 	# Rename cpupower systemd service to canonical name
-	[ -f /usr/lib/systemd/system/cpupower-intel.service ] && mv /usr/lib/systemd/system/cpupower-intel.service /usr/lib/systemd/system/cpupower.service || true
+	if [ -f /usr/lib/systemd/system/cpupower-intel.service ]; then mv /usr/lib/systemd/system/cpupower-intel.service /usr/lib/systemd/system/cpupower.service || true; fi
 	# out-of-tree builds look for /lib/modules/$(uname -r)/build
-	[ -d /usr/lib/linux-kbuild-6.18.38 ] && for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k"; done || true
+	if [ -d /usr/lib/linux-kbuild-6.18.38 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k" || true; done; fi
 	# Report what resolved, so a missing tool is visible in the build log.
-	for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v $t 2>/dev/null || true); echo "kernel-tool: $t -> ${p:-MISSING}"; done
+	for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v "$t" 2>/dev/null || true); echo "kernel-tool: $t -> ${p:-MISSING}"; done
 	
 	echo "Linux tools installed successfully."
 }
