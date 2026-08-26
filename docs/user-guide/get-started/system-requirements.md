@@ -15,6 +15,7 @@ The developer system is used to build installation artifacts and prepare the boo
 | CPU       | Any modern x86-64 processor with virtualisation support          |
 | Memory    | 16 GiB RAM                                                       |
 | Storage   | 100 GiB free disk space (for image build workspace)              |
+| USB       | 32 GiB USB drive (for bootable installation media)               |
 | Network   | Internet access (or configured proxy) to fetch packages and ISOs |
 
 ## Prerequisites
