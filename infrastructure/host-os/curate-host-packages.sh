@@ -227,13 +227,8 @@ EOF
 		libia-*-ipu75xa0 \
 		gstreamer1.0-icamera \
 		libgsticamerainterface-1.0-1 \
-		intel-mipi-gmsl-dkms \
-	|| {
-		echo "WARNING: Camera package postinst failed (expected on WSL2 — no DMI sysfs). Recovering..."
-		echo '#!/bin/sh' > /var/lib/dpkg/info/libcamhal-common.postinst
-		echo 'exit 0' >> /var/lib/dpkg/info/libcamhal-common.postinst
-		dpkg --configure -a || true
-	}
+		intel-mipi-gmsl-dkms 
+	
 	
 	echo "Intel camera packages installed successfully."
 }
