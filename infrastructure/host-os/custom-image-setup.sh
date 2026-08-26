@@ -200,7 +200,6 @@ EFI_UUID=$( sudo blkid -o value -s UUID     "${EFI_PART}")
 SWAP_UUID=$(sudo blkid -o value -s UUID     "${SWAP_PART}")
 ROOT_PARTUUID=$(sudo blkid -o value -s PARTUUID "${ROOT_PART}")
 # Captured for completeness alongside the other partition identifiers.
-# shellcheck disable=SC2034
 EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
 [[ -z "${ROOT_UUID}"     ]] && error "ROOT_UUID is empty — blkid failed"
@@ -309,7 +308,6 @@ for dir in dev dev/pts proc sys run; do
     sudo mkdir -p "${MNT}/${dir}"
     sudo mount --bind "/${dir}" "${MNT}/${dir}"
 done
-# shellcheck disable=SC2012
 KERNEL_VERSION=$(ls -1 ${MNT}/lib/modules | head -n 1)
 
 # Verify we found a valid version directory, then run the tool correctly
