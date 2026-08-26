@@ -2,7 +2,6 @@
 
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-# shellcheck disable=SC2001,SC2086,SC2094,SC2181
 
 
 ### Global Variables ###
@@ -92,7 +91,6 @@ check_mnt_mount_exist() {
 detect_usb() {
     for _ in {1..15}; do
 	usb_devices=$(lsblk -dn -o NAME,TYPE,SIZE,TRAN | awk '$2 == "disk" && $4 == "usb" && $3 != "0B" {print $1}')
-        # shellcheck disable=SC2086
         for disk_name in $usb_devices; do
             # Bootable USB has 6 partitions,ignore other disks
             if [ "$(lsblk -l "/dev/$disk_name" | grep -c "^$(basename "/dev/$disk_name")[0-9]")" -eq 6 ]; then
@@ -172,7 +170,6 @@ get_block_device_details() {
     echo -e "${GREEN}Found the OS disk  $os_disk${NC}" 
 
     # Clear the disk partitions
-    # shellcheck disable=SC2086
     for disk_name in ${blk_devices}; do
         dd if=/dev/zero of="/dev/$disk_name" bs=100M count=20
 	wipefs --all "/dev/$disk_name"
@@ -971,9 +968,7 @@ setup_proxy_settings() {
         # by both the QEMU (auto-install-pkgs.yaml) and ICT build paths but are
         # not sourced from config-file.  Derive their values from http_proxy so
         # they stay consistent; clear them when http_proxy is empty.
-        # shellcheck disable=SC2034
         ftp_proxy="$http_proxy"
-        # shellcheck disable=SC2034
         socks_server=""
 
         if [ -n "$http_proxy" ] || [ -n "$https_proxy" ] || [ -n "$no_proxy" ]; then
