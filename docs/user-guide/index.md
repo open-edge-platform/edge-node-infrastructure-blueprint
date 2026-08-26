@@ -1,7 +1,8 @@
 # Edge-Node Infrastructure Blueprint
 
-::::{container} component_header_row
 <!--hide_directive
+::::{container} component_header_row
+
 <div class="component_card_widget">
   <a class="icon_github" href="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint">
      GitHub
@@ -11,7 +12,8 @@ hide_directive-->
 
 > **Attention:**
 > The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
-::::
+
+<!--hide_directive :::: hide_directive-->
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
