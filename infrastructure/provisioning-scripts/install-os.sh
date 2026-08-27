@@ -1512,6 +1512,19 @@ EOT
 # Change the boot order to disk
 boot_order_change_to_disk() {
     echo -e "${BLUE}Changing the Boot order to disk!!${NC}"
+
+    # Mount efivarfs if not already mounted — Alpine HookOS does not mount it
+    # by default (no systemd), so /sys/firmware/efi/efivars is empty and
+    # efibootmgr fails with "EFI variables are not supported on this system."
+    # Required for kernel >= 6.0 where the legacy /sys/firmware/efi/vars/
+    # sysfs interface was removed.
+    if [ -d /sys/firmware/efi ] && ! mountpoint -q /sys/firmware/efi/efivars 2>/dev/null; then
+        if ! mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null; then
+            failure "Cannot mount efivarfs — change boot order to disk manually in BIOS"
+            return 1
+        fi
+    fi
+
     boot_order=$(efibootmgr -D)
     echo "$boot_order"
     usb_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
