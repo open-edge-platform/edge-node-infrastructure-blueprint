@@ -66,8 +66,7 @@ across a reboot:
   Setting names and menu paths vary by vendor. See the **BIOS Settings**
   sections in [`skills/set-power-profile/SKILL.md`](../../../skills/set-power-profile/SKILL.md)
   for the full mandatory list plus optional settings (e.g. disabling firmware
-  DBPM, unlocking the power-limit MSRs, and *Config Base Power* / cTDP).
-- `sudo` access. The power scripts read/write MSRs and restart a system service,
+  DBPM, unlocking the power-limit MSRs, and *Config Base Power* / cTDP). `sudo` access. The power scripts read/write MSRs and restart a system service,
   so they re-run themselves with `sudo`.
 - `msr` kernel module and `msr-tools` (`rdmsr` / `wrmsr`) — required to read the
   cTDP levels and program the RAPL MSRs:

@@ -18,9 +18,9 @@ The Edge Node Infrastructure Blueprint ships a set of agent skills that let you 
 
 ## How to Use Skills
 
-Open GitHub Copilot Chat or Claude Code in the repository workspace and describe what you want in natural language. The agent matches your request to the appropriate skill, asks for any missing inputs, then runs the workflow. These skill have been verified by running them from the developer system and pointing to the provisioned target system whereever applicable.
+Open GitHub Copilot Chat or Claude Code in the repository workspace and describe what you want in natural language. The agent matches your request to the appropriate skill, asks for any missing inputs, then runs the workflow. These skills have been verified by running them from the developer system and pointing to the provisioned target system wherever applicable.
 
-Note that few skills like `validate-platform-config` run commands on the target system, hence it is expected that during configuration, a user has seeded a public key for passwordless access.
+Skills such as `validate-platform-config` run commands on the target system; SSH key-based (passwordless) access must be configured on the target before use.
 
 ### Example Prompts
 

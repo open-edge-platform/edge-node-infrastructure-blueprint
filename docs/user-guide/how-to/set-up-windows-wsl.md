@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 ```
 hide_directive-->
 
-# Windows WSL Guide: Setup Developer Linux build system with Windows Subsystem Linux (WSL2)
+# Set Up a Developer Build System with Windows Subsystem for Linux 2 (WSL2)
 
 This guide explains how to prepare a Windows machine using Windows Subsystem for Linux 2 (WSL2) with Ubuntu 24.04.
 
@@ -44,15 +44,15 @@ This opens a Ubuntu 24.04 terminal. All subsequent steps run inside this termina
 
 ---
 
-## Step 3: Network configuration
+## Step 3: Configure Networking
 
-Depending on the Windows development system's network connectivity, the networking settings must be configured accordingly.
+Configure network settings based on your connection type.
 
-### 3.1: The Windows development system is connected to a lab network via a proxy server (no VPN).
+### Option A: Proxy-based lab network (no VPN)
 
-### 3.1.1: Configure proxy environment variables according to your network setup.
+Configure proxy environment variables:
 
-**Note**: Use "" if the proxy is not required in your network for all the proxy environment variables.
+> **Note:** If no proxy is required on your network, leave all values empty.
 
 ```bash
 # Append the proxy environment variables to /etc/environment
@@ -72,43 +72,36 @@ export HTTP_PROXY="http://proxy-server-ip:port"
 export HTTPS_PROXY="http://proxy-server-ip:port"
 export NO_PROXY=".internal,127.0.0.1,::1,localhost"
 
-# Configure apt proxy variables according to your network setup /etc/apt/apt.conf.d/apt.conf
+# Configure apt proxy in /etc/apt/apt.conf.d/apt.conf
 Acquire::http::proxy "http://proxy-server-ip:port";
 Acquire::https::proxy "http://proxy-server-ip:port";
 ```
 
-### 3.2: The system is connected through a VPN (automated proxy using mirrored mode).
+### Option B: VPN with mirrored networking
 
-If you are on VPN and WSL2 cannot connect to the internet
-(e.g., `apt update` fails or proxy is unreachable), enable **mirrored networking mode**.
+If you are on VPN and WSL2 cannot connect to the internet (for example, `apt update` fails or the proxy is unreachable), enable **mirrored networking mode**. This makes WSL2 share the Windows network stack directly, so VPN routing applies to WSL2 too.
 
-This makes WSL2 share Windows' network stack directly so VPN routing applies to WSL2 too.
-
-### 3.2.1: Open `.wslconfig` in Notepad
-
-In **Windows PowerShell** (not inside WSL):
+Open `.wslconfig` in Notepad from **Windows PowerShell** (not inside WSL):
 
 ```powershell
 notepad "$env:USERPROFILE\.wslconfig"
 ```
 
-### 3.2.2: Add the following configuration
+Add the following configuration and save the file:
 
 ```ini
 [wsl2]
 networkingMode=mirrored
 ```
 
-Save and close Notepad.
-
-### 3.3 Restart WSL
+### Restart WSL
 
 ```powershell
 wsl --shutdown
 wsl -d Ubuntu-24.04
 ```
 
-### 3.4 Verify connectivity
+### Verify Connectivity
 
 Inside the Ubuntu 24.04 terminal:
 
