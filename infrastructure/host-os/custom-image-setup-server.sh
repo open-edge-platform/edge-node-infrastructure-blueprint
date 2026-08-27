@@ -4,17 +4,25 @@
 # SPDX-License-Identifier: Apache-2.0
 set -euo pipefail
 
-# Configuration
-IMAGE_NAME="custom-desktop-custom"
+# Configuration (SERVER/HEADLESS image)
+# Server counterpart of custom-image-setup.sh (desktop). Builds from
+# Dockerfile.server and produces custom-server.raw.gz.
+IMAGE_NAME="custom-server-custom"
+DOCKERFILE="Dockerfile.server"
 DOCKERFILE_DIR="."
 BUILD_DIR="./build"
-RAW_IMG="${BUILD_DIR}/custom-desktop.raw"
+RAW_IMG="${BUILD_DIR}/custom-server.raw"
 IMG_SIZE="16G"
 CONTAINER_EXPORT="${BUILD_DIR}/container_root.tar"
 MNT="${BUILD_DIR}/mnt"
 KERNEL_SUFFIX="intel"
 IMAGE_REBUILD="${HOST_OS_REBUILD:-false}"
 IMAGE_TAG_MISSING="false"
+# FIX_SWAP_RESUME_BEGIN
+# Set ENABLE_SWAP_RESUME=1 to add resume=UUID=<swap-uuid> to kernel cmdline
+# This enables hibernation/resume from swap partition.
+ENABLE_SWAP_RESUME="${ENABLE_SWAP_RESUME:-0}"
+# FIX_SWAP_RESUME_END
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -64,11 +72,8 @@ mkdir -p "${BUILD_DIR}"
 log "  Build directory clean: ${BUILD_DIR}"
 
 # Start the build process from where script stoped previously.
-# Word splitting is intended here — one ID per line becomes separate arguments.
-mapfile -t stale_containers < <(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest" 2>/dev/null)
-if [[ ${#stale_containers[@]} -gt 0 ]]; then
-    docker rm -f "${stale_containers[@]}" 2>/dev/null || true
-fi
+# shellcheck disable=SC2046
+docker rm -f $(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest") 2>/dev/null || true
 
 # Build the Ubuntu desktop image
 log "Build Docker image"
@@ -82,34 +87,38 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
     if [[ "${IMAGE_REBUILD}" == "true" ]]; then
         log "  HOST_OS_REBUILD=true: forcing no-cache rebuild"
     fi
+    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
+    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
+    # to external/publicly trusted Artifactory (no internal CA needed).
+    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
+    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --no-cache \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
-        --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
-        --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
-        --build-arg INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-}" \
-        --build-arg INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-}" \
-        --build-arg INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-}" \
-        --build-arg INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-}" \
+        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
+        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
+        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
+        -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 else
+    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
+    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
+    # to external/publicly trusted Artifactory (no internal CA needed).
+    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
+    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
-        --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
-        --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
-        --build-arg INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-}" \
-        --build-arg INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-}" \
-        --build-arg INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-}" \
-        --build-arg INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-}" \
+        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
+        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
+        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
+        -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 fi
@@ -146,14 +155,14 @@ log "Create raw disk image (${IMG_SIZE})"
 truncate -s "${IMG_SIZE}" "${RAW_IMG}"
 log "  Created: ${RAW_IMG}"
 
-# Create GPT partition table with 512MB EFI, 4GB SWAP, and rest as root
-log "Partition (GPT: 512MB EFI + 4GB SWAP + rest root)"
+# Create GPT partition table: 512MB EFI + 4GB swap + rest root
+log "Partition (GPT: 512MB EFI + 4GB swap + rest root)"
 
-sgdisk -Z "${RAW_IMG}"
-sgdisk -n 1:0:+512M  -t 1:ef00 -c 1:"EFI-SYSTEM"  "${RAW_IMG}"
-sgdisk -n 2:0:+4096M -t 2:8200 -c 2:"LINUX-SWAP"  "${RAW_IMG}"
-sgdisk -n 3:0:0      -t 3:8300 -c 3:"LINUX-ROOT"  "${RAW_IMG}"
-sgdisk -p "${RAW_IMG}"
+sgdisk -Z \
+    -n 1:0:+512M -t 1:ef00 -c 1:"EFI-SYSTEM" \
+    -n 2:0:+4G   -t 2:8200 -c 2:"SWAP"        \
+    -n 3:0:0     -t 3:8300 -c 3:"LINUX-ROOT"   \
+    -p "${RAW_IMG}"
 
 # Attach loop device and get partition paths
 log "Attach loop device"
@@ -164,7 +173,7 @@ SWAP_PART="${LOOP_DEV}p2"
 ROOT_PART="${LOOP_DEV}p3"
 
 # Wait for partition nodes (udev may be slow inside Docker)
-for _ in $(seq 1 10); do
+for _retry in $(seq 1 10); do
     [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
     sudo partprobe "${LOOP_DEV}" 2>/dev/null || true
     sleep 1
@@ -181,31 +190,38 @@ if [[ ! -b "${EFI_PART}" || ! -b "${SWAP_PART}" || ! -b "${ROOT_PART}" ]]; then
     EFI_PART="/dev/mapper/$(basename "${LOOP_DEV}")p1"
     SWAP_PART="/dev/mapper/$(basename "${LOOP_DEV}")p2"
     ROOT_PART="/dev/mapper/$(basename "${LOOP_DEV}")p3"
-    for _ in $(seq 1 10); do
+    for _retry in $(seq 1 10); do
         [[ -b "${EFI_PART}" && -b "${SWAP_PART}" && -b "${ROOT_PART}" ]] && break
         sleep 1
     done
 fi
 
 [[ ! -b "${EFI_PART}"  ]] && error "EFI partition device ${EFI_PART} not found"
-[[ ! -b "${SWAP_PART}" ]] && error "SWAP partition device ${SWAP_PART} not found"
+[[ ! -b "${SWAP_PART}" ]] && error "Swap partition device ${SWAP_PART} not found"
 [[ ! -b "${ROOT_PART}" ]] && error "Root partition device ${ROOT_PART} not found"
 
 
 
-log "Format partitions with rootfs and EFI filesystems"
+log "Format partitions with rootfs, swap, and EFI filesystems"
+sudo partprobe "${LOOP_DEV}" 2>/dev/null || true
+sleep 2
+[[ ! -b "${EFI_PART}"  ]] && error "EFI partition device ${EFI_PART} disappeared before format"
+[[ ! -b "${SWAP_PART}" ]] && error "Swap partition device ${SWAP_PART} disappeared before format"
+[[ ! -b "${ROOT_PART}" ]] && error "Root partition device ${ROOT_PART} disappeared before format"
 sudo mkfs.vfat -F 32 -n "EFI"  "${EFI_PART}"
-sudo mkswap          -L "SWAP" "${SWAP_PART}"
+sudo mkswap -L "SWAP" "${SWAP_PART}"
 sudo mkfs.ext4 -F    -L "ROOT" "${ROOT_PART}"
 
 ROOT_UUID=$(sudo blkid -o value -s UUID     "${ROOT_PART}")
 EFI_UUID=$( sudo blkid -o value -s UUID     "${EFI_PART}")
 SWAP_UUID=$(sudo blkid -o value -s UUID     "${SWAP_PART}")
 ROOT_PARTUUID=$(sudo blkid -o value -s PARTUUID "${ROOT_PART}")
+# EFI_PARTUUID reserved for future use (e.g. fstab generation)
+# shellcheck disable=SC2034
+EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
 [[ -z "${ROOT_UUID}"     ]] && error "ROOT_UUID is empty — blkid failed"
 [[ -z "${ROOT_PARTUUID}" ]] && error "ROOT_PARTUUID is empty — blkid failed"
-[[ -z "${SWAP_UUID}"     ]] && error "SWAP_UUID is empty — blkid failed"
 
 log "Mount and extract rootfs"
 mkdir -p "${MNT}"
@@ -223,13 +239,17 @@ log "  Extraction complete"
 
 log "Fix runtime configuration on mounted image"
 
-# Remove Docker's .dockerenv marker so the image doesn't look like a container
+
 if [[ -e "${MNT}/.dockerenv" ]]; then
     sudo rm -f "${MNT}/.dockerenv"
     log "  Removed ${MNT}/.dockerenv"
 fi
 
 # Remove default ubuntu user name
+
+
+
+# Remove default ubuntu user name 
 sudo chroot "${MNT}" userdel -r ubuntu >/dev/null 2>&1 || true
 
 # Fix resolv.conf — remove Docker's copy, replace with systemd-resolved symlink
@@ -240,17 +260,19 @@ log "  resolv.conf -> $(sudo readlink ${MNT}/etc/resolv.conf)"
 
 # Fix hostname and hosts file
 sudo tee "${MNT}/etc/hostname" > /dev/null << 'EOF'
-edge-node
+minimal-ubuntu-server
 EOF
 
 sudo tee "${MNT}/etc/hosts" > /dev/null << 'EOF'
 127.0.0.1   localhost
-127.0.1.1   edge-node
+127.0.1.1   minimal-ubuntu-server
 ::1         localhost ip6-localhost ip6-loopback
 ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters
 EOF
 log "  hostname and hosts file written"
+
+
 
 sudo tee "${MNT}/etc/apt/sources.list.d/ubuntu.sources" > /dev/null << 'EOF'
 Types: deb
@@ -270,14 +292,13 @@ sudo tee "${MNT}/etc/sysctl.d/99-dmesg.conf" > /dev/null << 'EOF'
 kernel.dmesg_restrict = 0
 EOF
 
-while IFS= read -r f; do
+sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null | while read -r f; do
     log "  Patching dmesg call in: ${f}"
     sudo sed -i 's/^\(.*dmesg.*\)$/# \1 # disabled — dmesg_restrict/' "${f}"
-done < <(sudo grep -rl "dmesg" "${MNT}/etc/profile.d/" 2>/dev/null || true)
+done || true
 
 # Fix /etc/profile.d scripts
 sudo sed -i 's|^\(.*\. "$i".*\)$|{ \1; } 2>/dev/null \|\| true|g' "${MNT}/etc/profile"
-# Diagnostic-only grep; a missing match is not a failure.
 sudo grep "profile.d" "${MNT}/etc/profile" || true
 
 # Fix mesa_driver.sh — if line was commented out leaving orphaned else/fi
@@ -292,7 +313,7 @@ fi
 EOF
 
 
-# Write to fstab with UUIDs for root and EFI partitions
+# Write to fstab with UUIDs for root, swap, and EFI partitions
 log "Write fstab"
 sudo tee "${MNT}/etc/fstab" > /dev/null << EOF
 # <file system>        <mount point>  <type>  <options>           <dump> <pass>
@@ -309,7 +330,7 @@ for dir in dev dev/pts proc sys run; do
     sudo mkdir -p "${MNT}/${dir}"
     sudo mount --bind "/${dir}" "${MNT}/${dir}"
 done
-KERNEL_VERSION=$(ls -1 "${MNT}/lib/modules" | head -n 1)
+KERNEL_VERSION=$(find "${MNT}/lib/modules" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort | head -n 1)
 
 # Verify we found a valid version directory, then run the tool correctly
 if [ -n "$KERNEL_VERSION" ]; then
@@ -325,7 +346,6 @@ fi
 
 log "Regenerate initramfs for all kernels in target rootfs"
 sudo chroot "${MNT}" update-initramfs -u -k "$KERNEL_VERSION"
-sudo mount -t efivarfs efivarfs "${MNT}/sys/firmware/efi/efivars" 2>/dev/null || true
 
 # Install GRUB
 log "Install GRUB"
@@ -348,6 +368,15 @@ log "  GRUB modules at : ${GRUB_CFG_DIR}"
 # Grub config for booting the image
 mountpoint -q "${MNT}/boot/efi" || die "EFI partition not mounted"
 
+# FIX_SWAP_RESUME_BEGIN
+# Build kernel cmdline with optional swap resume parameter
+KERNEL_CMDLINE="root=PARTUUID=${ROOT_PARTUUID} ro rootdelay=5 console=tty0 console=ttyS0,115200n8 \"xe.force_probe=*\" xe.max_vfs=7 modprobe.blacklist=i915 udmabuf.list_limit=8192"
+if [[ "${ENABLE_SWAP_RESUME}" == "1" ]]; then
+    KERNEL_CMDLINE="${KERNEL_CMDLINE} resume=UUID=${SWAP_UUID}"
+    log "  Swap resume enabled: resume=UUID=${SWAP_UUID}"
+fi
+# FIX_SWAP_RESUME_END
+
 sudo mkdir -p "${GRUB_CFG_DIR}"
 sudo tee "${GRUB_CFG_DIR}/grub.cfg" > /dev/null << EOF
 
@@ -361,12 +390,12 @@ insmod search_fs_uuid
 
 search --no-floppy --set=root --fs-uuid ${ROOT_UUID}
 
-menuentry "Ubuntu Desktop (${KERNEL_VERSION})" {
-    linux  /boot/${VMLINUZ_NAME} root=PARTUUID=${ROOT_PARTUUID} ro rootdelay=5 console=tty0 console=ttyS0,115200n8 "xe.force_probe=*" xe.max_vfs=7 modprobe.blacklist=i915 udmabuf.list_limit=8192
+menuentry "Ubuntu Server (${KERNEL_VERSION})" {
+    linux  /boot/${VMLINUZ_NAME} ${KERNEL_CMDLINE}
     initrd /boot/${INITRD_NAME}
 }
 
-menuentry "Ubuntu Desktop (recovery)" {
+menuentry "Ubuntu Server (recovery)" {
     linux  /boot/${VMLINUZ_NAME} root=PARTUUID=${ROOT_PARTUUID} ro single rootdelay=5 console=tty0 console=ttyS0,115200n8
     initrd /boot/${INITRD_NAME}
 }

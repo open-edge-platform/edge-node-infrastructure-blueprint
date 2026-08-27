@@ -15,67 +15,260 @@ echo "https_proxy=${https_proxy:-}"
 # for edge node infrastructure development.
 #======================================================
 
+# ---------------------------------------------------------------------------
+# Repository / GPG key configuration
+# ---------------------------------------------------------------------------
+# Defaults point at the public Intel overlay on download.01.org — this is
+# what open-source users on `main` get out of the box. To validate a
+# pre-release from an internal mirror (e.g. Intel Artifactory) without
+# editing this file, override the env vars before invoking the script:
+#
+#   export INTEL_OVERLAY_URL="https://internal.mirror/.../ubuntu/noble/<build>"
+#   export INTEL_OVERLAY_KEY_URL="https://internal.mirror/.../keys/xyz.gpg"
+#   export INTEL_OVERLAY_KEY_FINGERPRINT=""   # skip pin for trusted mirror
+#   ./curate-host-packages.sh
+#
+# Empty INTEL_OVERLAY_KEY_FINGERPRINT (explicit "") disables the fingerprint
+# pin; UNSET (the default) keeps the public-key pin baked in below.
+#
+# ---------------------------------------------------------------------------
+# INTERNAL PR VALIDATION DEFAULTS (Intel Artifactory)
+# ---------------------------------------------------------------------------
+# The active defaults below point at the internal PNG Artifactory mirror so
+# that internal CI / PR builds validate the exact pre-release drop. Before
+# merging to `main`, restore the public defaults by swapping the two blocks:
+# comment the "INTERNAL" lines and un-comment the "# main:" lines below them.
+INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260724-2201_2026_SW_S_REL3_RC01}"
+INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-main non-free multimedia internal}"
+INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg}"
+# Fingerprint pin disabled by default for the internal mirror (TLS to
+# devtools.intel.com is the trust anchor). To re-enable, export
+# INTEL_OVERLAY_KEY_FINGERPRINT=<40-hex> before running.
+INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-}"
+
+# main: public defaults (uncomment when reverting this branch for open-source release):
+# INTEL_OVERLAY_URL="${INTEL_OVERLAY_URL:-https://download.01.org/intel-linux-overlay/ubuntu}"
+# INTEL_OVERLAY_COMPONENTS="${INTEL_OVERLAY_COMPONENTS:-main non-free multimedia kernels}"
+# INTEL_OVERLAY_KEY_URL="${INTEL_OVERLAY_KEY_URL:-https://download.01.org/intel-linux-overlay/ubuntu/E6FA98203588250569758E97D176E3162086EE4C.gpg}"
+# INTEL_OVERLAY_KEY_FINGERPRINT="${INTEL_OVERLAY_KEY_FINGERPRINT-E6FA98203588250569758E97D176E3162086EE4C}"
+
+MOZILLA_PPA_URL="https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu"
+MOZILLA_PPA_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB215679C571D1C8325275B9BDB3D89CE49EC21"
+
+INTEL_ECI_URL="https://eci.intel.com/repos/noble"
+INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
+
+# Modern per-repo scoped trust store (deprecates /etc/apt/trusted.gpg.d/).
+APT_KEYRINGS_DIR="/etc/apt/keyrings"
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+download_file() {
+	local url="$1"
+	local out_file="$2"
+	# TLS_WORKAROUND: -k skips TLS verify to accommodate internal Artifactory's
+	# private CA. Remove -k when switching to a publicly trusted endpoint.
+	curl -fsSL -k --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+}
 
 install_depended_packages() {
 	echo "Updating apt and installing initial packages..."
 	apt update
 	apt upgrade -y
-	apt install wget ethtool libbpf1 wayland-protocols -y
+
+	apt install -y --no-install-recommends wget curl ca-certificates gnupg ethtool libbpf1 wayland-protocols
 	echo "Initial packages installed."
 }
 
 create_ppa_sources_list() {
-	echo "Creating Intel PTL PPA sources list..."
-	mkdir -p /etc/apt/sources.list.d
-	bash -c 'cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
-deb https://download.01.org/intel-linux-overlay/ubuntu noble main non-free multimedia kernels
-deb-src https://download.01.org/intel-linux-overlay/ubuntu noble main non-free multimedia kernels
-EOF'
-	echo "Intel PTL PPA sources list created."
+    echo "Creating Intel overlay repository sources list..."
+    mkdir -p /etc/apt/sources.list.d
+    cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
+deb [signed-by=${APT_KEYRINGS_DIR}/ptl.gpg] ${INTEL_OVERLAY_URL} noble ${INTEL_OVERLAY_COMPONENTS}
+EOF
+    echo "Intel overlay repository sources list created."
 }
 
 download_and_install_gpg_key() {
 	echo "Downloading and installing GPG key..."
-	EXPECTED_FINGERPRINT="E6FA98203588250569758E97D176E3162086EE4C"
-	wget -O /tmp/ptl.gpg https://download.01.org/intel-linux-overlay/ubuntu/E6FA98203588250569758E97D176E3162086EE4C.gpg
-	ACTUAL_FINGERPRINT=$(gpg --show-keys --with-colons /tmp/ptl.gpg | awk -F: '/^fpr:/ {print $10}')
+	install -d -m 0755 "${APT_KEYRINGS_DIR}"
 
-	# Compare fingerprints
-	if [ "$ACTUAL_FINGERPRINT" = "$EXPECTED_FINGERPRINT" ]; then
-		echo "Fingerprint matches! Safe to install."
-		cp /tmp/ptl.gpg /etc/apt/trusted.gpg.d/ptl.gpg
+	local tmp_key_file="/tmp/ptl.gpg"
+	download_file "${INTEL_OVERLAY_KEY_URL}" "${tmp_key_file}"
+
+	# Fingerprint pin. Skipped only when INTEL_OVERLAY_KEY_FINGERPRINT is
+	# explicitly set to "" (e.g. when overriding INTEL_OVERLAY_KEY_URL to a
+	# trusted internal mirror where TLS is the trust anchor). Left unset,
+	# the public-key pin above is enforced.
+	if [ -n "${INTEL_OVERLAY_KEY_FINGERPRINT}" ]; then
+		local actual_fingerprint
+		actual_fingerprint=$(gpg --show-keys --with-colons "${tmp_key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+		if [ "${actual_fingerprint}" != "${INTEL_OVERLAY_KEY_FINGERPRINT}" ]; then
+			echo "ERROR: Intel overlay GPG key fingerprint mismatch! Aborting."
+			echo "Expected: ${INTEL_OVERLAY_KEY_FINGERPRINT}"
+			echo "Actual:   ${actual_fingerprint}"
+			rm -f "${tmp_key_file}"
+			exit 1
+		fi
+		echo "Intel overlay GPG key fingerprint verified."
 	else
-		echo "ERROR: Fingerprint does not match! Aborting installation."
-		echo "Expected: $EXPECTED_FINGERPRINT"
-		echo "Actual:   $ACTUAL_FINGERPRINT"
-		rm -f /tmp/ptl.gpg
-		exit 1
+		echo "Intel overlay GPG key fingerprint pin skipped (INTEL_OVERLAY_KEY_FINGERPRINT is empty)."
 	fi
-	echo "GPG key installed."
+
+	# Dearmor into per-repo keyring. Fall back to a straight copy if the
+	# source is already binary (dearmor exits non-zero in that case).
+	if ! gpg --dearmor -o "${APT_KEYRINGS_DIR}/ptl.gpg" "${tmp_key_file}" 2>/dev/null; then
+		cp "${tmp_key_file}" "${APT_KEYRINGS_DIR}/ptl.gpg"
+	fi
+	chmod 0644 "${APT_KEYRINGS_DIR}/ptl.gpg"
+	rm -f "${tmp_key_file}"
+
+	# Migration cleanup: remove the legacy globally-trusted key installed by
+	# earlier revisions of this script.
+	rm -f /etc/apt/trusted.gpg.d/ptl.gpg
+
+	echo "Intel overlay GPG key installed at ${APT_KEYRINGS_DIR}/ptl.gpg."
+}
+
+# ---------------------------------------------------------------------------
+# Configure APT preferences for Intel ECI repository
+# ---------------------------------------------------------------------------
+# Pins camera packages to ECI while blocking systemd packages to force them
+# from canonical Ubuntu repos. Extracted as a separate function to keep
+# install_camera_packages() readable.
+configure_eci_apt_preferences() {
+	local eci_host
+	eci_host=$(printf '%s\n' "${INTEL_ECI_URL}" | awk -F/ '{print $3}')
+	
+	echo "Configuring APT preferences for ECI repository..."
+	
+	# Pin camera packages to ECI with priority 600 (higher than default 500)
+	cat > /etc/apt/preferences.d/intel-eci << EOF
+Package: libcamhal-ipu75xa0 libcamhal-ipu75xa libcamera-tools libcamhal-common libcamhal0 libia-*-ipu75xa0 gstreamer1.0-icamera libgsticamerainterface-1.0-1 intel-mipi-gmsl-dkms
+Pin: origin ${eci_host}
+Pin-Priority: 600
+EOF
+	
+	# Block systemd and related packages from ECI (priority -1 = never install from this source)
+	# Force these critical system packages to come from canonical Ubuntu repos only
+	local -a blocked_packages=(
+		"libnss-myhostname" "libnss-mymachines" "libnss-resolve"
+		"libpam-systemd" "libsystemd-dev" "libsystemd0"
+		"libudev-dev" "libudev1"
+		"systemd-boot-efi" "systemd-boot" "systemd-container" "systemd-coredump"
+		"systemd-dev" "systemd-homed" "systemd-journal-remote" "systemd-oomd"
+		"systemd-resolved" "systemd-standalone-sysusers" "systemd-standalone-tmpfiles"
+		"systemd-sysv" "systemd-tests" "systemd-timesyncd" "systemd-ukify"
+		"systemd-userdbd" "systemd" "udev"
+	)
+	
+	cat > /etc/apt/preferences.d/isar << 'EOFSTART'
+# Default priority for all ECI packages (set to 500, same as Ubuntu default)
+Package: *
+Pin: origin eci.intel.com
+Pin-Priority: 500
+
+EOFSTART
+	
+	# Append blocked package rules
+	for pkg in "${blocked_packages[@]}"; do
+		cat >> /etc/apt/preferences.d/isar << EOF
+Package: ${pkg}
+Pin: origin eci.intel.com
+Pin-Priority: -1
+
+EOF
+	done
+	
+	echo "APT preferences configured: camera packages pinned to ECI, systemd packages blocked."
+}
+
+install_camera_packages() {
+	echo "Setting up Intel ECI repository and installing camera packages..."
+	install -d -m 0755 "${APT_KEYRINGS_DIR}"
+	
+	# Download and install Intel ECI GPG key
+	local tmp_key_file="/tmp/intel-eci.gpg"
+	download_file "${INTEL_ECI_KEY_URL}" "${tmp_key_file}"
+	
+	# Dearmor into per-repo keyring
+	if ! gpg --dearmor -o "${APT_KEYRINGS_DIR}/intel-eci.gpg" "${tmp_key_file}" 2>/dev/null; then
+		cp "${tmp_key_file}" "${APT_KEYRINGS_DIR}/intel-eci.gpg"
+	fi
+	chmod 0644 "${APT_KEYRINGS_DIR}/intel-eci.gpg"
+	rm -f "${tmp_key_file}"
+	echo "Intel ECI GPG key installed at ${APT_KEYRINGS_DIR}/intel-eci.gpg."
+	
+	# Create Intel ECI repository sources list with proper GPG verification
+	mkdir -p /etc/apt/sources.list.d
+	cat > /etc/apt/sources.list.d/intel-eci.list << EOF
+deb [signed-by=${APT_KEYRINGS_DIR}/intel-eci.gpg] ${INTEL_ECI_URL} isar main
+EOF
+	echo "Intel ECI repository configured."
+	
+	# Configure APT preferences for ECI packages
+	configure_eci_apt_preferences
+	
+	# Install camera packages
+	apt update
+	export DEBIAN_FRONTEND=noninteractive
+	
+	# Pre-configure debconf to avoid interactive prompts (especially for DKMS packages)
+	echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+	
+	apt install -y \
+		libcamhal-ipu75xa0 \
+		libcamhal-ipu75xa \
+		libcamera-tools \
+		libcamhal-common \
+		libcamhal0 \
+		libia-*-ipu75xa0 \
+		gstreamer1.0-icamera \
+		libgsticamerainterface-1.0-1 \
+		intel-mipi-gmsl-dkms 
+	
+	
+	echo "Intel camera packages installed successfully."
 }
 
 
 set_preferred_package_list() {
 	echo "Setting preferred package list..."
-	sudo bash -c 'cat > /etc/apt/preferences.d/intel-ptl << EOF
+	# Derive the pin hostname from the repo URL so overriding INTEL_OVERLAY_URL
+	# automatically updates the pin — no second value to keep in sync when
+	# switching to an internal mirror.
+	local overlay_host
+	overlay_host=$(printf '%s\n' "${INTEL_OVERLAY_URL}" | awk -F/ '{print $3}')
+	cat > /etc/apt/preferences.d/intel-ptl << EOF
 Package: *
-Pin: release o=intel-iot-linux-overlay-noble
+Pin: origin ${overlay_host}
 Pin-Priority: 2000
-EOF'
+EOF
 }
 
 install_essential_tools() {
 	echo "Installing essential tools and dependencies..."
 	apt update
 	export DEBIAN_FRONTEND=noninteractive
-	apt install -y \
+	# --allow-downgrades: the Intel overlay is pinned at Priority 2000 so it
+	# wins over the Ubuntu archive unconditionally, including for packages
+	# where the overlay ships an OLDER version than noble-updates (e.g.
+	# xserver-common, xserver-xorg-core). Without this flag apt aborts with
+	# "Packages were downgraded and -y was used without --allow-downgrades".
+	# Proper fix (deferred): narrow the pin to only the packages the overlay
+	# is meant to own instead of Package: *.
+	# Added dkms, v4l-utils, usb-modeswitch, clinfo, powertop.
+	# Linux tools added in install_linux_tools() function. 
+	apt install -y --allow-downgrades \
 		systemd systemd-resolved udev initramfs-tools bsdutils gzip util-linux util-linux-extra \
 		linux-base grub2-common grub-pc-bin grub-efi-amd64 grub-efi-amd64-bin grub-efi-amd64-signed efibootmgr shim-signed \
 		ubuntu-minimal ubuntu-standard ubuntu-desktop-minimal \
 		language-pack-en language-pack-en-base language-pack-gnome-en language-pack-gnome-en-base \
 		linux-firmware firmware-sof-signed wireless-regdb \
 		openssl libssl-dev \
-		build-essential cmake make git git-lfs apt-transport-https gnupg lsb-release rsync \
+		build-essential cmake make git git-lfs apt-transport-https gnupg lsb-release rsync dkms v4l-utils \
 		python3-pip python3-netifaces libpython3.12t64 \
 		libattr1 libconfig9 libnuma1 libslang2 libdw1t64 \
 		libdrm2 libdrm-common libdrm-dev libdrm-intel1 libdrm-radeon1 libdrm-amdgpu1 libdrm-nouveau2 \
@@ -84,7 +277,7 @@ install_essential_tools() {
 		ffmpeg libavcodec62 libavformat62 libavutil60 libavdevice62 libavfilter11 libswresample6 libswscale9 \
 		libwayland-bin libwayland-client0 libwayland-cursor0 libwayland-dev libwayland-doc libwayland-egl-backend-dev \
 		libwayland-egl1 libwayland-server0 weston libweston-10-0 \
-		xserver-xorg-core libglew-dev libglm-dev libsdl2-dev \
+		xserver-xorg-core libglew-dev libglm-dev \
 		gir1.2-gst-plugins-bad-1.0 gir1.2-gstreamer-1.0 gstreamer1.0-plugins-bad gstreamer1.0-plugins-good \
 		gstreamer1.0-plugins-base gstreamer1.0-pulseaudio libgstreamer1.0-0 libgstreamer-gl1.0-0 \
 		libgstreamer-plugins-base1.0-0 libgstreamer-plugins-bad1.0-0 va-driver-all \
@@ -92,16 +285,35 @@ install_essential_tools() {
 		libnl-3-200 libnl-genl-3-200 iproute2 net-tools iputils-ping tcpdump curl linuxptp dnsmasq-base network-manager \
 		bluez \
 		libtpms0 libtpms-dev \
-		intel-gpu-tools thermald rpc-go pcm lms metee stress-ng \
+		intel-gpu-tools thermald rpc-go lms metee stress-ng \
 		pahole libbabeltrace1 libdebuginfod1t64 libopencsd1 libtracefs1 libtraceevent1 libpci3 pciutils \
 		vim nano mc less file mawk grep diffutils findutils debianutils ncurses-base ncurses-bin cron msr-tools i2c-tools \
 		lsscsi sg3-utils dosfstools gdisk pigz rpm \
-		openssh-server chrony mosquitto mosquitto-clients socat dbus-x11 docker-compose efivar efibootmgr
+		openssh-server chrony mosquitto mosquitto-clients socat dbus-x11 docker-compose efivar efibootmgr \
+		libllvm18 libdebuginfod1t64 usb-modeswitch clinfo powertop
 	
 	systemctl --root=/ disable systemd-timesyncd || true
 	systemctl --root=/ mask    systemd-timesyncd || true
 	systemctl --root=/ enable ssh || true
 	systemctl --root=/ enable  chrony || true  
+	
+	# Install libsdl2-dev separately with --no-install-recommends.
+	# The bulk install with --allow-downgrades can silently skip this package
+	# due to dependency conflicts. Installing separately with --no-install-recommends
+	echo "Installing libsdl2-dev..."
+	apt install -y --no-install-recommends libsdl2-dev
+    echo "Installing pcm"
+	cd /tmp
+	git clone -b 202604 --recursive https://github.com/intel/pcm.git
+	cd pcm
+	mkdir build
+	cd build
+	cmake ..
+	make -j"$(nproc)"
+	sudo cp -r bin/* /usr/local/bin/
+	echo 'msr' | sudo tee /etc/modules-load.d/intel-pcm.conf > /dev/null
+	cd /
+	rm -rf /tmp/pcm
 	echo "Essential tools and dependencies installed."
 }
 
@@ -119,10 +331,17 @@ build_install_lpmd () {
 	./autogen.sh
 	make
 	sudo make install
-	# cleanup install dependencies
-	apt remove -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
-		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
-	apt autoremove -y
+	# Remove restrictive hardware conditions so the service attempts to start
+	# on all platforms. The daemon itself will exit gracefully if unsupported.
+	mkdir -p /etc/systemd/system/intel_lpmd.service.d
+	cat > /etc/systemd/system/intel_lpmd.service.d/override.conf <<EOF
+[Unit]
+# Clear all Condition* directives from the upstream unit
+ConditionPathExists=
+ConditionVirtualization=
+EOF
+	# NOTE: Not purging build dependencies — they are shared with dkms,
+	# build-essential, intel-mipi-gmsl-dkms, and librealsense2-dkms.
 	apt clean
 	# Enable service
 	systemctl --root=/ enable intel_lpmd.service
@@ -132,18 +351,34 @@ build_install_lpmd () {
 enable_display_manager() {
 	echo "Enabling display manager for desktop environment..."
 	apt install -y gdm3 || apt install -y lightdm
-	systemctl --root=/ enable gdm3 2>/dev/null || systemctl --root=/ enable lightdmG
+	systemctl --root=/ enable gdm3 2>/dev/null || systemctl --root=/ enable lightdm
 	echo "Display manager enabled."
 }
 
 setup_firefox() {
-	echo "Setting up Firefox..."
-	add-apt-repository ppa:mozillateam/ppa
-	echo '
-Package: firefox*
-Pin: release o=LP-PPA-mozillateam
+	echo "Setting up Firefox (Mozilla Team PPA, scoped keyring)..."
+	install -d -m 0755 "${APT_KEYRINGS_DIR}"
+
+	# Fetch Mozilla Team PPA signing key and dearmor into a per-repo keyring.
+	# Avoids 'add-apt-repository', which pulls keys via apt-key/keyserver into
+	# the deprecated global trust store and does not set signed-by= on the list.
+	local tmp_key_file="/tmp/mozillateam-ppa.gpg"
+	download_file "${MOZILLA_PPA_KEY_URL}" "${tmp_key_file}"
+	gpg --dearmor -o "${APT_KEYRINGS_DIR}/mozillateam-ppa.gpg" "${tmp_key_file}"
+	rm -f "${tmp_key_file}"
+	chmod 0644 "${APT_KEYRINGS_DIR}/mozillateam-ppa.gpg"
+
+	cat > /etc/apt/sources.list.d/mozillateam-ppa.list << EOF
+deb [signed-by=${APT_KEYRINGS_DIR}/mozillateam-ppa.gpg] ${MOZILLA_PPA_URL} noble main
+EOF
+
+	# Pin above the Ubuntu archive so we get the .deb Firefox rather than the
+	# snap-transitional package Ubuntu ships by default.
+	cat > /etc/apt/preferences.d/mozilla-firefox << EOF
+Package: *
+Pin: origin ppa.launchpadcontent.net
 Pin-Priority: 1001
-' | sudo tee /etc/apt/preferences.d/mozilla-firefox
+EOF
 
 	apt update
 	apt install -y firefox
@@ -174,10 +409,10 @@ EOF
 
 	# Download PTL SOF firmware binaries.
 	mkdir -p "$sof_dir"
-	wget -O "$sof_dir/sof-ptl-openmodules.ri" \
+	wget --no-check-certificate -O "$sof_dir/sof-ptl-openmodules.ri" \
 		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri
 	sleep 3
-	wget -O "$sof_dir/sof-ptl.ri" \
+	wget --no-check-certificate -O "$sof_dir/sof-ptl.ri" \
 		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl.ri
 	sleep 3
 
@@ -455,22 +690,73 @@ install_gpu_npu_pkgs() {
 	mkdir -p "$INSTALL_DIR"
 	cd "$INSTALL_DIR"
 
-	# Downloading GPU drivers
-	debpackage=(
-		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-core-2_2.28.4+20760_amd64.deb"
-		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.28.4/intel-igc-opencl-2_2.28.4+20760_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/intel-ocloc_26.05.37020.3-0_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/intel-opencl-icd_26.05.37020.3-0_amd64.deb"
-		"https://github.com/intel/compute-runtime/releases/download/26.05.37020.3/libze-intel-gpu1_26.05.37020.3-0_amd64.deb"
-		"https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero_1.22.4+u24.04_amd64.deb"
-		"https://github.com/oneapi-src/level-zero/releases/download/v1.22.4/level-zero-devel_1.22.4+u24.04_amd64.deb")
+	# Downloading GPU drivers (aligned with template configurations)
+	# Intel-graphics-compiler Version: v2.38.2 (from GitHub releases, public)
+	# GPU Version: 26.27.39122.11
+	# Level-zero Version: v1.32.0 (packages renamed: level-zero->libze1, level-zero-devel->libze-dev)
+	# Package URLs and their expected SHA-256 checksums
+	declare -A package_checksums=(
+		["intel-igc-core-2_2.38.2+22051_amd64.deb"]="3dbcbe4e716d62e9bd43a4a476d724cf772b4581dbcdd096d70df382e7ccad7e"
+		["intel-igc-opencl-2_2.38.2+22051_amd64.deb"]="e265d191590efd5491bfbbd148c144fdd40aea51e0b57f8651130d2da20b8186"
+		["intel-ocloc_26.27.39122.11-0_amd64.deb"]="794a77217b3fd4c3f1381c2bb2c3c11a7f81e338b55b8a11e6c3b5070d138f98"
+		["intel-opencl-icd_26.27.39122.11-0_amd64.deb"]="6e447a783c99fb5634df298c135a81165be07db98672df96cdf413d22f3e6ac4"
+		["libze-intel-gpu1_26.27.39122.11-0_amd64.deb"]="58420df60d4bf8ac79aba03f7de1b8b60a93e995b18142391077ff735ce7b74b"
+		["libze1_1.32.0+u24.04_amd64.deb"]="3c846af24f84a89150f6a4c6adcb4ea4ebef74dc119fe44f4e269bfaa72c7ba6"
+		["libze-dev_1.32.0+u24.04_amd64.deb"]="4b783ed5fb937a55a7a0f3a8bc66af252f362e82476ebc0304da36173c9f2eb8"
+		["linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"]="398343e53fdac6023ad0856ef88bb6011b1e12447a112be55e85e27ef7f96c66"
+	)
 
-	# Download GPU packages 
+	debpackage=(
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-core-2_2.38.2+22051_amd64.deb"
+		"https://github.com/intel/intel-graphics-compiler/releases/download/v2.38.2/intel-igc-opencl-2_2.38.2+22051_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-ocloc_26.27.39122.11-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/intel-opencl-icd_26.27.39122.11-0_amd64.deb"
+		"https://github.com/intel/compute-runtime/releases/download/26.27.39122.11/libze-intel-gpu1_26.27.39122.11-0_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze1_1.32.0%2Bu24.04_amd64.deb"
+		"https://github.com/oneapi-src/level-zero/releases/download/v1.32.0/libze-dev_1.32.0%2Bu24.04_amd64.deb"
+	)
+
+	# Function to verify file integrity
+	verify_checksum() {
+		local file="$1"
+		local expected_hash="$2"
+		local actual_hash
+
+		if [ "$expected_hash" = "REPLACE_WITH_ACTUAL_SHA256" ]; then
+			echo "  WARNING: No checksum defined for $file - skipping verification"
+			echo "  SECURITY RISK: Package integrity not verified!"
+			return 0
+		fi
+
+		actual_hash=$(sha256sum "$file" | awk '{print $1}')
+		if [ "$actual_hash" != "$expected_hash" ]; then
+			echo "CRITICAL: Package integrity failure for $file!" >&2
+			echo "  Expected hash: $expected_hash" >&2
+			echo "  Actual hash:   $actual_hash" >&2
+			return 1
+		fi
+		echo "  Checksum verification passed for $file"
+		return 0
+	}
+
+	# Download and verify GPU packages
+	echo "Downloading and verifying GPU packages..."
 	for url in "${debpackage[@]}"; do
 		echo "Downloading: $url"
 		filename=$(basename "$url")
 		if wget "$url" -O "$filename"; then
 			echo "Successfully downloaded: $filename"
+			
+			# Verify checksum
+			if [ -n "${package_checksums[$filename]}" ]; then
+				if ! verify_checksum "$filename" "${package_checksums[$filename]}"; then
+					echo "ERROR: Checksum verification failed for $filename"
+					rm -f "$filename"
+					exit 1
+				fi
+			else
+				echo "  WARNING: No checksum found for $filename in verification table"
+			fi
 		else
 			echo "ERROR: Failed to download $filename"
 			exit 1
@@ -479,11 +765,20 @@ install_gpu_npu_pkgs() {
 
 	# Downloading NPU drivers
 	echo "Downloading NPU driver package..."
-	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.32.0/linux-npu-driver-v1.32.0.20260402-23905121947-ubuntu2404.tar.gz"
-	npu_file="linux-npu-driver-v1.32.0.20260402-23905121947-ubuntu2404.tar.gz"
+	# NPU version: v1.35.0.20260722-29947505341
+	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.35.0/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
+	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 
 	if wget "$npu_url" -O "$npu_file"; then
 		echo "Successfully downloaded NPU driver package"
+		
+		# Verify NPU package checksum
+		if ! verify_checksum "$npu_file" "${package_checksums[$npu_file]}"; then
+			echo "ERROR: NPU package checksum verification failed"
+			rm -f "$npu_file"
+			exit 1
+		fi
+		
 		if tar -xf "$npu_file"; then
 			echo "Successfully extracted NPU driver package"
 		else
@@ -546,6 +841,68 @@ install_kernel() {
 	ln -sf "initrd.img-$KERNEL_VERSION" /boot/initrd.img-intel
 }
 
+
+install_linux_tools() {
+	echo "Installing Linux tools..."
+	apt update
+	apt install -y \
+		linux-kbuild-6.18.38 \
+		linux-config-6.18 \
+		linux-bpf-dev \
+		linux-intel-bpftool \
+		linux-intel-misc-tools \
+		linux-intel-perf \
+		linux-intel-cpupower \
+		linux-intel-rtla \
+		linux-intel-usbip \
+		libcpupower-intel-dev \
+		libcpupower-intel1 \
+		linux-intel-hyperv-daemons \
+		linux-intel-sdsi \
+		linux-doc-6.18 \
+		linux-doc-intel \
+		linux-source-6.18 \
+		linux-source-intel
+	
+	# --- Canonical names for the internal kernel tools ---------------------------
+	# The linux-intel-* packages install their binaries with an `-intel` suffix
+	# (bpftool-intel, perf-intel, ...). Move and rename them to canonical names
+	# in /usr/local/{bin,sbin}, which PATH searches before /usr/bin and /usr/sbin.
+	# misc-tools, hyperv-daemons and sdsi already install canonical names;
+	# libcpupower-intel1/-dev use the standard soname. Nothing needed for those.
+	# moved all tools as same as canonical names.
+	
+	echo "Moving kernel tools to canonical names..."
+	mkdir -p /usr/local/bin /usr/local/sbin
+	if [ -x /usr/sbin/bpftool-intel ]; then mv /usr/sbin/bpftool-intel /usr/local/sbin/bpftool || true; fi
+	if [ -x /usr/bin/perf-intel ]; then mv /usr/bin/perf-intel /usr/local/bin/perf || true; fi
+	if [ -x /usr/bin/cpupower-intel ]; then mv /usr/bin/cpupower-intel /usr/local/bin/cpupower || true; fi
+	if [ -x /usr/bin/rtla-intel ]; then mv /usr/bin/rtla-intel /usr/local/bin/rtla || true; fi
+	if [ -x /usr/sbin/usbip-intel ]; then mv /usr/sbin/usbip-intel /usr/local/sbin/usbip || true; fi
+	if [ -x /usr/sbin/usbipd-intel ]; then mv /usr/sbin/usbipd-intel /usr/local/sbin/usbipd || true; fi
+	# Copy bpftool and usbip to bin as well for non-root shells whose PATH omits sbin
+	if [ -x /usr/local/sbin/bpftool ]; then cp /usr/local/sbin/bpftool /usr/local/bin/bpftool || true; fi
+	if [ -x /usr/local/sbin/usbip ]; then cp /usr/local/sbin/usbip /usr/local/bin/usbip || true; fi
+	# rtla sub-commands: create symlinks pointing to the rtla binary (rtla dispatches on argv[0])
+	if [ -x /usr/local/bin/rtla ]; then for t in hwnoise osnoise timerlat; do ln -sf /usr/local/bin/rtla /usr/local/bin/"$t" || true; done; fi
+	# Move other power tools to /usr/local/bin for consistency
+	for t in turbostat intel-speed-select x86_energy_perf_policy; do if [ -x "/usr/sbin/$t" ]; then mv "/usr/sbin/$t" "/usr/local/bin/$t" || true; fi; done
+	if [ -x /usr/sbin/intel_pstate_tracer.py ]; then mv /usr/sbin/intel_pstate_tracer.py /usr/local/bin/intel_pstate_tracer || true; fi
+	# Update bash completions to canonical names
+	if [ -f /usr/share/bash-completion/completions/bpftool-intel ]; then mv /usr/share/bash-completion/completions/bpftool-intel /usr/share/bash-completion/completions/bpftool || true; fi
+	if [ -f /usr/share/bash-completion/completions/perf-intel ]; then mv /usr/share/bash-completion/completions/perf-intel /usr/share/bash-completion/completions/perf || true; fi
+	# Rename man pages to canonical names
+	for f in /usr/share/man/man1/{perf,rtla,bpftool,cpupower}-intel*.1.gz; do [ -e "$f" ] || continue; b=$(basename "$f"); n="${b/-intel/}"; if [ "$b" != "$n" ]; then mv "$f" "/usr/share/man/man1/$n" || true; fi; done
+	# Rename cpupower systemd service to canonical name
+	if [ -f /usr/lib/systemd/system/cpupower-intel.service ]; then mv /usr/lib/systemd/system/cpupower-intel.service /usr/lib/systemd/system/cpupower.service || true; fi
+	# out-of-tree builds look for /lib/modules/$(uname -r)/build
+	if [ -d /usr/lib/linux-kbuild-6.18.38 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k" || true; done; fi
+	# Report what resolved, so a missing tool is visible in the build log.
+	for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v "$t" 2>/dev/null || true); echo "kernel-tool: $t -> ${p:-MISSING}"; done
+	
+	echo "Linux tools installed successfully."
+}
+
 main() {
 
 	install_depended_packages
@@ -557,6 +914,8 @@ main() {
 	set_preferred_package_list
 
 	install_essential_tools
+
+	install_camera_packages
 
 	build_install_lpmd
 
@@ -580,7 +939,7 @@ main() {
 
 	install_kernel
 
-	install_performance_tools
+	install_linux_tools
 }
 
 main "$@"

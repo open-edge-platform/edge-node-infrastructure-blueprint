@@ -15,6 +15,12 @@ The Edge Node Infrastructure Blueprint ships a set of agent skills that let you 
 | `create-usb-installation-files` | Packages a complete bootable USB artifact (`usb-installation-files.tar.gz`), optionally running `create-image` first |
 | `validate-platform-config` | Validates a provisioned edge node over SSH — checks k3s pod health, binary paths, cloud-init state, network/proxy settings, and device readiness (GPU VFs, NPU) |
 | `update-install-packages` | Updates Ubuntu package configuration and installs required packages on a provisioned system |
+| `set-power-profile` | Sets the platform power envelope — a named profile (LowPower 10 W, BalancedLow 15 W, BalancedHigh 20 W, Performance 25 W, MaxPerformance) or a custom PkgWatt (PL1) / SysWatt (psys) envelope with burst ratio and time window |
+| `set-thermal-profile` | Sets the thermald thermal escalation policy — generates, validates, applies, and verifies staged Fan/Processor/powerclamp trip points (cool, warm, hot, thermal-max, or custom) |
+| `generate-platform-stress` | Generates configurable CPU and integrated-GPU load with stress-ng — control worker count, per-CPU load percentage, GPU worker count, and duration |
+| `generate-openvino-stress` | Generates sustained AI inference load on CPU, GPU, or NPU using OpenVINO `benchmark_app` in a K3s pod or Docker container for realistic power/thermal qualification |
+| `monitor-power-thermal` | Runs a live power and thermal monitor with turbostat — samples PkgTmp and the RAPL domains (PkgWatt, CorWatt, GFXWatt, RAMWatt, SysWatt) and logs to `pt_mon.txt` |
+| `combined-power-thermal-profiling` | Orchestrates a full profiling session — chains set-power-profile → set-thermal-profile → monitor-power-thermal → generate-platform-stress and emits one consolidated enclosure report with a throttle/headroom verdict |
 
 ## How to Use Skills
 
