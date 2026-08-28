@@ -133,12 +133,37 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
   docker-buildx-plugin docker-compose-plugin
 ```
 
+Configure Docker proxy settings when operating behind a proxy:
+
+```bash
+mkdir ~/.docker
+
+vi  ~/.docker/config.json
+{
+        "proxies": {
+                "default": {
+                        "httpProxy": "http://proxy-server-ip:port",
+                        "httpsProxy": "http://proxy-server-ip:port",
+                        "noProxy": "localhost,127.0.0.0/8,/var/run/docker.sock"
+                }
+        }
+}
+```
+
 Allow your user to run Docker without `sudo`, then activate the change:
 
 ```bash
 sudo usermod -aG docker $USER
 newgrp docker
 ```
+
+Reload daemon and restart the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+```
+
 
 Verify Docker is working:
 
