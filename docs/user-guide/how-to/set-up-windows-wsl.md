@@ -189,7 +189,7 @@ export PASSWORD="$(openssl passwd -6 '<your-password>')"
 # Or using mkpasswd (requires `whois` to be installed)
 export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 
-# Build the standard image
+# Build the image — use MODE=standard-image for handheld or MODE=server-image for UAV
 make build MODE=standard-image
 ```
 
