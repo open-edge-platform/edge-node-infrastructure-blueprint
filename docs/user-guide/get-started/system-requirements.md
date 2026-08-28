@@ -40,14 +40,20 @@ If you are behind a proxy, configure [Docker daemon proxy settings](https://docs
 
 ### Install Make on the Development System
 
-Install GNU Make on your development system:
+```bash
+sudo apt-get install -y make
+```
+
+### Password Hash Tools
+
+The build requires a SHA-512 password hash for the image credentials. Install at least one of the following:
 
 ```bash
-# Ubuntu/Debian
-sudo apt-get install make
+# Option 1: openssl
+sudo apt-get install -y openssl
 
-# RHEL/Fedora
-sudo dnf install make
+# Option 2: mkpasswd (whois package)
+sudo apt-get install -y whois
 ```
 
 ## Target (Host) System

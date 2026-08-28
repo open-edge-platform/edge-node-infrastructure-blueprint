@@ -32,7 +32,9 @@ From the repository root, run one of the following build modes.
 
 Build the Ubuntu image, including the required tools and packages, from the standard Ubuntu image flow:
 
-Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials. These are required and must not be null or empty; the build exits before starting if either variable is unset or empty:
+Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials. These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+
+Ensure `openssl` or `mkpasswd` (`whois` package) is installed — see [Password Hash Tools](./system-requirements.md#password-hash-tools).
 
 ```bash
 export USERNAME='<your-username>'
