@@ -175,7 +175,23 @@ docker run --rm hello-world
 
 ## Step 5: Clone the Repository and Build Artifacts
 
-The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository and run `make build MODE=standard-image`.
+The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository
+
+Before building standard-image, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
+These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+
+```bash
+export USERNAME='<your-username>'
+# Generate the SHA-512 password hash with one of the following methods.
+# Using openssl (requires `openssl` to be installed)
+export PASSWORD="$(openssl passwd -6 '<your-password>')"
+
+# Or using mkpasswd (requires `whois` to be installed)
+export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
+
+# Build the standard image
+make build MODE=standard-image
+```
 
 Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 6 below to attach your USB drive to WSL2.
 
