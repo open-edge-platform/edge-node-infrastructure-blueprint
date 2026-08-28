@@ -64,7 +64,6 @@ HTTPS_PROXY="http://proxy-server-ip:port"
 NO_PROXY=".internal,127.0.0.1,::1,localhost"
 
 # Append the following lines to ~/.bashrc
-export PATH=$PATH:/usr/local/go/bin
 export http_proxy="http://proxy-server-ip:port"
 export https_proxy="http://proxy-server-ip:port"
 export no_proxy=".internal,127.0.0.1,::1,localhost"
@@ -109,30 +108,60 @@ Inside the Ubuntu 24.04 terminal:
 curl -I http://archive.ubuntu.com
 sudo apt update
 sudo apt upgrade -y
-
-# Install go lang and tools required for build
-wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
 sudo apt install -y make
 ```
 
 ---
 
-## Step 4: Clone the Repository and Build Artifacts
+## Step 4: Install Docker
 
-The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository and run `make build MODE=image-from-iso ...`.
+Inside the Ubuntu 24.04 terminal, install Docker Engine:
 
-Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 5 below to attach your USB drive to WSL2.
+```bash
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+```
+
+Allow your user to run Docker without `sudo`, then activate the change:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Verify Docker is working:
+
+```bash
+docker run --rm hello-world
+```
 
 ---
 
-## Step 5: Attach USB Drive to WSL2
+## Step 5: Clone the Repository and Build Artifacts
+
+The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository and run `make build MODE=standard-image`.
+
+Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 6 below to attach your USB drive to WSL2.
+
+---
+
+## Step 6: Attach USB Drive to WSL2
 
 To run `bootable-usb-prepare.sh` inside WSL2, the USB drive must be explicitly attached
 using **usbipd-win**.
 
-### 5a. Install usbipd-win on Windows
+### 6a. Install usbipd-win on Windows
 
 In **Windows PowerShell as Administrator**:
 
@@ -142,7 +171,7 @@ winget install usbipd
 
 Alternatively, download the installer from [USBIPD-WIN Releases](https://github.com/dorssel/usbipd-win/releases).
 
-### 5b. List available USB devices
+### 6b. List available USB devices
 
 In **Windows PowerShell as Administrator**:
 
@@ -157,7 +186,7 @@ BUSID  VID:PID    DEVICE                                                        
 1-13   2174:2100  USB Attached SCSI (UAS) Mass Storage Device                   Not shared
 ```
 
-### 5c. Bind the USB device (one-time setup per device)
+### 6c. Bind the USB device (one-time setup per device)
 
 ```powershell
 usbipd bind -f -b 1-13
@@ -165,7 +194,7 @@ usbipd bind -f -b 1-13
 
 Replace `1-13` with the BUSID of your USB drive from the list above.
 
-### 5d. Attach the USB device to WSL2
+### 6d. Attach the USB device to WSL2
 
 ```powershell
 usbipd attach -w -b 1-13
@@ -178,7 +207,7 @@ BUSID  VID:PID    DEVICE                                                        
 1-13   2174:2100  USB Attached SCSI (UAS) Mass Storage Device                   Attached
 ```
 
-### 5e. Verify the device is visible in WSL2
+### 6e. Verify the device is visible in WSL2
 
 Inside the Ubuntu 24.04 terminal:
 
@@ -193,7 +222,7 @@ cd infrastructure/build-artifacts
 sudo ./bootable-usb-prepare.sh /dev/sdb usb-bootable-files.tar.gz config-file
 ```
 
-### 5f. Detach when done
+### 6f. Detach when done
 
 ```powershell
 usbipd detach -b 1-13
