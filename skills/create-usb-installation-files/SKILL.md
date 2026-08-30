@@ -22,7 +22,7 @@ description: Package bootable USB installation artifacts (HookOS, host image, de
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
 - build_mode: `standard-image|server-image|image-from-tool|reuse-image` — infer from user wording; only ask when genuinely ambiguous
-- `ict_img`: required only for `image-from-tool` mode when no image was produced in the same session; absolute or repo-relative path to `.raw.gz` or `.raw.img.gz`
+- `ict_img`: required only for `image-from-tool` mode when no image was produced in the same session; absolute or repo-relative path to `.raw.gz` or `.raw.img.gz`, containing only letters, digits, `/`, `.`, `_`, `-`, `+`, `:`, or `@` and no `..` path component
 
 All other paths (`target_template`, `os_image_composer_repo`, etc.) use defaults — never prompt for them unless the user explicitly overrides.
 
@@ -35,8 +35,13 @@ Run all checks silently — report failures only, no prompts:
 - [ ] `docker buildx version`
 - [ ] `make --version`
 - [ ] `proxy.env` present at repo root (auto-created by `make`; user can pass `skip-proxy=true` to bypass)
-- [ ] If `ict_img` was given: `test -f <ict_img>` and extension is `.raw.gz` or `.raw.img.gz`
-- [ ] **Sudo probe** (before any `sudo` step): `sudo -n true`. If non-zero, stop and tell the user to run `sudo -v`, or add a scoped `NOPASSWD` entry, or fix tty_tickets: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. See [AGENTS.md](../../AGENTS.md). 
+- [ ] If `ict_img` was given, validate it before use. Reject the input unless all checks pass:
+  - `[[ "$ict_img" =~ ^[A-Za-z0-9_./:+@-]+$ ]]` (rejects shell metacharacters, whitespace, quotes, and control characters)
+  - `[[ ! "$ict_img" =~ (^|/)\.\.(/|$) ]]` (rejects path traversal)
+  - `[[ "$ict_img" == *.raw.gz || "$ict_img" == *.raw.img.gz ]]`
+  - `[[ -f "$ict_img" ]]`
+  - Canonicalize only after validation: `ict_img="$(realpath -e -- "$ict_img")"`; use this canonical value for every later command.
+- [ ] **Sudo probe** (before any `sudo` step): `sudo -n true`. If non-zero, stop and tell the user to add scoped `NOPASSWD` entries for the required absolute binary paths in `/etc/sudoers.d/create-usb-installation-files`, then re-trigger. See [AGENTS.md](../../AGENTS.md).
 
 ## Steps
 1. Collect required inputs and determine flow:
@@ -54,7 +59,7 @@ Run all checks silently — report failures only, no prompts:
 3. Set build command arguments:
   - `build_mode=standard-image`: `make build` (or `make build MODE=standard-image`)
   - `build_mode=server-image`: `make build MODE=server-image`
-  - `build_mode=image-from-tool`: `make build MODE=image-from-tool ICT_IMG="<ICT_IMG>"`
+  - `build_mode=image-from-tool`: `make build MODE=image-from-tool ICT_IMG="$ict_img"`
   - `build_mode=reuse-image`: `make build MODE=reuse-image`
   - To skip proxy: append `skip-proxy=true` to any command above
 4. Build USB installation artifacts from repository root:

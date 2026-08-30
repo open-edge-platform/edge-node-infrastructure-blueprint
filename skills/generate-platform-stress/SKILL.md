@@ -47,7 +47,6 @@ Acronyms and terms used throughout this skill.
 - gpu: number of stress-ng GPU worker processes targeting the single iGPU (default: `12`; `0` disables GPU stress). This is a worker count, NOT a GPU count.
 - duration: optional stress-ng timeout, e.g. `60s`, `5m`, `2h` (default: run until stopped / Ctrl-C)
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved command is shown; nothing is launched.
-- auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
 
 ## Preconditions
 Run silently without user prompts:
@@ -90,7 +89,7 @@ Input validation (fail closed before launch):
 2. Capture a brief pre-stress snapshot for the report (read-only, best-effort; **skip entirely when `dry_run=true`**):
    - load average: `cat /proc/loadavg`
    - package temp/power if turbostat is available (single sample): `turbostat --quiet --interval 1 --num_iterations 1 --show PkgTmp,PkgWatt 2>/dev/null || true`
-3. **Always render a Planned Load table** from the resolved parameters before any launch — show it unconditionally, including when `auto_confirm=true`:
+3. **Always render a Planned Load table** from the resolved parameters before any launch:
 
    | Parameter | Value |
    |---|---|
@@ -103,8 +102,7 @@ Input validation (fail closed before launch):
 
 4. **Confirmation gate** — pause before launching:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not launch.
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: present the tabulated Planned Load and ask "Launch stress (<cpus> CPUs @ <load>%, <gpu> GPU workers, duration=<duration or 'until stopped'>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Otherwise, present the tabulated Planned Load and ask "Launch stress (<cpus> CPUs @ <load>%, <gpu> GPU workers, duration=<duration or 'until stopped'>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
 5. Launch (only after confirmation):
    - If `duration` is set: run **synchronously** and let it complete; capture exit code.
    - If `duration` is NOT set (runs until stopped): run in the **background** so the run does not block; record the PID(s) via `pgrep -x stress-ng` and tell the user how to stop it (`sudo pkill -x stress-ng`, or Ctrl-C if launched in their own foreground terminal).
@@ -134,8 +132,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Preconditions passed (script executable; `stress-ng` present; no pre-existing stress-ng instance).
 - `cpus`, `load`, `gpu`, and `duration` validated against their ranges/syntax.
 - A Planned Load table was rendered unconditionally before the confirmation gate.
-- Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Launch only occurred when the outcome is `confirmed` or `auto_confirm`.
+- Confirmation gate outcome recorded as one of: `confirmed`, `declined`, `dry_run_only`.
+- Launch only occurred when the outcome is `confirmed`.
 - After launch, `pgrep -x stress-ng` shows the expected activity (one or more workers).
 - For bounded runs (`duration` set), the script exited with code `0` at completion.
 - For open-ended runs, the PID(s) and stop instructions were reported to the user.
@@ -166,7 +164,7 @@ Render the report as the following tables.
 | GPU workers | `<gpu>` (0 = off) |
 | Duration | `<duration or 'until stopped'>` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 
 ### Launch Result

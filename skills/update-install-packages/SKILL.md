@@ -23,7 +23,7 @@ description: Update Ubuntu package configuration files for package add and delet
 ## Required Inputs
 - enib_home: absolute path to this repository root
 - package_operation: `add|delete`
-- packages_list: comma-separated package names
+- packages_list: comma-separated package names; each token must match `^[a-z0-9.+-]+$`
 - target_config_file: `curate-host-packages|ict-template|both`
 
 ## Preconditions
@@ -34,22 +34,22 @@ description: Update Ubuntu package configuration files for package add and delet
 - [ ] `package_operation` is one of `add|delete`.
 - [ ] `target_config_file` is one of `curate-host-packages.sh|ict-template|both`.
 - [ ] `packages_list` is not empty.
-- [ ] Validate each package name format (letters, digits, `.`, `+`, `-`) and reject invalid tokens.
-- [ ] **MANDATORY**: Verify package availability in Ubuntu OS version 24.04 repositories for each requested package using `apt-cache show <package_name>`. If package is not found, use `apt-cache search <keyword>` to find alternatives and present to user for selection.
+- [ ] Split `packages_list` on commas and validate every token before using it in a command: `IFS=',' read -r -a package_names <<< "$packages_list"`; reject empty tokens or any `package_name` that fails `[[ "$package_name" =~ ^[a-z0-9.+-]+$ ]]`.
+- [ ] **MANDATORY**: Verify package availability in Ubuntu OS version 24.04 repositories for each validated package using `apt-cache show -- "$package_name"`. If package is not found, use `apt-cache search -- "$package_name"` to find alternatives and present to user for selection.
 - [ ] Create backup copies before modifying configuration files.
 - [ ] Prompt for `sudo` confirmation only before privileged or destructive operations.
-- [ ] Sudo probe (MANDATORY before any privileged step such as sudo apt update/sudo apt install): run sudo -n true. If exit is non-zero, stop and instruct the user to run sudo -v in their terminal (or add a scoped NOPASSWD entry in /etc/sudoers.d/ for the specific binary), then re-trigger the skill. If sudo -v was already run but sudo -n true still fails, the user must make sudo timestamps global (tty_tickets issue): echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c. See AGENTS.md. 
+- [ ] Sudo probe (MANDATORY before any privileged step such as sudo apt update/sudo apt install): run sudo -n true. If exit is non-zero, stop and instruct the user to add scoped NOPASSWD entries in /etc/sudoers.d/update-install-packages for each required absolute binary path, then re-trigger the skill. See AGENTS.md.
 
 ## Steps
 1. Collect required inputs:
   - `package_operation`, `packages_list`, and `target_config_file`.
-  - Split and normalize `packages_list` into individual package names.
+  - Split and normalize `packages_list` into individual package names with `IFS=',' read -r -a package_names <<< "$packages_list"`.
   - Optionally collect hardware details (e.g., device name, model, and vendor).
 2. Validate operation and package list:
   - Reject invalid operation or target values.
-  - Reject invalid package name formats.
-  - **CRITICAL**: Verify package availability in Ubuntu OS version 24.04 repositories using `apt-cache show <package_name>`.
-  - For `add` operations: **MANDATORY** - Query Ubuntu OS version 24.04 apt repositories using `apt-cache show <package_name>` to confirm that each package exists before adding to target_config_file. If a package is not found, suggest alternative package names using `apt-cache search <keyword>` and present options to the user. Reject any packages not found in official Ubuntu OS version 24.04 repositories after validation.
+  - Reject empty or invalid package tokens using `[[ "$package_name" =~ ^[a-z0-9.+-]+$ ]]`; do not pass an invalid token to another command.
+  - **CRITICAL**: Verify package availability in Ubuntu OS version 24.04 repositories using `apt-cache show -- "$package_name"` for each validated token.
+  - For `add` operations: **MANDATORY** - Query Ubuntu OS version 24.04 apt repositories using `apt-cache show -- "$package_name"` to confirm that each package exists before adding to target_config_file. If a package is not found, suggest alternatives using `apt-cache search -- "$package_name"` and present options to the user. Reject any packages not found in official Ubuntu OS version 24.04 repositories after validation.
 3. If hardware details are provided, search Ubuntu OS version 24.04 repositories:
   - Query repository metadata for corresponding userspace or kernel-space packages matching the hardware device.
   - Return matched packages to the user for confirmation before adding to `packages_list`.
@@ -96,7 +96,7 @@ Return:
 - troubleshooting hints when package update fails (for example, validation, permissions, or repository metadata issues)
 
 ## Troubleshooting Notes
-- **Package Not Found**: If `apt-cache show <package>` returns nothing, the package name is incorrect or the package does not exist. Use `apt-cache search <keyword>` to find the correct package name. Common issues:
+- **Package Not Found**: If `apt-cache show -- "$package_name"` returns nothing, the package name is incorrect or the package does not exist. Use `apt-cache search -- "$package_name"` only after the token validation step to find the correct package name. Common issues:
   - Different naming conventions: check for suffixes like `-dev`, `-tools`, or version numbers
   - Package might be in a different repository [Intel overlay, third-party Personal Package Archive (PPA)]
 - If package validation fails, confirm package names against Ubuntu OS version 24.04  repository metadata and retry.

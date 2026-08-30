@@ -83,7 +83,6 @@ full glossaries.
 - interval: monitor sampling interval in seconds (default: `2`), forwarded to `monitor-power-thermal`.
 - log_path: where the monitor trace is written (default: `<enib_home>/tools/power-tuning/pt_mon.txt`).
 - dry_run: `true` | `false` (default: `false`). When `true`, every stage runs its own dry-run only; nothing is applied, monitored, or stressed.
-- auto_confirm: `true` | `false` (default: `false`). When `true`, skip the single combined confirmation gate and each sub-skill's gate.
 
 ## Preconditions
 Run silently without user prompts. This orchestrator's preconditions are the
@@ -105,7 +104,7 @@ Run silently without user prompts. This orchestrator's preconditions are the
 - [ ] No stress-ng or turbostat instance is already running (would skew the capture):
   - `pgrep -x stress-ng` and `pgrep -x turbostat` — if either returns a PID, stop and instruct the user to stop it first (`sudo pkill -x stress-ng` / `sudo pkill -x turbostat`) before re-triggering.
 - [ ] When `thermal_profile=none`, verify thermald is not active: `systemctl is-active --quiet thermald`. If it is active, stop before applying power and require the user to select an explicit thermal profile. thermald owns the package RAPL cooling device and can restore its persisted PPCC maximum, making an unchanged thermal policy incompatible with a new power target.
-- [ ] **Sudo probe (MANDATORY unless `dry_run=true`).** The session applies power/thermal changes and runs `sudo turbostat`. Run `sudo -n true`; if exit is non-zero, do NOT proceed — stop and instruct the user to run `sudo -v` (or add the scoped `NOPASSWD` entries the sub-skills document), then re-trigger. Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo probe (MANDATORY unless `dry_run=true`).** The session applies power/thermal changes and runs `sudo turbostat`. Run `sudo -n true`; if exit is non-zero, do NOT proceed — stop and instruct the user to add the scoped `NOPASSWD` entries for the required absolute binary paths documented by the sub-skills, then re-trigger. Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 - [ ] Host is x86_64 with an Intel CPU (sanity check; non-fatal warning if not): `uname -m` and `grep -m1 -o 'GenuineIntel' /proc/cpuinfo`.
 - [ ] (Informational) Detect psys/SysWatt support so the report can annotate a `0.00` reading (as in `monitor-power-thermal`).
 
@@ -134,11 +133,10 @@ Input validation (fail closed before running anything):
    firmware/cTDP clamp or thermal notes into the Planned Session table.
 3. **Single combined confirmation gate** — pause before any write:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not apply/monitor/stress.
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true`, propagate `auto_confirm=true` to each sub-skill, and continue.
-   - Else: present the Planned Session table and ask **once**: "Run the full profiling session — apply <profile> (+ <thermal_profile> thermal), monitor for <duration>, and stress <cpus> CPUs @ <load>% + <gpu> GPU workers on this host? (yes/no)". On anything other than `yes`/`y`, stop and record `CONFIRMATION=declined`. A `yes` authorizes all stages; still surface (do not re-prompt for) each sub-skill's plan as it runs.
+   - Otherwise, present the Planned Session table and ask **once**: "Run the full profiling session — apply <profile> (+ <thermal_profile> thermal), monitor for <duration>, and stress <cpus> CPUs @ <load>% + <gpu> GPU workers on this host? (yes/no)". On anything other than `yes`/`y`, stop and record `CONFIRMATION=declined`. A `yes` authorizes the enumerated stages; still surface (do not re-prompt for) each sub-skill's plan as it runs.
 4. **CONSTRAIN — apply the envelope** (only after confirmation), in order:
-   - Invoke **set-power-profile** with the resolved `profile` and any `pkg_watt`/`sys_watt`/`burst_ratio`/`pl1_tau`, `auto_confirm=true`. Capture its report and exit code. Abort the session if it fails.
-   - If `thermal_profile != none`: invoke **set-thermal-profile** immediately after power with the resolved `thermal_profile` (+ custom trips / `--charge` if given), `auto_confirm=true`. It captures the newly applied RAPL PL1 as thermald PPCC. Capture its report and exit code. Abort if it fails.
+   - Invoke **set-power-profile** with the resolved `profile` and any `pkg_watt`/`sys_watt`/`burst_ratio`/`pl1_tau` under the recorded combined confirmation. Capture its report and exit code. Abort the session if it fails.
+   - If `thermal_profile != none`: invoke **set-thermal-profile** immediately after power with the resolved `thermal_profile` (+ custom trips / `--charge` if given) under the recorded combined confirmation. It captures the newly applied RAPL PL1 as thermald PPCC. Capture its report and exit code. Abort if it fails.
 5. **OBSERVE — start the monitor**, bounded to the stress window. Invoke
    **monitor-power-thermal** with `duration` (≈ the stress `duration`, plus a
    few seconds of lead/tail), `interval`, and `log_path`. For non-default
@@ -147,7 +145,7 @@ Input validation (fail closed before running anything):
    load so the trace captures the ramp. Record the log path and PID.
 6. **LOAD — drive the stress**, synchronously and bounded. Invoke
    **generate-platform-stress** with the resolved `cpus`/`load`/`gpu` and the
-   bounded `duration`, `auto_confirm=true`. Let it complete; capture its report
+   bounded `duration` under the recorded combined confirmation. Let it complete; capture its report
    (including the GPU-load verification when `gpu > 0`) and exit code.
 7. **Stop the monitor** if it is still running (bounded runs self-terminate;
    otherwise `sudo pkill -x turbostat`). Confirm the trace file is non-empty
@@ -162,8 +160,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Preconditions passed (all required sub-skill files/scripts executable; tools present; no pre-existing stress-ng/turbostat; sudo probe = 0 when a run is intended).
 - Inputs validated against each sub-skill's rules; `duration` present and bounded.
 - A single Planned Session table was rendered from the stage dry-runs before the combined confirmation gate.
-- Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Stages executed only when the outcome is `confirmed` or `auto_confirm`, and in order: power → thermal → monitor → stress → summarize. Thermal is omitted only when thermald was confirmed inactive for `thermal_profile=none`.
+- Confirmation gate outcome recorded as one of: `confirmed`, `declined`, `dry_run_only`.
+- Stages executed only when the outcome is `confirmed`, and in order: power → thermal → monitor → stress → summarize. Thermal is omitted only when thermald was confirmed inactive for `thermal_profile=none`.
 - Each executed sub-skill reported success (exit `0`); the session aborted (and rolled back per Rollback) on the first failure.
 - The monitor trace is non-empty and covers the stress window; the enclosure report's min/mean/max were parsed from it.
 - `SysWatt=0.00` is annotated as a known firmware limitation (per psys detection), NOT a session failure.
@@ -204,7 +202,7 @@ Emit the single **enclosure report** as the following tables.
 | Monitor | interval `<interval>s`, log `<log_path>` |
 | SysWatt availability | `live` / `frozen (0.00)` / `no psys domain (0.00)` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 ### Stage Results
 

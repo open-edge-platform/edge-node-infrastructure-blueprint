@@ -19,7 +19,7 @@ For skill execution order, see [AGENTS.md](AGENTS.md#skill-execution-order-must-
 ## Sudo Handling (MUST follow before any `sudo` command)
 Before running any `sudo` command in any skill or task:
 1. Probe with `sudo -n true` and capture the exit code.
-2. If exit is non-zero, **do not** run the privileged command. Tell the user to run `sudo -v` in their own terminal (or add a scoped `NOPASSWD` entry in `/etc/sudoers.d/` for the specific binary), then re-trigger the skill.
+2. If exit is non-zero, **do not** run the privileged command. Tell the user to add a scoped `NOPASSWD` entry in `/etc/sudoers.d/<skill-name>` for each required absolute binary path, then re-trigger the skill. Never recommend global sudo timestamps or `NOPASSWD: ALL`.
 3. Never collect a password via prompts, env vars, scripts, or logs.
 
 Full rules: [AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo](AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).

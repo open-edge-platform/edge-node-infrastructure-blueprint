@@ -219,7 +219,6 @@ and worse — when you pick one, so there are no surprises in production.
 - sys_watt: psys/platform (SysWatt) cap in watts (optional). May be supplied alongside a named profile or `Custom` to override the SysWatt cap on psys-capable silicon; without it the SysWatt cap tracks the PkgWatt budget. When supplied, must be a **multiple of 5** in `[5, cTDP Level 2]`. Ignored on platforms without a psys domain.
 - pl1_tau: PL1 time window (tau) in seconds (optional, default `28`).
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved plan is shown; nothing is applied.
-- auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
 
 ## Profile Table
 
@@ -243,14 +242,14 @@ Run silently without user prompts:
 - [ ] `msr-tools` and the `msr` module are available (needed to probe psys support, read cTDP levels, and program RAPL MSRs):
   - `command -v rdmsr && command -v wrmsr`
   - if missing, warn that psys support cannot be probed reliably and the script will fall back to Panther Lake defaults; the PkgWatt estimate path may be used.
-- [ ] **Sudo (non-interactive — never prompt for sudo approval).** This skill assumes passwordless sudo is already configured for the script (run the `setup-agent-sudo` prerequisite once per host). Do NOT ask the user for sudo approval, a password, or `sudo -v` at any point in the skill execution. You MAY run a silent `sudo -n true` for the report only, but never pause, prompt, or block on its result. `dry_run=true` needs no sudo (read-only). Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo (non-interactive — never prompt for sudo approval).** This skill assumes passwordless sudo is already configured for the script (run the `setup-agent-sudo` prerequisite once per host). Do NOT ask the user for sudo approval, a password, or interactive authentication at any point in the skill execution. You MAY run a silent `sudo -n true` for the report only, but never pause, prompt, or block on its result. `dry_run=true` needs no sudo (read-only). Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 - [ ] Determine the cTDP Level 2 maximum (upper bound for a `Custom` `pkg_watt`/`sys_watt`):
   - The script reads the cTDP MSRs internally and prints the resolved values (`Config-TDP levels: Nominal=…W Level1=…W Level2=…W`) in its output. Use `CTDP_MAX=65` (Panther Lake fallback) as the reported ceiling for input validation before running; the script will clamp to the real value at runtime.
 
 Defaults for missing inputs (do NOT prompt):
 - [ ] If `profile` is not provided, default to `BalancedHigh` and continue — do not prompt.
 - [ ] If `profile=Custom` and `pkg_watt` is missing, default to the platform Nominal TDP (from the CPU's Config-TDP MSRs; Panther Lake fallback if unreadable) — do not prompt.
-- [ ] Use defaults for `burst_ratio`, `sys_watt`, `pl1_tau`, `dry_run`, and `auto_confirm` unless the user supplied them.
+- [ ] Use defaults for `burst_ratio`, `sys_watt`, `pl1_tau`, and `dry_run` unless the user supplied them.
 
 Input validation (fail closed before running the script):
 - [ ] `profile` matches one of the five names or `Custom` (case-insensitive). Otherwise stop and list the valid profiles.
@@ -282,12 +281,11 @@ Input validation (fail closed before running the script):
    - Repeat for `:1` (psys) if present. Record the values for the post-change comparison.
 4. **Always execute a dry run first** (read-only, no sudo, no writes):
    - Run `<enib_home>/tools/power-tuning/set_power_profile.sh --profile <profile> [--pkgWatt <pkg_watt>] [--sysWatt <sys_watt>] [--burstRatio <burst_ratio>] [--pl1Tau <pl1_tau>] --dry-run` and capture the resolved plan verbatim (it prints the effective explicit-target command line, the resolved PkgWatt/PL2/SysWatt values, and any firmware/cTDP clamping).
-   - This step runs unconditionally on every invocation, including when `auto_confirm=true`.
+  - This step runs unconditionally on every invocation.
 5. **Render the Planned Changes as a table** built from the dry-run output (profile, PkgWatt target, resolved burst ratio, PL2, SysWatt cap, psys-supported yes/no, and any clamp note). Show it to the user before any write.
 6. **Confirmation gate** — pause before any write:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not apply.
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: present the tabulated Planned Changes and ask "Apply the <profile> profile (PkgWatt <N>W, burstRatio <R>) on this host? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Otherwise, present the tabulated Planned Changes and ask "Apply the <profile> profile (PkgWatt <N>W, burstRatio <R>) on this host? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
 7. Apply (only after confirmation). `set_power_profile.sh` self-elevates with `sudo -E` internally when not root, so the agent calls it directly — no `sudo` prefix in the terminal command, which avoids the VS Code approval dialog. Build the argument list:
    - Base: `<enib_home>/tools/power-tuning/set_power_profile.sh --profile <profile>`
    - For `Custom`, also append `--pkgWatt <pkg_watt>` and, when supplied, `--pl1Tau <pl1_tau>` (default 28).
@@ -301,8 +299,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Preconditions passed (script executable). Passwordless sudo is assumed pre-configured; the sudo probe is informational only and never blocks execution.
 - `profile` validated against the five names; `burst_ratio` validated when supplied.
 - A dry run was executed first on every invocation, and the Planned Changes table was rendered from its output before the confirmation gate.
-- Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Apply phase only executed when the outcome is `confirmed` or `auto_confirm`.
+- Confirmation gate outcome recorded as one of: `confirmed`, `declined`, `dry_run_only`.
+- Apply phase only executed when the outcome is `confirmed`.
 - When applied, the script exited with code `0`.
 - Post-change package RAPL PL1/PL2 reflect the profile PkgWatt (allowing for firmware/cTDP clamping); when psys is supported the psys domain reflects the SysWatt cap (the explicit `sys_watt` when given, otherwise the PkgWatt budget).
 - Note: on platforms where the psys counter is frozen/unavailable, the SysWatt cap is written to the register but turbostat still reads `SysWatt=0.00`; this is a firmware limitation, not a failure.
@@ -338,7 +336,7 @@ Render the report as the following tables.
 | cTDP Level 2 max | `<CTDP_MAX>W` (msr / fallback) |
 | psys (SysWatt) supported | `yes` / `no` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 ### Planned Changes
 
@@ -379,7 +377,7 @@ Render the report as the following tables.
   ```
   <user> ALL=(root) NOPASSWD: /home/<user>/enib/tools/power-tuning/set_power_profile.sh
   ```
-  Never use `NOPASSWD: ALL`. If a `sudo -v` timestamp exists but is not honored (tty_tickets), make timestamps global: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`.
+  Never use `NOPASSWD: ALL` or global sudo timestamps; keep the entry restricted to the script's absolute path.
 - If `rdmsr`/`wrmsr` are missing: `sudo apt-get install -y msr-tools` and `sudo modprobe msr`. Without them psys support cannot be probed and the script uses Panther Lake defaults.
 - If psys is reported "not supported": only the PkgWatt cap is applied (this platform has no psys/SysWatt domain), which is the expected behaviour on such silicon.
 - If `SysWatt` still reads `0.00` in turbostat after applying: the platform (psys) RAPL counter is frozen/unpopulated on some Core Ultra platforms. This is a firmware limitation; use PkgWatt as the effective figure.

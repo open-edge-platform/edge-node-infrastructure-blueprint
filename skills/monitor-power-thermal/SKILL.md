@@ -47,7 +47,6 @@ Acronyms and terms used throughout this skill.
 - interval: sampling interval in seconds (default: `2`, matching the script). Only applied when the skill is allowed to pass it through; otherwise the script default is used.
 - log_path: where to tee the output (default: `<enib_home>/tools/power-tuning/pt_mon.txt`, the script's built-in location when run from that directory).
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved command is shown; the monitor is not started.
-- auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
 
 ## Preconditions
 Run silently without user prompts:
@@ -58,7 +57,7 @@ Run silently without user prompts:
 - [ ] `turbostat` is installed:
   - `command -v turbostat`
   - if missing, stop and instruct: install `linux-tools-generic` (Ubuntu: `sudo apt-get install -y linux-tools-generic`), then re-trigger. Do NOT run `linux-tools-$(uname -r)` in a terminal command — the `$(...)` triggers a VS Code approval dialog; use the generic package name instead.
-- [ ] **Sudo probe (MANDATORY before starting the monitor)** (turbostat reads MSRs; the script uses `sudo turbostat`): run `sudo -n true`. If exit is non-zero, do NOT start the monitor; stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry for the absolute path to `turbostat`, e.g. `/usr/bin/turbostat`, in `/etc/sudoers.d/`), then re-trigger the skill. If `sudo -v` was already run but `sudo -n true` still fails, the user must make sudo timestamps global (tty_tickets issue): `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo probe (MANDATORY before starting the monitor)** (turbostat reads MSRs; the script uses `sudo turbostat`): run `sudo -n true`. If exit is non-zero, do NOT start the monitor; stop and instruct the user to add a scoped `NOPASSWD` entry for the absolute path to `turbostat`, e.g. `/usr/bin/turbostat`, in `/etc/sudoers.d/monitor-power-thermal`, then re-trigger the skill. Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 - [ ] `msr` module available (turbostat + the script's psys check need it):
   - `lsmod | grep -qw msr || sudo modprobe msr 2>/dev/null || true` (non-fatal warning if it cannot load)
 - [ ] Host is x86_64 with an Intel CPU (sanity check; non-fatal warning if not):
@@ -90,8 +89,7 @@ Input validation (fail closed before starting):
 2. **Render the Planned Monitor summary** to the user: command, interval, duration (or "until stopped"), log path, and the psys/SysWatt annotation from preconditions.
 3. **Confirmation gate** — pause before starting:
    - If `dry_run=true`: report "dry-run only — monitor not started" and stop.
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: ask "Start power monitor (interval <interval>s, duration <duration or 'until stopped'>, log <log_path>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Otherwise, ask "Start power monitor (interval <interval>s, duration <duration or 'until stopped'>, log <log_path>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
 4. Start the monitor (only after confirmation):
    - **Bounded** (`duration` set): run synchronously with `--num_iterations <N>` (or the default script under `timeout <duration>`); capture exit code and the tee'd log.
    - **Open-ended** (no `duration`): run in the **background** so it does not block; record the turbostat/tee PID and tell the user how to stop it (`sudo pkill -x turbostat`, or Ctrl-C if launched in their own foreground terminal).
@@ -106,8 +104,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Preconditions passed (script executable; `turbostat` present; sudo probe = 0 when a start is intended).
 - `duration`/`interval`/`log_path` validated.
 - Planned Monitor summary rendered before starting.
-- Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Start only occurred when the outcome is `confirmed` or `auto_confirm`.
+- Confirmation gate outcome recorded as one of: `confirmed`, `declined`, `dry_run_only`.
+- Start only occurred when the outcome is `confirmed`.
 - After start, the log file is non-empty (`test -s`) and/or `turbostat` is running.
 - For bounded runs, the process exited with code `0` and the log has at least one data row.
 - `SysWatt=0.00` is reported as a known firmware limitation (per the psys detection), NOT a monitor failure.
@@ -117,7 +115,7 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Monitoring is read-only; it changes no system state. The only artifact is the log file at `<log_path>` (default `tools/power-tuning/pt_mon.txt`), which the user may delete.
 
 ## Safety Rules
-- Never collect a sudo password via prompts, env vars, scripts, or logs. Only `sudo -v` (by the user) or a scoped NOPASSWD entry for the absolute path to `turbostat`.
+- Never collect a sudo password via prompts, env vars, scripts, or logs. Require a scoped NOPASSWD entry for the absolute path to `turbostat` when non-interactive sudo is unavailable.
 - Do not edit `pt_mon.sh` to change interval/log path; run turbostat directly for non-default parameters.
 - The monitor is read-only — do not pair it with any write action implicitly; power capping/stress are separate skills the user must invoke explicitly.
 - Do not run against MSRs on non-Intel hardware; warn and stop if the Intel sanity check fails.
@@ -136,7 +134,7 @@ Render the report as the following tables.
 | Log path | `<log_path>` |
 | SysWatt availability | `live` / `frozen (0.00)` / `no psys domain (0.00)` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 ### Capture Result
 
@@ -178,11 +176,11 @@ Render the report as the following tables.
 
 ## Troubleshooting Notes
 - `turbostat: command not found`: install the kernel tools package (`sudo apt-get install -y linux-tools-generic` on Ubuntu), then re-trigger. Use `linux-tools-generic` rather than `linux-tools-$(uname -r)` to avoid the VS Code `$(...)` approval dialog.
-- If `sudo -n true` fails: run `sudo -v` in your own terminal, or add a scoped entry via `sudo visudo -f /etc/sudoers.d/monitor-power-thermal`:
+- If `sudo -n true` fails, add a scoped entry via `sudo visudo -f /etc/sudoers.d/monitor-power-thermal`:
   ```
   <user> ALL=(root) NOPASSWD: /usr/bin/turbostat
   ```
-  Never use `NOPASSWD: ALL`. Adjust the path to match `command -v turbostat`. If `sudo -v` was already run but `sudo -n true` still fails (tty_tickets), make sudo timestamps global: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`.
+  Never use `NOPASSWD: ALL`. Adjust the path to match `command -v turbostat`.
 - `SysWatt` reads `0.00`: the platform (psys) RAPL energy counter (MSR 0x65C) is frozen or the psys domain is absent on some Core Ultra platforms (e.g. Core Ultra 5 335 / F6_M204). turbostat derives power as Δenergy/Δtime, so a frozen counter yields `0.00`. This is a firmware limitation; use `PkgWatt` (CPU package = cores + iGPU + uncore) as the effective figure, or measure whole-system power from the battery discharge rate (`/sys/class/power_supply/BAT*/power_now`).
 - Blank/zero columns other than SysWatt: confirm the `msr` module is loaded (`lsmod | grep msr`) and that turbostat is recent enough for this CPU (`turbostat --version`).
 - To generate load while monitoring, run the `generate-platform-stress` skill (synthetic stress-ng) or `generate-openvino-stress` skill (real AI inference via OpenVINO benchmark_app) in another terminal; to cap power first, use the `set-power-profile` skill.

@@ -26,6 +26,7 @@ All derived paths use defaults — never prompt for them unless the user explici
    - If no specific server intent is detected, fall back to `infrastructure/host-os/ict/generic-handheld-os-template.yml`
 - `work_template`: `<target_template>` basename prefixed with `work-`
 - `os_image_composer_repo`: `<enib_home>/tools/image-composer-tool`
+- `image_composer_revision`: immutable release commit `8362bdf70e436528f915247852644d968b172c73` (the `2026.1-Release` release)
 
 ## Preconditions
 Run all checks silently. On any failure, stop and print only the error with the fix command — no prompts, no questions:
@@ -34,13 +35,15 @@ Run all checks silently. On any failure, stop and print only the error with the 
 - [ ] `command -v ukify && dpkg -l mmdebstrap | grep '^ii'` — on failure: `ERROR: Missing tools. Run: sudo apt install systemd-ukify mmdebstrap`
 - [ ] `test -f <enib_home>/<target_template>` — on failure: `ERROR: Template not found: <path>`
 - [ ] `<work_template>` path differs from `<target_template>` path
-- [ ] **Sudo probe** (immediately before step 5): `sudo -n true` — on failure: `ERROR: sudo requires a password. Run 'sudo -v' in your terminal, then re-trigger. If that still fails, run: echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c` — see [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo)
+- [ ] **Sudo probe** (immediately before step 5): `sudo -n true` — on failure: `ERROR: non-interactive sudo is unavailable. Add scoped NOPASSWD entries for the required absolute binary paths in /etc/sudoers.d/create-image, then re-trigger.` — see [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo)
 
 ## Steps
 **Run silently (no prompts):**
 1. Clone `image-composer-tool` if missing, or reuse existing checkout:
-   - `git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
-   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout 2026.1-Release`
+   - Set `ICT_REVISION=8362bdf70e436528f915247852644d968b172c73`.
+   - If missing: `git clone https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`.
+   - Fetch and detach at the immutable revision: `git -C <os_image_composer_repo> fetch --tags origin && git -C <os_image_composer_repo> checkout --detach "$ICT_REVISION"`.
+   - Verify the checkout before building: `test "$(git -C <os_image_composer_repo> rev-parse HEAD)" = "$ICT_REVISION"`; stop if it does not match.
 2. Build the tool binary:
    - `cd <os_image_composer_repo>`
    - `go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool`
@@ -71,6 +74,7 @@ Run all checks silently. On any failure, stop and print only the error with the 
 - Ask only before the privileged build step. Never prompt for paths, defaults, or non-destructive commands.
 - Never infer credentials, keys, or secrets.
 - Never print full private key contents.
+- Never modify a source template in place; always build from the `work-<template>` copy created in Step 3.
 - Stop on precondition or validation failure and provide next-action guidance.
 
 ## Expected Result Summary

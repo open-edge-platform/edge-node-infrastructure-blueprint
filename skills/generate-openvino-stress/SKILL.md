@@ -48,8 +48,10 @@ The default model (`age-gender-recognition-retail-0013`, FP16) is lightweight an
 suitable for quick stress tests. To use a different model for heavier or more
 representative workloads:
 
-1. **Download the model** via `curl` from Intel's Open Model Zoo storage
-   (same method the script uses for the default model):
+1. **Download and verify the model** from Intel's Open Model Zoo storage. For a
+   non-default model, obtain expected SHA-256 hashes from a trusted release
+   manifest and verify both artifacts before use; the script refuses to
+   auto-download unpinned custom models:
    ```bash
    MODEL_NAME="face-detection-retail-0005"
    PRECISION="FP16"
@@ -59,6 +61,7 @@ representative workloads:
    mkdir -p "${MODEL_DIR}"
    curl -fSL "${BASE_URL}/${MODEL_NAME}/${PRECISION}/${MODEL_NAME}.xml" -o "${MODEL_DIR}/${MODEL_NAME}.xml"
    curl -fSL "${BASE_URL}/${MODEL_NAME}/${PRECISION}/${MODEL_NAME}.bin" -o "${MODEL_DIR}/${MODEL_NAME}.bin"
+   sha256sum -c trusted-model-sha256sums.txt
    ```
 
 2. **Run with the model** via `--model`:
@@ -112,7 +115,7 @@ Run silently without user prompts:
 - [ ] For K3s + NPU: Intel NPU device plugin is running:
   - `kubectl get daemonset -n kube-system | grep intel-npu` (non-fatal warning if absent)
 - [ ] Any existing openvino-stress pod/container for the same device is automatically removed before launching (no manual cleanup needed).
-- [ ] Model auto-download: if the model is not found at `<model_path>/<model_subpath>`, the script automatically downloads it via `curl` from Intel's Open Model Zoo storage (no python/pip dependency). Requires internet access. The download URL base is `https://storage.openvinotoolkit.org/repositories/open_model_zoo/2022.3/models_bin/1/`.
+- [ ] Model auto-download: only the default `age-gender-recognition-retail-0013` FP16 model is downloaded automatically. The script verifies its XML and BIN files against pinned SHA-256 hashes before making them available. A custom model must already be downloaded and verified by the user from trusted checksums; otherwise the script stops.
 - [ ] Host is x86_64 with an Intel CPU (sanity check; non-fatal warning if not):
   - `uname -m` and `grep -m1 -o 'GenuineIntel' /proc/cpuinfo`
 
@@ -162,8 +165,7 @@ Input validation (fail closed before launch):
 
 4. **Confirmation gate** — pause before launching:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not launch.
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: present the Planned Load table and ask for confirmation.
+   - Otherwise, present the Planned Load table and ask for confirmation. Only `yes` or `y` authorizes launch; on any other response, stop and record `CONFIRMATION=declined`.
 
 5. Launch (only after confirmation):
    - Run the resolved command. The script handles pod/container creation internally.
@@ -180,7 +182,7 @@ Input validation (fail closed before launch):
 - All inputs validated against their constraints.
 - A Planned Load table was rendered before the confirmation gate.
 - Confirmation gate outcome recorded.
-- Launch only occurred on `confirmed` or `auto_confirm`.
+- Launch only occurred on `confirmed`.
 - After launch, the workload is active (pod Running or container running).
 - Monitoring and stop instructions provided to the user.
 
@@ -208,7 +210,7 @@ Input validation (fail closed before launch):
 | Runtime | `<k3s/docker>` |
 | Duration / Iterations | `<value>` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 ### Launch Result
 
@@ -247,7 +249,7 @@ Input validation (fail closed before launch):
 - "Neither K3s nor Docker detected": install K3s (`curl -sfL https://get.k3s.io | sh -`) or Docker (`sudo apt-get install -y docker.io`).
 - Pod stays Pending (K3s + GPU/NPU): check device plugin is running (`kubectl get pods -n kube-system | grep intel`); verify allocatable resources (`kubectl describe node | grep -A5 Allocatable`).
 - Docker GPU benchmark fails: ensure `/dev/dri` exists and user is in `video`/`render` group. Check OpenCL ICD (`ls /etc/OpenCL/vendors/`).
-- Model not found: the script auto-downloads via curl on first run. If download fails (no internet, proxy issues), manually download from `https://storage.openvinotoolkit.org/repositories/open_model_zoo/2022.3/models_bin/1/<model_name>/<precision>/` and place the `.xml` and `.bin` files at `<model_path>/intel/<model_name>/<precision>/`.
+- Model not found: the script auto-downloads only the pinned default model. For a custom model, download the `.xml` and `.bin` files from `https://storage.openvinotoolkit.org/repositories/open_model_zoo/2022.3/models_bin/1/<model_name>/<precision>/`, verify them against trusted SHA-256 values, then place them at `<model_path>/intel/<model_name>/<precision>/`.
 - Low throughput on GPU: confirm `-hint none` and `-nthreads 2` are set; higher thread counts can cause CPU-GPU contention.
 - To watch power effect under load, run `pt_mon.sh` in another terminal.
 - To combine with a power cap, apply a profile first via `set-power-profile`, then run this skill.

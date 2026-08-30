@@ -79,7 +79,6 @@ powerclamp (passive).
 - output_file: optional path. When set, write the generated XML there and make **no** daemon changes (`-o FILE`). Implies no install.
 - disable: `true` | `false` (default: `false`). When `true`, stop thermald and disable it at boot (`--disable`), reverting to kernel default thermal control. Ignores profile options; leaves config/override files untouched.
 - dry_run: `true` | `false` (default: `false`). When `true`, only the plan and generated XML are shown; nothing is written and no service is touched (`--dry-run`).
-- auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
 
 ## Preconditions
 Run silently without user prompts:
@@ -94,7 +93,7 @@ Run silently without user prompts:
   - `uname -m` and `grep -m1 -o 'GenuineIntel' /proc/cpuinfo`
 - [ ] Detect the cooling devices present (informational; the script omits steps for absent devices and refuses to write an empty zone):
   - `grep -s . /sys/class/thermal/cooling_device*/type` — note whether `Fan`, `Processor`, `intel_powerclamp` (and `CHRG` when `charge=true`) are present.
-- [ ] **Sudo probe (MANDATORY before any apply / `--disable`)** — the script mutates `/etc/thermald/` and restarts the service and does **not** self-elevate: run `sudo -n true`. If exit is non-zero, do NOT apply; stop and instruct the user to run `sudo -v` in their terminal (or add a scoped `NOPASSWD` entry for the absolute path to `set_thermal_profile.sh` in `/etc/sudoers.d/`), then re-trigger. If `sudo -v` was already run but `sudo -n true` still fails (tty_tickets), make timestamps global: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`. Never collect a password via prompts, env vars, scripts, or logs. `dry_run=true` and `output_file` mode need no sudo (read-only / no daemon changes). See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+- [ ] **Sudo probe (MANDATORY before any apply / `--disable`)** — the script mutates `/etc/thermald/` and restarts the service and does **not** self-elevate: run `sudo -n true`. If exit is non-zero, do NOT apply; stop and instruct the user to add a scoped `NOPASSWD` entry for the absolute path to `set_thermal_profile.sh` in `/etc/sudoers.d/set-thermal-profile`, then re-trigger. Never collect a password via prompts, env vars, scripts, or logs. `dry_run=true` and `output_file` mode need no sudo (read-only / no daemon changes). See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 Prompt only for missing required inputs:
 - [ ] Do not prompt when `profile` is omitted — default to `warm`.
@@ -104,7 +103,7 @@ Input validation (fail closed before running the script):
 - [ ] `profile` matches one of `cool|warm|hot|thermal-max|custom`. Otherwise stop and list the valid profiles.
 - [ ] For `custom` (or when overriding a named profile): `fan_c`, `proc_c`, `clamp_c` are positive integers satisfying `fan_c < proc_c < clamp_c` and `clamp_c < 105` (must stay below Tjmax). Warn if `fan_c < 30` (near idle; CPU may stay throttled).
 - [ ] `output_file`'s parent directory exists and is writable (when supplied).
-- [ ] `disable`, `charge`, `dry_run`, `auto_confirm` are booleans. `disable=true` is mutually exclusive with profile/custom trip options (the script ignores them under `--disable`).
+- [ ] `disable`, `charge`, and `dry_run` are booleans. `disable=true` is mutually exclusive with profile/custom trip options (the script ignores them under `--disable`).
 
 ## Steps
 **Terminal command rules (MUST follow for every command in this skill):**
@@ -120,13 +119,11 @@ Input validation (fail closed before running the script):
    - For `disable=true`, use `--disable` instead of the profile/trip options.
 2. **Always execute a dry run first** (read-only, no sudo, no writes) unless the invocation is `output_file`-only:
    - Run the resolved command with `--dry-run` (add `--disable` when disabling) and capture the summary and the generated XML verbatim.
-   - This runs unconditionally on every apply invocation, including when `auto_confirm=true`.
+  - This runs unconditionally on every apply invocation.
 3. **Render the Planned Changes as a table** built from the dry-run output: profile, resolved Fan/Processor/powerclamp trips, CHRG yes/no, which cooling devices are present vs will be wired in, config target (`/etc/thermald/thermal-conf.xml` or `output_file`), and the effective `ExecStart`. Show it before any write.
 4. **Confirmation gate** — pause before any write:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not apply.
-   - Else if `output_file` is set: this only writes the XML (no daemon changes) — treat as low-risk; still show the plan, then proceed (respect `auto_confirm`; otherwise confirm).
-   - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: present the tabulated Planned Changes and ask "Apply the <profile> thermal profile (Fan <F>°C / Processor <P>°C / powerclamp <C>°C) and make thermald the sole thermal authority on this host? (yes/no)" (or, for disable: "Stop and disable thermald, reverting to kernel default thermal control? (yes/no)"). On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Otherwise, present the tabulated Planned Changes and ask for confirmation. An `output_file` write also requires confirmation. Only `yes` or `y` authorizes execution; on any other response, stop and record `CONFIRMATION=declined`.
 5. Apply (only after confirmation). The script does **not** self-elevate, so prefix with `sudo` for apply / `--disable` (not for `--dry-run` or `-o`):
    - `sudo <enib_home>/tools/power-tuning/set_thermal_profile.sh --profile <profile> [custom/charge flags]`
    - The script validates the generated XML in thermald test-mode, backs up any existing config/override, installs, `daemon-reload`s, restarts thermald, and verifies the running daemon. Capture stdout/stderr verbatim and record the exit code.
@@ -140,8 +137,8 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Preconditions passed (script executable; `thermald` present for apply; sudo probe = 0 when an apply/disable is intended).
 - `profile` validated; for `custom`, trip points validated for ordering (`fan < proc < clamp`), `clamp < 105`, and positive integers.
 - A dry run was executed first on every apply invocation, and the Planned Changes table was rendered from its output before the confirmation gate.
-- Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Apply phase only executed when the outcome is `confirmed` or `auto_confirm`.
+- Confirmation gate outcome recorded as one of: `confirmed`, `declined`, `dry_run_only`.
+- Apply phase only executed when the outcome is `confirmed`.
 - When applied, the script exited with code `0`, thermald is `active`, and the effective `ExecStart` contains `--ignore-default-control` and **not** `--adaptive` (sole thermal authority).
 - When `output_file` mode, the XML was written to the given path and no daemon changes were made.
 - When `disable=true`, thermald is stopped and disabled and the script reported kernel default thermal control now applies.
@@ -178,7 +175,7 @@ Render the report as the following tables.
 | CHRG device | `yes` / `no` |
 | Config target | `/etc/thermald/thermal-conf.xml` or `<output_file>` |
 | Dry run only | `true` / `false` |
-| Confirmation | `confirmed` / `auto_confirm` / `declined` / `dry_run_only` |
+| Confirmation | `confirmed` / `declined` / `dry_run_only` |
 
 ### Planned Changes
 
@@ -224,7 +221,7 @@ Render the report as the following tables.
   ```
   <user> ALL=(root) NOPASSWD: /home/<user>/enib/tools/power-tuning/set_thermal_profile.sh
   ```
-  Never use `NOPASSWD: ALL`. If a `sudo -v` timestamp exists but is not honored (tty_tickets), make timestamps global: `echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c`.
+  Never use `NOPASSWD: ALL` or global sudo timestamps; keep the entry restricted to the script's absolute path.
 - "None of the expected cooling devices are present; refusing to write an empty zone": this platform exposes no `Fan`/`Processor`/`intel_powerclamp` cooling devices (check `grep . /sys/class/thermal/cooling_device*/type`). The profile cannot be applied as-is.
 - "thermald did not accept the generated config": the script validates in test-mode before installing and aborts without changing the system; inspect the logged excerpt for the offending zone/trip.
 - "powerclamp trip too close to Tjmax; use < 105": lower `clamp_c` below 105 °C.

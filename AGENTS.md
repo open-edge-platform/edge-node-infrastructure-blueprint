@@ -54,6 +54,28 @@ Do not skip preconditions or validation.
 - Never overwrite user templates in place; copy to a new working template.
 - Always report artifact paths and validation results at the end.
 
+## Human-in-the-Loop Policy (MUST follow for all skills)
+Agents are guided assistants, not autonomous operators. Read-only local
+preconditions may run without confirmation. Before any operation that changes
+state, uses `sudo`, downloads external content, connects to a remote system,
+starts a container or workload, changes hardware tuning, or creates, replaces,
+or deletes artifacts, the agent MUST:
+
+1. Render the exact resolved command or a complete table of the commands,
+   inputs, target host, affected files/devices, expected side effects, and
+   rollback or stop action.
+2. Obtain an explicit `yes` or `y` from the user immediately before execution.
+   Do not infer approval from the initial request, a prior approval, or a
+   `dry_run` result.
+3. Treat any changed parameter, target, command, or side effect as a new plan
+   requiring a new confirmation. A single confirmation may authorize a combined
+   skill only when its displayed plan enumerates every mutating stage.
+4. Stop on any other response and record `CONFIRMATION=declined`.
+
+`auto_confirm` and similar flags MUST NOT bypass this policy. Agents may not
+silently execute state-changing commands, even when non-interactive sudo has
+been preconfigured.
+
 ## Sudo Handling (MUST follow for all skills that invoke `sudo`)
 Agent terminals are not always interactive teletypewriters (TTYs), so a `sudo` password prompt
 can silently fail — the command appears to "do nothing" with no prompt and no
@@ -65,24 +87,17 @@ output. Every skill that runs `sudo` MUST:
    - Non-zero → a password is required; do NOT run the privileged command yet.
 
 2. **If a password is required, instruct the user (do not collect it via the agent)**:
-   - Tell the user to run one of the following in their own terminal and then
-     re-trigger the skill:
-     - `sudo -v` — primes the sudo timestamp for ~5 minutes (safe, temporary).
-       > **Note:** `sudo -v` is tty-scoped by default (`tty_tickets`). If the
-       > agent runs in a different terminal than the one where you ran `sudo -v`,
-       > it will still fail. To make timestamps user-global (all ttys share one
-       > timestamp), run once:
-       > ```
-       > echo 'Defaults timestamp_type=global' | sudo tee /etc/sudoers.d/agent-timestamp && sudo chmod 0440 /etc/sudoers.d/agent-timestamp && sudo visudo -c
-       > ```
-     - Or add a scoped `NOPASSWD` entry for the specific binary the skill
-       needs, for example in `/etc/sudoers.d/<skill-name>` via `sudo visudo -f`:
+    - Tell the user to add a scoped `NOPASSWD` entry for each specific binary the
+       skill needs, for example in `/etc/sudoers.d/<skill-name>` via
+       `sudo visudo -f /etc/sudoers.d/<skill-name>`, then re-trigger the skill:
        ```
        <user> ALL=(root) NOPASSWD: /absolute/path/to/binary
        ```
-   - Never request a password through `vscode_askQuestions` or any agent
-     prompt. Never write a password into a script, env var, or log.
-   - Do not suggest `NOPASSWD: ALL` — only scoped entries with absolute paths.
+    - Never request passwords, tokens, SSH keys, private keys, or other secrets
+       through `vscode_askQuestions` or any agent prompt. Never write them into a
+       script, env var, or log.
+    - Do not recommend global sudo timestamps or `NOPASSWD: ALL`; permit only
+       scoped entries containing the absolute paths of required binaries.
 
 3. **Separate sudo failure from command failure** in reported exit codes so
    an authentication failure is never misreported as a build/deploy failure.

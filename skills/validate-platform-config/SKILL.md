@@ -15,9 +15,9 @@ description: Validate whether a provisioned platform is correctly configured ove
 
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
-- ssh_host: target node IP or hostname
-- ssh_user: remote login user (default: `user`)
-- ssh_port: SSH port (default: `22`)
+- ssh_host: target node IP address or RFC-compliant hostname; must not begin with `-`
+- ssh_user: remote login user matching `^[a-z_][a-z0-9_-]*$` (default: `user`)
+- ssh_port: decimal SSH port in the range `1` through `65535` (default: `22`)
 - kubeconfig_path: expected kubeconfig path (default: `/etc/rancher/k3s/k3s.yaml`)
 
 Note: Private key authentication is auto-detected from `~/.ssh/` (searches `id_rsa`, `id_ed25519`, and `id_ecdsa` in order). No prompt for key path.
@@ -28,23 +28,31 @@ Run silently without user prompts:
   - `test -f <enib_home>/skills/validate-platform-config/SKILL.md`
 - [ ] SSH client exists locally:
   - `command -v ssh`
+- [ ] Validate SSH inputs before using them in a command. Stop and report an invalid-input error if any check fails:
+  - `[[ "$ssh_user" =~ ^[a-z_][a-z0-9_-]*$ ]]`
+  - `[[ "$ssh_port" =~ ^[0-9]+$ ]] && (( 10#$ssh_port >= 1 && 10#$ssh_port <= 65535 ))`
+  - `[[ "$ssh_host" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || [[ "$ssh_host" =~ ^[0-9A-Fa-f:]+$ ]]`
+  - `getent ahosts "$ssh_host" >/dev/null` (rejects syntactically safe but unresolvable hosts)
+  - Construct the positional SSH destination only after validation: `ssh_target="$ssh_user@$ssh_host"`; for an IPv6 literal, use `ssh_target="$ssh_user@[$ssh_host]"`.
 - [ ] Remote host is reachable on SSH port:
-  - `timeout 5 bash -c '</dev/tcp/<ssh_host>/<ssh_port>'`
+  - `timeout 5 bash -c '</dev/tcp/$1/$2' bash "$ssh_host" "$ssh_port"`
 - [ ] Attempt remote login directly using the SSH agent or default keys (no key path required):
-  - `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host> true`
+  - `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -p "$ssh_port" -- "$ssh_target" true`
   - if exit code is `0`, proceed; record `SSH_AUTH=default`
+  - if SSH reports an unknown or changed host key, stop. Require the user to verify the host key out of band and add it to `~/.ssh/known_hosts`; never use `StrictHostKeyChecking=accept-new` or `no`.
   - only if direct login fails, fall back to explicit key discovery in `~/.ssh/`:
     - Run: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then echo "KEY_FOUND=$key"; exit 0; fi; fi; done; echo "KEY_FOUND=none"`
     - if output contains `KEY_FOUND=none`, stop and report missing/unsafe key error
-    - retry login with `-i <key>`; if it still fails, stop and report SSH authentication error
+    - retry login with `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -i "$ssh_key" -p "$ssh_port" -- "$ssh_target" true`; if it still fails, stop and report SSH authentication error
 
 Prompt only for missing required inputs:
 - [ ] Ask for missing `ssh_host` and `ssh_port` only. Assume `ssh_user=user` unless the user overrides it.
 
 ## Steps
 1. Build SSH command using the authentication method established in preconditions.
-  - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host>`
-  - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
+  - Use the validated, pre-built `$ssh_target` only as a positional argument after `--`.
+  - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -p "$ssh_port" -- "$ssh_target"`
+  - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -i "$ssh_key" -p "$ssh_port" -- "$ssh_target"`
 
 2. Detect the host_type from the remote configuration.
   - command:
