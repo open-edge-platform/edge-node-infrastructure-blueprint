@@ -1,3 +1,4 @@
+---
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
@@ -144,8 +145,8 @@ packageRepositories:
       - linux-doc-intel
       - linux-source-6.18
       - linux-source-intel
-      #- linux-bpf-dev # not in the internal repo; comes from noble-updates
-    
+      # - linux-bpf-dev # not in the internal repo; comes from noble-updates
+
     # Wayland Libraries (overlay version 1.23.0 required by mesa-vulkan-drivers)
     # Remove these to disable: Wayland display protocol libraries
       - libwayland-client0
@@ -165,7 +166,7 @@ packageRepositories:
       - gstreamer1.0-plugins-bad
       - gstreamer1.0-plugins-base
       # pin point to internal repository for gstreamer1.0-plugins-good , cant remove requried by bad and pulseaudio plguins
-      - gstreamer1.0-plugins-good 
+      - gstreamer1.0-plugins-good
       - gstreamer1.0-pulseaudio
       - libgstreamer1.0-dev
       - libgstreamer-gl1.0-0
@@ -191,7 +192,7 @@ packageRepositories:
 
     # LinuxPTP (Precision Time Protocol)
     # Remove these to disable: IEEE 1588 PTP clock synchronization
-      - linuxptp    
+      - linuxptp
 
 
   # ----- OpenVINO -----
@@ -237,7 +238,7 @@ packageRepositories:
 
   # ----- Mozilla Team PPA (Firefox .deb, avoids Ubuntu's snap-transitional package) -----
   - codename: "noble"
-    url: "https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu"      
+    url: "https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu"
     pkey: "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB215679C571D1C8325275B9BDB3D89CE49EC21"
     component: "main"
     priority: 1001
@@ -260,7 +261,7 @@ packageRepositories:
       - libcamhal-common
       - libcamhal0
       # camera HAL dependency tree (ipu75xa imaging algorithm libs)
-      #- libcamhal*
+      # - libcamhal*
       - libia-*-ipu75xa0
       # GStreamer icamerasrc plugin (Recommends of libcamhal0, not auto-pulled)
       - gstreamer1.0-icamera
@@ -398,7 +399,7 @@ systemConfig:
 
     # System Services
     # Remove these to disable: time sync, logging, cron, auto-updates, snap, D-Bus
-      #- systemd-timesyncd
+      # - systemd-timesyncd
       - chrony
       - rsyslog
       - cron
@@ -435,10 +436,10 @@ systemConfig:
     # Performance and Monitoring
     # Remove these to disable: system performance monitoring tools
       - htop
-      #- tmon
-      #- sysstat
-      #- iotop
-      #- dstat
+      # - tmon
+      # - sysstat
+      # - iotop
+      # - dstat
 
     # Diagnostics and Utilities
     # Remove these to disable: text editor, hardware/network diagnostic tools
@@ -446,20 +447,20 @@ systemConfig:
       - tcpdump
       - nano
 
-      #- less
-      #- man-db
-      #- lsb-release
-      #- pciutils
-      #- usbutils
-      #- lshw
-      #- dmidecode
-      #- hdparm
-      #- smartmontools
-      #- strace
-      #- iperf3
-      #- traceroute
-      #- mtr-tiny
-      #- socat
+      # - less
+      # - man-db
+      # - lsb-release
+      # - pciutils
+      # - usbutils
+      # - lshw
+      # - dmidecode
+      # - hdparm
+      # - smartmontools
+      # - strace
+      # - iperf3
+      # - traceroute
+      # - mtr-tiny
+      # - socat
       - sysbench
       - stress-ng
       - fio
@@ -472,11 +473,11 @@ systemConfig:
 
     # Compression and Archiving
     # Remove these to disable: tar, xz, bzip2, zip archive support
-      #- tar
+      # - tar
       - xz-utils # required by linux-source-6.18
-      #- bzip2
+      # - bzip2
       - unzip # optional, extract ZIP archives
-      #- zip
+      # - zip
       - lzop # optional, LZO compression utility
       - pigz # optional, parallel gzip for faster compression
       - zstd # optional, fast Zstandard compression/decompression
@@ -484,8 +485,8 @@ systemConfig:
 
     # Language and Locale
     # Remove these to disable: locale and language pack support
-      #- locales
-      #- language-pack-en
+      # - locales
+      # - language-pack-en
 
     # Diagnostics and Hardware Tools
     # Remove these to disable: hardware/storage info, sensors, PCI/USB inspection
@@ -526,12 +527,11 @@ systemConfig:
       - ocl-icd-libopencl1
 
 
-
     # Mesa Vulkan Drivers
     # Remove these to disable: Vulkan GPU rendering
       - mesa-vulkan-drivers
       - mesa-utils
-     
+
 
     # VA-API (Video Acceleration API)
     # Remove these to disable: hardware video decode/encode via VA-API
@@ -579,7 +579,7 @@ systemConfig:
 
     # Audio (Intel SOF)
     # Remove these to disable: Intel SOF audio firmware
-      - firmware-sof-signed # must   
+      - firmware-sof-signed # must
 
     # ALSA Audio Utilities
     # Remove these to disable: ALSA userspace tools and audio mixing/playback
@@ -592,7 +592,6 @@ systemConfig:
       - alsa-ucm-conf # optional, ALSA Use Case Manager configs for audio hardware profiles
 
 
-    
     # Docker CE Engine
     # Remove these to disable: Docker container runtime
       - docker-ce
@@ -664,7 +663,7 @@ systemConfig:
 
     # Boot Configuration Utilities
     # Remove these to disable: bootconfig inspection and generation tooling
-      #TODO- bootconfig
+      # TODO- bootconfig
 
       - clinfo # optional, OpenCL platform and device enumeration tool (GPU verification)
 
@@ -725,7 +724,6 @@ systemConfig:
       - spice-client-glib-usb-acl-helper
       - spice-client-gtk
 
-     
 
     # Libvirt Virtualization Management
     # Remove these to disable: libvirt daemon, drivers, and management tools
@@ -788,7 +786,6 @@ systemConfig:
       - python3-openpyxl # optional, read/write Excel 2010 XLSX/XLSM files
       - python3-netifaces
 
- 
 
     # RPM Package Utilities
     # Remove these to disable: RPM package management tools
@@ -813,7 +810,7 @@ systemConfig:
 
     # Power Management
     # Remove these to disable: system power and thermal management
-      #- intel-lpmd
+      # - intel-lpmd
       - thermald # optional, Intel thermal management daemon (prevents CPU throttling)
       - upower # optional, power management interface daemon (battery/AC status)
 
@@ -830,14 +827,14 @@ systemConfig:
       - libgsticamerainterface-1.0-1
       # MIPI GMSL deserializer DKMS module (builds on first boot via dkms autoinstall)
       - intel-mipi-gmsl-dkms
-   
+
   additionalFiles:
     - local: ../additionalfiles/ptl/01-network-manager-all.yaml
       final: /etc/netplan/01-network-manager-all.yaml
 
-      
+
   kernel:
-    version: "260717t053932z-r2" 
+    version: "260717t053932z-r2"
     cmdline: "xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"
     enableExtraModules: "intel_vpu uas"
     packages:
@@ -845,7 +842,7 @@ systemConfig:
       - linux-headers-6.18-intel_260717t053932z-r2
   users:
     - name: <username>
-      password: <password> 
+      password: <password>
       groups: ["sudo", "video", "render", "audio"]
       hash_algo: sha512
   configurations:
@@ -861,8 +858,6 @@ systemConfig:
     # so later apt steps cannot re-pull it.
     - cmd: "printf 'Package: systemd-boot systemd-boot-efi\\nPin: release *\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/no-systemd-boot"
     - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
-
-
 
 
     # ----- Intel GPU Compute Stack (wget from GitHub releases) -----
@@ -883,8 +878,8 @@ systemConfig:
 
     # Install NPU driver for PTL
 
-    #run "curl -s \https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz | tar -zxv --strip-components=1 -C /tmp/npu-drv-package -f -"
-	
+    # run "curl -s \https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz | tar -zxv --strip-components=1 -C /tmp/npu-drv-package -f -"
+
     # Version: v1.35.0.20260722-29947505341 (from GitHub releases, public)
     # Security: sha256-verified before extraction (CWE-494 mitigation)
     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
@@ -964,7 +959,7 @@ systemConfig:
     - cmd: "mkdir -p /etc/systemd/system/multi-user.target.wants && ln -sf /usr/lib/systemd/system/intel_lpmd.service /etc/systemd/system/multi-user.target.wants/intel_lpmd.service"
     # Step 6: Clean up source and purge build-only dependencies (no network needed)
     - cmd: "rm -rf /tmp/intel-lpmd && dpkg --purge --force-depends autoconf automake autoconf-archive libtool gtk-doc-tools libdbus-1-dev libxml2-dev libnl-3-dev libnl-genl-3-dev libsystemd-dev libupower-glib-dev 2>/dev/null || true"
-    
+
     # --- intel-pcm v202604 (source build in chroot) ---
     # Build from source to use the latest security patches and Panther Lake/PCIe metric updates.
     # Build dependencies (git, build-essential, cmake) must be pre-installed in the environment.
@@ -995,7 +990,7 @@ systemConfig:
         # Ensure both services are disabled by default; cloud-init activates the right one
     - cmd: "systemctl disable k3s 2>/dev/null || true"
     - cmd: "systemctl disable docker 2>/dev/null || true"
-    
+
     # Pre-create docker data-root and daemon config (avoids first-boot delay)
     - cmd: "mkdir -p /opt/docker-data /etc/docker && echo '{\"data-root\": \"/opt/docker-data\"}' > /etc/docker/daemon.json"
     # ----------------------------------------------------------------------------------
@@ -1018,4 +1013,4 @@ systemConfig:
     - cmd: "mkdir -p /etc/systemd/system/sockets.target.wants && ln -sf /lib/systemd/system/avahi-daemon.socket /etc/systemd/system/sockets.target.wants/avahi-daemon.socket"
     - cmd: "mkdir -p /etc/systemd/resolved.conf.d && printf '[Resolve]\nMulticastDNS=no\n' > /etc/systemd/resolved.conf.d/no-mdns.conf"
 
-  
+

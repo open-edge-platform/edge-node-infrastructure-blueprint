@@ -1,3 +1,4 @@
+---
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
@@ -160,7 +161,7 @@ packageRepositories:
       - libxdp1
       - intel-media-va-driver-non-free
       # Power and Thermal daemons for power and perfromance management
-      #- intel-lpmd
+      # - intel-lpmd
       - thermald
       # -- Performance & Profiling Tools ------------------------------------------
       - linux-kbuild-6.18.38
@@ -240,7 +241,7 @@ packageRepositories:
       - libcamhal-common
       - libcamhal0
       # camera HAL dependency tree (ipu75xa imaging algorithm libs)
-      #- libcamhal*
+      # - libcamhal*
       - libia-*-ipu75xa0
       # GStreamer icamerasrc plugin (Recommends of libcamhal0, not auto-pulled)
       - gstreamer1.0-icamera
@@ -462,7 +463,7 @@ systemConfig:
     - libcamera-tools        # 'cam' utility: enumerate and capture from libcamera devices
     - gstreamer1.0-libcamera # GStreamer libcamerasrc element (pipeline integration)
     # Power and Thermal daamons for power and perfromance management
-    #- intel-lpmd
+    # - intel-lpmd
     - thermald
     # Intel ECI Camera HAL
     # Remove these to disable: Intel IPU camera support
