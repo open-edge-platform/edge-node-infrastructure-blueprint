@@ -362,14 +362,6 @@ sudo systemctl restart intel_lpmd.service
 > generic `intel_lpmd_config.xml` the script writes has no backup if no config
 > existed there before.
 
-## Reference
-
-- [Power Profile Developer Guide](power-profile-developer-guide.md) — every MSR,
-  powercap sysfs node, config file and service `set_power_profile.sh` touches,
-  with the reason for each access and how to restore it.
-- [Thermal Profile Developer Guide](thermal-profile-developer-guide.md) — the
-  same inventory for `set_thermal_profile.sh`.
-
 ## Related Agent Skills
 
 The same tools are also driven by agent skills (see
