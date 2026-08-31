@@ -30,7 +30,10 @@ across a reboot:
 
 - The **RAPL power cap** (the PL1/PL2 wattage limits) is programmed into volatile
   CPU registers and **reverts automatically on reboot** to firmware defaults.
-  This is the main enforcement and the built-in safety net.
+  This is the main enforcement and the built-in safety net. The **thermald
+  profile also acts on these limits**: applying the profile initializes
+  thermald's RAPL cooling device and reconfigures the effective power limit from
+  the PPCC value embedded in the thermal profile.
 - The **`intel_lpmd` config file** is written to disk, so it **persists across a
   reboot** and is re-read by the daemon on the next boot. To undo the daemon-side
   tuning you must restore the config (see

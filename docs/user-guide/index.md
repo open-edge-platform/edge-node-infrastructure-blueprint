@@ -1,7 +1,8 @@
 # Edge-Node Infrastructure Blueprint
 
-::::{container} component_header_row
 <!--hide_directive
+::::{container} component_header_row
+
 <div class="component_card_widget">
   <a class="icon_github" href="https://github.com/open-edge-platform/edge-node-infrastructure-blueprint">
      GitHub
@@ -11,7 +12,8 @@ hide_directive-->
 
 > **Attention:**
 > The Edge Node Infrastructure Blueprint is a reference solution, it is not intended for production use.
-::::
+
+<!--hide_directive :::: hide_directive-->
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
@@ -44,6 +46,7 @@ DL Streamer Pipelines Guide <how-to/build-dlstreamer-pipelines.md>
 Edge Workloads and Benchmarks Guide <how-to/run-edge-benchmarks.md>
 Power Profiles User Guide <how-to/power-profiles.md>
 Thermal Profiles User Guide <how-to/thermal-profiles.md>
+Power and Thermal Profiles Co-working Guide <how-to/power-and-thermal-profiles.md>
 Infrastructure Capabilities <platform-capabilities.md>
 AI Agent Integration <agent-skills.md>
 Troubleshooting <troubleshooting.md>
