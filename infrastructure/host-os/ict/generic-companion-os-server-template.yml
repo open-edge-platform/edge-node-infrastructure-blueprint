@@ -60,7 +60,7 @@ disk:
 
 # Additional package repositories for this image
 packageRepositories:
-  - codename: "noble/snapshots/2026_S_REL3-meta-data-fix"
+  - codename: "noble/snapshots/2026_S_REL3"
     url: "https://download.01.org/edge-linux-overlay/ubuntu"
     pkey: "https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
     component: "main non-free multimedia kernels"
@@ -71,20 +71,6 @@ packageRepositories:
       - libigfxcmrt7
       - libigdgmm12
 
-    # ----- Intel GPU Compute Stack (compute-runtime, IGC, Level Zero) -----
-    # Remove these to disable: OpenCL / Level Zero GPU compute
-    #
-    # DISABLED: GPU packages are now installed via wget/dpkg in configurations:
-    # section below to use specific versions from GitHub releases.
-    # Uncomment these (and remove the configurations: wget block) to switch
-    # back to the internal overlay repo.
-    #  - intel-igc-core-2
-    #  - intel-igc-opencl-2
-    #  - intel-ocloc
-    #  - intel-opencl-icd
-    #  - libze-intel-gpu1
-    #  - level-zero
-    #  - level-zero-devel
 
     # Intel VA-API Drivers
     # Remove these to disable: Intel specific hardware video acceleration drivers
@@ -202,37 +188,10 @@ packageRepositories:
 
      # - intel-lpmd
 
-    # QEMU Virtualization (overlay builds)
-    # Remove these to disable: QEMU/KVM virtual machine emulation
-
-
-
 
     # LinuxPTP (Precision Time Protocol)
     # Remove these to disable: IEEE 1588 PTP clock synchronization
       - linuxptp    
-
-    # comment out the following packages to disable X11 and Wayland display servers, nested X, Weston compositor, and Mutter window manager. These are only needed for overlay builds that require a graphical display server.
-    # X Server / Display (overlay builds)
-    # Remove these to disable: X11 display server and nested X
-    # - xserver-common
-    # - xserver-xorg-core
-    #  - xserver-xorg-dev
-    #  - xnest
-    #  - xvfb
-
-    # Weston Compositor (overlay build)
-    # Remove these to disable: Weston Wayland reference compositor
-    #  - weston
-    #  - libweston-10-0
-
-    # Mutter Window Manager (overlay builds)
-    # Remove these to disable: GNOME Mutter compositor
-    #  - gir1.2-mutter-14
-    #  - libmutter-14-0
-    #  - mutter-common-bin
-    #  - mutter-common
-
 
 
   # ----- OpenVINO -----
@@ -566,18 +525,6 @@ systemConfig:
       - intel-gpu-tools
       - ocl-icd-libopencl1
 
-    # ----- Intel GPU Compute Stack (compute-runtime, IGC, Level Zero) -----
-    # Remove these to disable: OpenCL / Level Zero GPU compute
-    #
-    # DISABLED: GPU packages are now installed via wget/dpkg in configurations:
-    # section below. Uncomment to switch back to the internal overlay repo.
-    #  - intel-igc-core-2
-    #  - intel-igc-opencl-2
-    #  - intel-ocloc
-    #  - intel-opencl-icd
-    #  - libze-intel-gpu1
-    #  - level-zero
-    #  - level-zero-devel
 
 
     # Mesa Vulkan Drivers
@@ -786,75 +733,6 @@ systemConfig:
       - libtpms0
       - libtpms-dev
 
-    # TPM Tools
-    # Remove these to disable: TPM2 access broker and command-line tools
-
-
-    # X Server / Display  SRIOV CBKC test dependency
-    # Remove these to disable: X11 display server and nested X
-      #- xserver-common
-      #- xserver-xorg # for silver test, can be removed
-      #- xserver-xorg-core
-      #- xserver-xorg-dev
-      #- x11-utils # optional, X11 utility programs (xwininfo, xprop, etc.)
-      #- x11-xserver-utils # optional, X server utilities (xrandr, xset, xinput, etc.)
-      #- xdg-utils # optional, XDG desktop integration utilities (xdg-open, etc.)
-      #- xdg-user-dirs # optional, manages user home directories (Desktop, Downloads, etc.)
-      ##- xcvt # optional, CVTM/GTIF mode line calculator for display resolutions
-      #- vdpau-driver-all # optional, VDPAU video decode acceleration driver collection
-
-    # ----------------------------------------------------------------
-    # GDM / GNOME Shell — SRIOV CBKC test dependency
-    # Required by Setup-SRIOV-CBKC test recipe:
-    #   - start_vm.py needs: gdm.service, /etc/gdm3/custom.conf, gnome-shell
-    #   - wait_for_gdm_ready() polls for gnome-shell process (180 s timeout)
-    #   - xhost + requires an active X display (:0) provided by GDM
-    # NOTE: GFXBench GLFW packages below also require GDM/X display; disable both together.
-    # TO DISABLE (headless build):
-    #   1. Comment out the 3 package lines below
-    #   2. Also comment out the 4 GFXBench GLFW package lines in the section below
-    #   3. In configurations: switch to multi-user.target and comment out all GDM blocks
-    # ----------------------------------------------------------------
-    # - gdm3          # GNOME Display Manager: gdm.service + /etc/gdm3/custom.conf
-    # - gnome-shell   # GNOME compositor/shell; required by wait_for_gdm_ready() in sriov scripts
-    # - gnome-session # GNOME session manager (pulled by gdm3 but listed explicitly)
-
-    # ----------------------------------------------------------------
-    # GFXBench GL / GLFW — GPU KPI benchmark dependency
-    # Required by gpu_gfxbench_offscreen_1080.py test:
-    #   - Command: DISPLAY=:0.0 testfw_app --gfx glfw -w 1920 -h 1080 -t gl_manhattan31_off
-    #   - GLFW error 65537 (GLFW_NOT_INITIALIZED) = libglfw3 missing or no X display
-    #   - X display (:0.0) is provided by GDM above — keep both sections enabled together
-    # TO DISABLE (headless build):
-    #   1. Comment out the 4 package lines below
-    #   2. Also comment out the 3 GDM package lines in the section above
-    #   3. In configurations: switch to multi-user.target and comment out all GDM blocks
-    # ----------------------------------------------------------------
-    # - libglfw3      # GLFW 3 runtime: required by gfxbench --gfx glfw (DISPLAY=:0.0)
-    # - libgl1        # OpenGL vendor-neutral dispatch library
-    # - libegl1       # EGL library (GPU rendering context creation)
-    # - libglu1-mesa  # OpenGL GLU utility library (geometry/projection helpers)
-    # - xinit   # silver test dependency, can be removed
-
-
-    # - xfonts-base # optional, standard bitmap fonts required for X11 applications
-    # - xfonts-encodings # optional, font encoding files for X11 font rendering
-    # - xfonts-utils # optional, X11 font utility programs (mkfontdir, etc.)
-    # - xnest
-    # - xvfb
-    # - dbus-x11
-
-    # Weston Compositor
-    # Remove these to disable: Weston Wayland reference compositor
-    # - weston
-    # - libweston-10-0
-
-    # Mutter Window Manager
-    # Remove these to disable: GNOME Mutter compositor
-    # - gir1.2-mutter-14
-    # - libmutter-14-0
-    # - mutter-common-bin
-    # - mutter-common
 
     # LinuxPTP (Precision Time Protocol)
     # Remove these to disable: IEEE 1588 PTP clock synchronization
@@ -912,18 +790,9 @@ systemConfig:
 
  
 
-
-
-
-
-
     # RPM Package Utilities
     # Remove these to disable: RPM package management tools
       - rpm
-
-
-
-
 
 
     # Sound / Audio Libraries
@@ -994,23 +863,7 @@ systemConfig:
     - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
 
 
-    
-    # Install Intel Graphics Compiler and compute runtime packages for PTL
-    #
-    # DISABLED — superseded by the internal repo. These same 7 packages are now
-    # taken from the internal Artifactory repo via allowPackages + packages (see
-    # "Intel GPU Compute Stack" in both lists), which serves NEWER builds:
-    #   intel-igc-core-2 / intel-igc-opencl-2   repo 2.38.2            vs 2.34.4+21428 here
-    #   intel-ocloc / intel-opencl-icd /
-    #   libze-intel-gpu1                        repo 26.27.39122.11-0  vs 26.18.38308.1-0 here
-    #   level-zero / level-zero-devel           repo 1.27.0            vs 1.27.0+u24.04 here
-    #
-    # Kept commented rather than deleted so the GitHub fallback is one uncomment
-    # away. Do NOT re-enable while the allowPackages entries are active: this
-    # dpkg -i would downgrade IGC underneath the newer compute-runtime, and
-    # intel-opencl-icd pins intel-igc-opencl-2 (>= 2.38.2, << 2.38.2+~) — the
-    # half-upgraded state that breaks the OpenCL stack. Remove the entries from
-    # allowPackages and packages first if you ever need these back.
+
 
     # ----- Intel GPU Compute Stack (wget from GitHub releases) -----
     # Intel-graphics-compiler Version: v2.38.2
@@ -1039,23 +892,6 @@ systemConfig:
     - cmd: "cd /tmp/npu-driver && wget -q https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz -O /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz && echo '398343e53fdac6023ad0856ef88bb6011b1e12447a112be55e85e27ef7f96c66  /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz' | sha256sum -c - || exit 1"
     - cmd: "cd /tmp/npu-driver && tar -xf linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
     - cmd: "find /tmp/npu-driver -name '*.deb' -print0 | xargs -0 dpkg -i"
-
-# Install linux-tools packages from flat repo directory
-    #- cmd: "mkdir -p /tmp/linux-tools"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/bpftool_7.7.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/bpftool.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/hyperv-daemons_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/hyperv-daemons.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/intel-sdsi_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/intel-sdsi.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/libcpupower1_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/libcpupower1.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/libcpupower-dev_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/libcpupower-dev.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-bpf-dev_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-bpf-dev.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-config-6.18_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-config-6.18.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-cpupower_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-cpupower.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-kbuild-6.18.23-intel+260427T075939Z_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-kbuild.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-misc-tools_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-misc-tools.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/linux-perf_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/linux-perf.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/rtla_6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/rtla.deb"
-    # cmd: "wget -q https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/usbip_2.0+6.18.23-intel+260427T075939Z_amd64.deb -O /tmp/linux-tools/usbip.deb"
-    # cmd: "find /tmp/linux-tools -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken -o Dpkg::Options::=\"--force-overwrite\""
 
     # --- Canonical names for the internal kernel tools ---------------------------
     # The linux-intel-* packages install their binaries with an `-intel` suffix

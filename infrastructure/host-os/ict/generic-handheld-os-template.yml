@@ -65,7 +65,7 @@ disk:
 # Additional package repositories for this image
 packageRepositories:
   # Intel overlay repository (aligned with installer script)
-  - codename: "noble/snapshots/2026_S_REL3-meta-data-fix"
+  - codename: "noble/snapshots/2026_S_REL3"
     url: "https://download.01.org/edge-linux-overlay/ubuntu"
     pkey: "https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
     component: "main non-free multimedia kernels"
@@ -109,16 +109,7 @@ packageRepositories:
       # the GitHub .debs: delete them from both lists first, then uncomment the
       # gpu-packages block in `configurations:`.
       #
-      # Only internal-repo dependency of these 7 is libigdgmm12, already listed
-      # above. Everything else they need (libc6, libgcc-s1, libstdc++6, libzstd1,
-      # zlib1g, ocl-icd-libopencl1) comes from the Ubuntu archive.
-      #- intel-igc-core-2
-      #- intel-igc-opencl-2
-      #- intel-ocloc
-      #- intel-opencl-icd
-      #- libze-intel-gpu1
-      #- level-zero
-      #- level-zero-devel
+
       - libmfx-gen1.2
       - libva-dev
       - libva-drm2
@@ -339,15 +330,7 @@ systemConfig:
     - gstreamer1.0-pulseaudio
     - libigdgmm12
     - intel-gpu-tools
-    # DISABLED: GPU packages are now installed via wget/dpkg in configurations:
-    # section below. Uncomment to switch back to the internal overlay repo.
-    #  - intel-igc-core-2
-    #  - intel-igc-opencl-2
-    #  - intel-ocloc
-    #  - intel-opencl-icd
-    #  - libze-intel-gpu1
-    #  - level-zero
-    #  - level-zero-devel
+
     - libmfx-gen1.2
     - libtpms-dev
     - libtpms0

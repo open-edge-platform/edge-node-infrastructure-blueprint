@@ -206,7 +206,7 @@ set_preferred_package_list() {
 	# Intel overlay: priority 2000 (highest — matches template)
 	cat > /etc/apt/preferences.d/intel-overlay << EOF
 Package: *
-Pin: origin af01p-png.devtools.intel.com
+Pin: origin download.01.org
 Pin-Priority: 2000
 EOF
 
@@ -582,28 +582,15 @@ EOF
 }
 
 install_mtl_audio_firmware() {
-	echo "Installing Meteor Lake (MTL) audio firmware from Intel Artifactory..."
+	echo "Installing Meteor Lake (MTL) audio firmware from GitHub (sof-bin)..."
 	local mtl_sof_dir="/lib/firmware/intel/sof-ipc4/mtl"
-	local tplg_dir="/lib/firmware/intel/sof-ace-tplg"
 
 	mkdir -pv "$mtl_sof_dir"
-	mkdir -p "$tplg_dir"
 
-	# MTL SOF firmware binaries
-	wget -O "$mtl_sof_dir/sof-mtl.ldc" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ipc4/mtl/sof-mtl.ldc 2>&1 || echo 'Warning: sof-mtl.ldc download failed'
-	wget -O "$mtl_sof_dir/sof-mtl.ri" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ipc4/mtl/sof-mtl.ri 2>&1 || echo 'Warning: sof-mtl.ri download failed'
-
-	# MTL topology files
-	wget -O "$tplg_dir/sof-mtl-rt711-4ch.tplg" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-rt711-4ch.tplg 2>&1 || echo 'Warning: sof-mtl-rt711-4ch.tplg download failed'
-	wget -O "$tplg_dir/sof-mtl-rt711.tplg" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-rt711.tplg 2>&1 || echo 'Warning: sof-mtl-rt711.tplg download failed'
-	wget -O "$tplg_dir/sof-mtl-es83x6-ssp1-hdmi-ssp02.tplg" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-es83x6-ssp1-hdmi-ssp02.tplg 2>&1 || echo 'Warning: sof-mtl-es83x6-ssp1-hdmi-ssp02.tplg download failed'
-	wget -O "$tplg_dir/sof-mtl-hdmi-ssp02.tplg" \
-		https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu-mtl-audio-tplg-6/c0/intel/sof-ace-tplg/sof-mtl-hdmi-ssp02.tplg 2>&1 || echo 'Warning: sof-mtl-hdmi-ssp02.tplg download failed'
+	# MTL SOF firmware binary (same pattern as desktop PTL in audio_fw_update)
+	wget --no-check-certificate -O "$mtl_sof_dir/sof-mtl.ri" \
+		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/mtl/intel-signed/sof-mtl.ri 2>&1 || echo 'Warning: sof-mtl.ri download failed'
+	sleep 3
 
 	echo "MTL audio firmware installation complete."
 }
@@ -852,48 +839,6 @@ install_eci_camera_hal_deps() {
 	echo "ECI Camera HAL dependencies installed."
 }
 
-# ----- FUTURE: OpenVINO and oneAPI package installation -----
-# Uncomment when openvino/oneAPI packages are added to the ICT template.
-# install_openvino_oneapi() {
-# 	echo "Installing OpenVINO and oneAPI packages..."
-# 	apt update
-# 	apt install -y --no-install-recommends \
-# 		openvino-2025.4.1 \
-# 		openvino-libraries-2025.4.1 \
-# 		openvino-libraries-dev-2025.4.1 \
-# 		openvino-samples-2025.4.1 \
-# 		openvino-samples-python-2025.4.1 \
-# 		python3-openvino-2025.4.1 \
-# 		libopenvino-2025.4.1 \
-# 		libopenvino-dev-2025.4.1 \
-# 		libopenvino-auto-batch-plugin-2025.4.1 \
-# 		libopenvino-auto-plugin-2025.4.1 \
-# 		libopenvino-hetero-plugin-2025.4.1 \
-# 		libopenvino-intel-cpu-plugin-2025.4.1 \
-# 		libopenvino-intel-gpu-plugin-2025.4.1 \
-# 		libopenvino-intel-npu-plugin-2025.4.1 \
-# 		libopenvino-ir-frontend-2025.4.1 \
-# 		libopenvino-onnx-frontend-2025.4.1 \
-# 		libopenvino-paddle-frontend-2025.4.1 \
-# 		libopenvino-pytorch-frontend-2025.4.1 \
-# 		libopenvino-tensorflow-frontend-2025.4.1 \
-# 		libopenvino-tensorflow-lite-frontend-2025.4.1 \
-# 		intel-oneapi-dnnl-2026.0 \
-# 		intel-oneapi-dnnl-devel-2026.0 \
-# 		intel-oneapi-common-licensing-2026.0 \
-# 		intel-oneapi-common-oneapi-vars-2026.0 \
-# 		intel-oneapi-common-vars \
-# 		intel-oneapi-compiler-dpcpp-cpp-runtime-2026.1 \
-# 		intel-oneapi-compiler-shared-runtime-2026.1 \
-# 		intel-oneapi-openmp-2026.1 \
-# 		intel-oneapi-openmp-common-2026.1 \
-# 		intel-oneapi-tbb-2023.1 \
-# 		intel-oneapi-tbb-devel-2023.1 \
-# 		intel-oneapi-tcm-1.5 \
-# 		intel-oneapi-umf-1.1
-# 	echo "OpenVINO and oneAPI packages installed successfully."
-# }
-# ----- END FUTURE OpenVINO/oneAPI -----
 
 install_performance_tools() {
 	echo "Installing performance analysis tools..."
@@ -1143,80 +1088,6 @@ install_gpu_npu_pkgs_from_deb() {
 	echo "Installation directory cleaned: $INSTALL_DIR"
 }
 
-# ----- COMMENTED: overlay-repo GPU + artifactory NPU install -----
-# install_gpu_npu_pkgs() {
-# 	echo "Installing GPU and NPU Packages..."
-#
-# 	# ----- GPU Compute Stack (from Intel overlay repo, priority 2000) -----
-# 	# The internal overlay repo ships newer versions than the old GitHub .deb
-# 	# approach (IGC 2.38.2 vs 2.34.4, compute-runtime 26.27.x vs 26.18.x).
-# 	# These packages are already permitted by the overlay repo priority and
-# 	# match the ICT template's systemConfig.packages list.
-# 	apt update
-# 	apt install -y \
-# 		intel-igc-core-2 \
-# 		intel-igc-opencl-2 \
-# 		intel-ocloc \
-# 		intel-opencl-icd \
-# 		libze-intel-gpu1 \
-# 		level-zero \
-# 		level-zero-devel \
-# 		libtbb12
-#
-# 	echo "GPU compute stack installed from overlay repo."
-#
-# 	# ----- NPU Driver (v1.35.0 from internal artifactory) -----
-# 	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
-# 	INSTALL_DIR="/tmp/npu-driver"
-# 	mkdir -p "$INSTALL_DIR"
-# 	cd "$INSTALL_DIR"
-#
-# 	echo "Downloading NPU driver package..."
-# 	npu_url="https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
-# 	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
-#
-# 	if wget -q "$npu_url" -O "$npu_file"; then
-# 		echo "Successfully downloaded NPU driver package"
-# 		if tar -xf "$npu_file"; then
-# 			echo "Successfully extracted NPU driver package"
-# 		else
-# 			echo "ERROR: Failed to extract NPU driver package"
-# 			exit 1
-# 		fi
-# 	else
-# 		echo "ERROR: Failed to download NPU driver package"
-# 		exit 1
-# 	fi
-#
-# 	# Verify .deb files exist
-# 	if ! ls ./*.deb 1> /dev/null 2>&1; then
-# 		echo "ERROR: No .deb files found in $INSTALL_DIR"
-# 		exit 1
-# 	fi
-#
-# 	# Purge old NPU packages if they exist
-# 	dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true
-#
-# 	# Install NPU .deb packages
-# 	echo "Installing NPU driver packages..."
-# 	if dpkg -i ./*.deb; then
-# 		echo "NPU driver installed successfully"
-# 	else
-# 		echo "WARNING: Some packages failed to install, attempting to fix dependencies..."
-# 		apt --fix-broken install -y || {
-# 			echo "ERROR: Failed to install NPU packages"
-# 			exit 1
-# 		}
-# 	fi
-#
-# 	# Cleanup
-# 	cd /
-# 	rm -rf "$INSTALL_DIR"
-#
-# 	echo "Installation directory cleaned: $INSTALL_DIR"
-#
-# }
-# ----- END COMMENTED overlay-repo install -----
 
 
 install_intel_lpmd () {

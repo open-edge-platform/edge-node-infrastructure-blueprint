@@ -24,6 +24,13 @@ IMAGE_TAG_MISSING="false"
 ENABLE_SWAP_RESUME="${ENABLE_SWAP_RESUME:-0}"
 # FIX_SWAP_RESUME_END
 
+# User credentials — must be set via environment variables (see README).
+# Generate the SHA-512 password hash with:
+#   export USERNAME='<your-username>'
+#   export PASSWORD="$(openssl passwd -6 '<your-password>')"
+IMAGE_USERNAME="${USERNAME:-}"
+IMAGE_USER_PASSWORD="${PASSWORD:-}"
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
@@ -71,6 +78,13 @@ sudo rm -rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
 log "  Build directory clean: ${BUILD_DIR}"
 
+# Validate user credentials are provided
+if [[ -z "${IMAGE_USERNAME}" || -z "${IMAGE_USER_PASSWORD}" ]]; then
+    error "USERNAME and PASSWORD environment variables must be set.\n" \
+          "  export USERNAME='<your-username>'\n" \
+          "  export PASSWORD=\"\$(openssl passwd -6 '<your-password>')\""
+fi
+
 # Start the build process from where script stoped previously.
 # shellcheck disable=SC2046
 docker rm -f $(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest") 2>/dev/null || true
@@ -101,6 +115,8 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
         --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
         --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
         --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
+        --build-arg USERNAME="${IMAGE_USERNAME}" \
+        --build-arg USER_PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
@@ -118,6 +134,8 @@ else
         --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
         --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
         --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
+        --build-arg USERNAME="${IMAGE_USERNAME}" \
+        --build-arg USER_PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
