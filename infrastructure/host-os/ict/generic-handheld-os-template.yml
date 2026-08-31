@@ -65,7 +65,7 @@ disk:
 # Additional package repositories for this image
 packageRepositories:
   # Intel overlay repository (aligned with installer script)
-  - codename: "noble/snapshots/2026_S_REL3"
+  - codename: "noble/snapshots/2026_S_REL3-meta-data-fix"
     url: "https://download.01.org/edge-linux-overlay/ubuntu"
     pkey: "https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
     component: "main non-free multimedia kernels"
