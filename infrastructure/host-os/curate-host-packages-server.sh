@@ -581,20 +581,6 @@ EOF
 	echo "Audio firmware update complete."
 }
 
-install_mtl_audio_firmware() {
-	echo "Installing Meteor Lake (MTL) audio firmware from GitHub (sof-bin)..."
-	local mtl_sof_dir="/lib/firmware/intel/sof-ipc4/mtl"
-
-	mkdir -pv "$mtl_sof_dir"
-
-	# MTL SOF firmware binary (same pattern as desktop PTL in audio_fw_update)
-	wget --no-check-certificate -O "$mtl_sof_dir/sof-mtl.ri" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/mtl/intel-signed/sof-mtl.ri 2>&1 || echo 'Warning: sof-mtl.ri download failed'
-	sleep 3
-
-	echo "MTL audio firmware installation complete."
-}
-
 install_cloud_init() {
 	echo "Installing and configuring cloud-init"
 	export DEBIAN_FRONTEND=noninteractive
@@ -1233,8 +1219,6 @@ main() {
 	install_essential_tools
 
 	audio_fw_update
-
-	install_mtl_audio_firmware
 
 	install_cloud_init
 
