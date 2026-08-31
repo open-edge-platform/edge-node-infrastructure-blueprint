@@ -240,12 +240,12 @@ log "  resolv.conf -> $(sudo readlink ${MNT}/etc/resolv.conf)"
 
 # Fix hostname and hosts file
 sudo tee "${MNT}/etc/hostname" > /dev/null << 'EOF'
-edge-node
+minimal-desktop-ubuntu
 EOF
 
 sudo tee "${MNT}/etc/hosts" > /dev/null << 'EOF'
 127.0.0.1   localhost
-127.0.1.1   edge-node
+127.0.1.1   minimal-desktop-ubuntu
 ::1         localhost ip6-localhost ip6-loopback
 ff02::1     ip6-allnodes
 ff02::2     ip6-allrouters

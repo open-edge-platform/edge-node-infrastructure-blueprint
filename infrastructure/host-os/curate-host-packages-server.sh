@@ -8,9 +8,9 @@ set -x
 echo "http_proxy=${http_proxy:-}"
 echo "https_proxy=${https_proxy:-}"
 
-INTEL_OVERLAY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260724-2201_2026_SW_S_REL3_RC01"
-INTEL_OVERLAY_KEY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg"
-INTEL_OVERLAY_COMPONENTS="main non-free multimedia internal"
+INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
+INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
 INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
 INTEL_OPENVINO_URL="https://apt.repos.intel.com/openvino/2025"
@@ -103,10 +103,11 @@ download_file_with_tls_handling() {
 # TLS_WORKAROUND_BLOCK_END
 
 create_ppa_sources_list() {
-	echo "Creating Intel overlay repository sources list..."
+	local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
+	echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
 	mkdir -p /etc/apt/sources.list.d
 	cat > /etc/apt/sources.list.d/intel-overlay.list << EOF
-deb [signed-by=/etc/apt/keyrings/intel-overlay.gpg] ${INTEL_OVERLAY_URL} noble ${INTEL_OVERLAY_COMPONENTS}
+deb [signed-by=/etc/apt/keyrings/intel-overlay.gpg] ${INTEL_OVERLAY_URL} noble/snapshots/${SNAPSHOT_NAME} ${INTEL_OVERLAY_COMPONENTS}
 EOF
 	echo "Intel overlay repository sources list created."
 }
