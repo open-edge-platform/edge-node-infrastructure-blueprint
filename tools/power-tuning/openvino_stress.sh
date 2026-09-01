@@ -14,8 +14,16 @@ MODEL_PATH="/home/user/models/intel"
 OV_IMAGE="openvino/ubuntu24_dev:2026.0.0"
 MODEL_SUBPATH="intel/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.xml"
 CLEANUP=false
+DEFAULT_MODEL_SUBPATH="intel/age-gender-recognition-retail-0013/FP16/age-gender-recognition-retail-0013.xml"
+DEFAULT_MODEL_XML_SHA256="347b51acfce3ddf3d9a1e6e1ccd16a1d130c1fb009c647a35243d0919d18c8d4"
+DEFAULT_MODEL_BIN_SHA256="59095b3440e09d93e92c5ee79cafeeafc11a3c292a5d6133efe6a34b9d554916"
 
 die() { echo "Error: $1" >&2; exit 1; }
+
+verify_sha256() {
+    local expected_hash="$1" file_path="$2"
+    printf '%s  %s\n' "$expected_hash" "$file_path" | sha256sum --check --status -
+}
 
 usage() {
     cat <<EOF
@@ -109,21 +117,34 @@ fi
 
 # ── Model path validation / auto-download ──
 MODEL_BASE_URL="https://storage.openvinotoolkit.org/repositories/open_model_zoo/2022.3/models_bin/1"
+MODEL_FILE="${MODEL_PATH}/${MODEL_SUBPATH}"
 
-if [[ ! -f "${MODEL_PATH}/${MODEL_SUBPATH}" ]]; then
-    echo "Model not found at ${MODEL_PATH}/${MODEL_SUBPATH}"
+if [[ ! -f "$MODEL_FILE" ]]; then
+    [[ "$MODEL_SUBPATH" == "$DEFAULT_MODEL_SUBPATH" ]] || die "Automatic download is available only for the pinned default model; download and verify custom models before use"
+    echo "Model not found at ${MODEL_FILE}"
     echo "Downloading model via curl..."
-    _MODEL_NAME="$(echo "$MODEL_SUBPATH" | cut -d/ -f2)"
-    _MODEL_PREC="$(echo "$MODEL_SUBPATH" | cut -d/ -f3)"
+    _MODEL_NAME="age-gender-recognition-retail-0013"
+    _MODEL_PREC="FP16"
     _MODEL_DIR="${MODEL_PATH}/intel/${_MODEL_NAME}/${_MODEL_PREC}"
     mkdir -p "$_MODEL_DIR"
     for ext in xml bin; do
+        if [[ "$ext" == "xml" ]]; then expected_hash="$DEFAULT_MODEL_XML_SHA256"; else expected_hash="$DEFAULT_MODEL_BIN_SHA256"; fi
+        target_file="${_MODEL_DIR}/${_MODEL_NAME}.${ext}"
+        temporary_file="${target_file}.download.$$"
         curl -fSL "${MODEL_BASE_URL}/${_MODEL_NAME}/${_MODEL_PREC}/${_MODEL_NAME}.${ext}" \
-            -o "${_MODEL_DIR}/${_MODEL_NAME}.${ext}" \
-            || die "Failed to download ${_MODEL_NAME}.${ext} from ${MODEL_BASE_URL}"
+            -o "$temporary_file" \
+            || { rm -f "$temporary_file"; die "Failed to download ${_MODEL_NAME}.${ext} from ${MODEL_BASE_URL}"; }
+        verify_sha256 "$expected_hash" "$temporary_file" \
+            || { rm -f "$temporary_file"; die "Checksum verification failed for ${_MODEL_NAME}.${ext}"; }
+        mv -f "$temporary_file" "$target_file"
     done
-    [[ -f "${MODEL_PATH}/${MODEL_SUBPATH}" ]] || die "Model download failed"
+    [[ -f "$MODEL_FILE" ]] || die "Model download failed"
     echo "Model downloaded to ${_MODEL_DIR}"
+fi
+
+if [[ "$MODEL_SUBPATH" == "$DEFAULT_MODEL_SUBPATH" ]]; then
+    verify_sha256 "$DEFAULT_MODEL_XML_SHA256" "$MODEL_FILE" || die "Checksum verification failed for default model XML"
+    verify_sha256 "$DEFAULT_MODEL_BIN_SHA256" "${MODEL_FILE%.xml}.bin" || die "Checksum verification failed for default model BIN"
 fi
 
 # ── Build benchmark command ──
