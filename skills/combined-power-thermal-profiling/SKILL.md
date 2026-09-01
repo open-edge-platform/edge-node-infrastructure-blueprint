@@ -30,6 +30,21 @@ combined confirmation, and the consolidated report. Use it to answer one
 question: **"can this enclosure sustain profile X under load Y without
 throttling?"**
 
+### Cross-profile dependency and reboot lifecycle
+
+The order is functional, not cosmetic. `set-thermal-profile` reads the live
+package RAPL PL1 while it generates `thermal-conf.xml`, then embeds that value
+as thermald's PPCC maximum. At thermald startup, that PPCC value is written
+back to the package power control. Therefore this skill must always apply
+**power first, thermal second**. Reapply thermal after every power-profile
+change so PPCC represents the current power target.
+
+The RAPL PL1/PL2 caps are volatile and reset to firmware defaults on reboot.
+The `intel_lpmd` configuration, thermald configuration, and thermald systemd
+drop-in remain on disk. After every reboot, re-run this skill (or manually
+apply power then thermal in that order) before a qualified workload; this
+reinstates the RAPL cap and refreshes thermald's persisted PPCC maximum.
+
 ## Terminology
 Acronyms and terms used throughout this skill. See the underlying skills for the
 full glossaries.
@@ -61,7 +76,7 @@ full glossaries.
 - enib_home: absolute path to this repository root (default: current workspace root). On a host provisioned with Infrastructure Blueprint, the developer source tree lives at `/opt/edge/developer`, so `enib_home` is `/opt/edge/developer` on the target system.
 - profile: power profile to apply — one of `LowPower`, `BalancedLow`, `BalancedHigh`, `Performance`, `MaxPerformance`, or `Custom` (default: `BalancedHigh`). Passed to `set-power-profile`.
 - pkg_watt / sys_watt / burst_ratio / pl1_tau: optional power-envelope overrides, forwarded verbatim to `set-power-profile` (same rules/validation as that skill; `pkg_watt` only for `Custom`).
-- thermal_profile: thermal policy to apply — one of `cool`, `warm`, `hot`, `thermal-max`, `custom`, or `none` (default: `none` — leave the current thermal policy untouched). When `custom`, also supply `fan_c`/`proc_c`/`clamp_c`. Passed to `set-thermal-profile`.
+- thermal_profile: thermal policy to apply — one of `cool`, `warm`, `hot`, `thermal-max`, `custom`, or `none` (default: `none`). `none` is allowed only when thermald is inactive or disabled; an active thermald service must receive an explicit profile after every power-profile change so its PPCC maximum is refreshed. When `custom`, also supply `fan_c`/`proc_c`/`clamp_c`. Passed to `set-thermal-profile`.
 - fan_c / proc_c / clamp_c: custom thermal trip points (only when `thermal_profile=custom`), forwarded to `set-thermal-profile`.
 - duration: bounded stress/monitor window in stress-ng time syntax, e.g. `60s`, `3m` (default: `3m`). **Required to be bounded** — an open-ended session is rejected (see Safety Rules).
 - cpus / load / gpu: stress parameters forwarded to `generate-platform-stress` (defaults: all CPUs, `100`%, `12` GPU workers).
@@ -89,6 +104,7 @@ Run silently without user prompts. This orchestrator's preconditions are the
 - [ ] Required tools present: `command -v turbostat`, `command -v stress-ng`, `command -v rdmsr && command -v wrmsr`, and (when `thermal_profile != none`) `test -x /usr/sbin/thermald`. On any miss, stop with the same install hint the owning sub-skill gives.
 - [ ] No stress-ng or turbostat instance is already running (would skew the capture):
   - `pgrep -x stress-ng` and `pgrep -x turbostat` — if either returns a PID, stop and instruct the user to stop it first (`sudo pkill -x stress-ng` / `sudo pkill -x turbostat`) before re-triggering.
+- [ ] When `thermal_profile=none`, verify thermald is not active: `systemctl is-active --quiet thermald`. If it is active, stop before applying power and require the user to select an explicit thermal profile. thermald owns the package RAPL cooling device and can restore its persisted PPCC maximum, making an unchanged thermal policy incompatible with a new power target.
 - [ ] **Sudo probe (MANDATORY unless `dry_run=true`).** The session applies power/thermal changes and runs `sudo turbostat`. Run `sudo -n true`; if exit is non-zero, do NOT proceed — stop and instruct the user to run `sudo -v` (or add the scoped `NOPASSWD` entries the sub-skills document), then re-trigger. Never collect a password via prompts, env vars, scripts, or logs. See [AGENTS.md](../../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 - [ ] Host is x86_64 with an Intel CPU (sanity check; non-fatal warning if not): `uname -m` and `grep -m1 -o 'GenuineIntel' /proc/cpuinfo`.
 - [ ] (Informational) Detect psys/SysWatt support so the report can annotate a `0.00` reading (as in `monitor-power-thermal`).
@@ -110,7 +126,8 @@ Input validation (fail closed before running anything):
 1. **Resolve the full session plan (no writes yet).** Build the argument lines
    for all four stages from the resolved inputs and render a single **Planned
    Session** table: power profile + envelope, thermal profile + trips (or
-   "unchanged"), monitor interval/duration/log path, and stress cpus/load/gpu/duration.
+   `none` with thermald confirmed inactive), monitor interval/duration/log path,
+   and stress cpus/load/gpu/duration.
 2. **Dry-run every mutating stage** (read-only, no sudo). Run `set-power-profile`
    with `--dry-run`, and `set-thermal-profile` with `--dry-run` when
    `thermal_profile != none`; capture each resolved plan verbatim and fold any
@@ -121,11 +138,13 @@ Input validation (fail closed before running anything):
    - Else: present the Planned Session table and ask **once**: "Run the full profiling session — apply <profile> (+ <thermal_profile> thermal), monitor for <duration>, and stress <cpus> CPUs @ <load>% + <gpu> GPU workers on this host? (yes/no)". On anything other than `yes`/`y`, stop and record `CONFIRMATION=declined`. A `yes` authorizes all stages; still surface (do not re-prompt for) each sub-skill's plan as it runs.
 4. **CONSTRAIN — apply the envelope** (only after confirmation), in order:
    - Invoke **set-power-profile** with the resolved `profile` and any `pkg_watt`/`sys_watt`/`burst_ratio`/`pl1_tau`, `auto_confirm=true`. Capture its report and exit code. Abort the session if it fails.
-   - If `thermal_profile != none`: invoke **set-thermal-profile** with the resolved `thermal_profile` (+ custom trips / `--charge` if given), `auto_confirm=true`. Capture its report and exit code. Abort if it fails.
+   - If `thermal_profile != none`: invoke **set-thermal-profile** immediately after power with the resolved `thermal_profile` (+ custom trips / `--charge` if given), `auto_confirm=true`. It captures the newly applied RAPL PL1 as thermald PPCC. Capture its report and exit code. Abort if it fails.
 5. **OBSERVE — start the monitor**, bounded to the stress window. Invoke
    **monitor-power-thermal** with `duration` (≈ the stress `duration`, plus a
-   few seconds of lead/tail), `interval`, and `log_path`. Start it **before** the
-   stress load so the trace captures the ramp. Record the log path and PID.
+   few seconds of lead/tail), `interval`, and `log_path`. For non-default
+   interval, duration, or log path, that skill runs `turbostat` directly rather
+   than passing unsupported options to `pt_mon.sh`. Start it **before** the stress
+   load so the trace captures the ramp. Record the log path and PID.
 6. **LOAD — drive the stress**, synchronously and bounded. Invoke
    **generate-platform-stress** with the resolved `cpus`/`load`/`gpu` and the
    bounded `duration`, `auto_confirm=true`. Let it complete; capture its report
@@ -144,7 +163,7 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Inputs validated against each sub-skill's rules; `duration` present and bounded.
 - A single Planned Session table was rendered from the stage dry-runs before the combined confirmation gate.
 - Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
-- Stages executed only when the outcome is `confirmed` or `auto_confirm`, and in order: power → thermal (if any) → monitor → stress → summarize.
+- Stages executed only when the outcome is `confirmed` or `auto_confirm`, and in order: power → thermal → monitor → stress → summarize. Thermal is omitted only when thermald was confirmed inactive for `thermal_profile=none`.
 - Each executed sub-skill reported success (exit `0`); the session aborted (and rolled back per Rollback) on the first failure.
 - The monitor trace is non-empty and covers the stress window; the enclosure report's min/mean/max were parsed from it.
 - `SysWatt=0.00` is annotated as a known firmware limitation (per psys detection), NOT a session failure.
@@ -154,7 +173,9 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - **Stress** leaves no persistent state — if aborted, stop it: `sudo pkill -x stress-ng`.
 - **Monitor** is read-only — stop it (`sudo pkill -x turbostat`); the only artifact is the trace at `<log_path>`.
 - **Power profile**: the RAPL cap is runtime-only (reverts on reboot); to revert immediately re-run `set-power-profile` with a lower profile, or restore the `intel_lpmd` `.orig` config (see that skill's Rollback).
-- **Thermal profile** (if applied): re-run `set-thermal-profile` with a different profile (previous config backed up to `.bak`), restore the `.bak`, or run it with `disable=true` to return to kernel default thermal control. This config persists across reboot.
+- **Thermal profile** (if applied): re-run `set-thermal-profile` with a different profile (previous config backed up to `.bak`), restore the `.bak`, or run it with `disable=true` to return to kernel default thermal control. This config persists across reboot. Do not restore a prior thermald configuration after applying a new power target without reapplying the thermal profile, because its saved PPCC maximum may be stale.
+- To restore the original local settings rather than only the previous profile, use configuration copies captured before the first apply. The thermal `.bak` files are replaced on later applies, and the power script creates `.orig` only for model-specific `intel_lpmd` files it replaced; a newly created generic `intel_lpmd_config.xml` has no automatic original backup.
+- After a reboot, do not assume the persisted thermald PPCC still represents the active power cap: reapply power first, then thermal, before the next profile run.
 - If any stage fails mid-session, stop the already-started monitor/stress, report which stages applied, and propose the matching rollback for each applied stage.
 
 ## Safety Rules
@@ -177,7 +198,7 @@ Emit the single **enclosure report** as the following tables.
 | Host | `<uname -m>` + CPU model name |
 | Enclosure / label | `<user-supplied or 'unspecified'>` |
 | Power profile | `<profile>` (+ any `pkg_watt`/`sys_watt`/`burst_ratio`) |
-| Thermal profile | `<thermal_profile>` (Fan/Proc/clamp °C) or `unchanged` |
+| Thermal profile | `<thermal_profile>` (Fan/Proc/clamp °C), or `none` (thermald inactive) |
 | Stress | `<cpus>` CPUs @ `<load>%` + `<gpu>` GPU workers |
 | Duration | `<duration>` |
 | Monitor | interval `<interval>s`, log `<log_path>` |
@@ -233,6 +254,7 @@ Emit the single **enclosure report** as the following tables.
 
 ## Troubleshooting Notes
 - A stage failed mid-session: the orchestrator aborts on the first non-zero exit, stops any started monitor/stress, and reports which stages applied. Consult the failing sub-skill's own Troubleshooting Notes, fix the cause, and re-trigger.
+- `thermal_profile=none` while thermald is active: select and apply an explicit thermal profile after the power profile. Leaving the persisted thermal policy unchanged can reassert its old PPCC cap over the requested RAPL PL1.
 - "stress-ng / turbostat is already running": a previous session did not clean up. Stop it (`sudo pkill -x stress-ng` / `sudo pkill -x turbostat`) and re-trigger.
 - PkgWatt sits below the target under load ("firmware clamped PL1"): the enclosure/cooling or BIOS cTDP ceiling limits sustained power — raise Config-TDP Level 2 in BIOS or accept the lower effective figure (see `set-power-profile`).
 - PkgTmp pins at the Processor/powerclamp trip: the platform is throttling to hold temperature — the enclosure cannot cool this profile at this load; step down the power profile or choose a cooler thermal profile.

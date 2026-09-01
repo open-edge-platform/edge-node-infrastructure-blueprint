@@ -82,7 +82,6 @@ if [ -n "$EDGE_USER" ] && [ -f /etc/rancher/k3s/k3s.yaml ]; then
     chmod 600 "/home/${EDGE_USER}/.kube/config"
     # Set KUBECONFIG in the user's .bashrc so kubectl works without sudo.
     # $HOME must stay literal — it is expanded by the user's shell, not here.
-    # shellcheck disable=SC2016
     grep -qxF 'export KUBECONFIG=$HOME/.kube/config' "/home/${EDGE_USER}/.bashrc" || \
         echo 'export KUBECONFIG=$HOME/.kube/config' >> "/home/${EDGE_USER}/.bashrc"
     echo "Kubeconfig copied for ${EDGE_USER}"

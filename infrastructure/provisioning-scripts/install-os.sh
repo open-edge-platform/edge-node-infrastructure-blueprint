@@ -2,8 +2,6 @@
 
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
-# shellcheck disable=SC2001,SC2086,SC2094,SC2181
-
 
 ### Global Variables ###
 usb_disk=""
@@ -92,7 +90,6 @@ check_mnt_mount_exist() {
 detect_usb() {
     for _ in {1..15}; do
 	usb_devices=$(lsblk -dn -o NAME,TYPE,SIZE,TRAN | awk '$2 == "disk" && $4 == "usb" && $3 != "0B" {print $1}')
-        # shellcheck disable=SC2086
         for disk_name in $usb_devices; do
             # Bootable USB has 6 partitions,ignore other disks
             if [ "$(lsblk -l "/dev/$disk_name" | grep -c "^$(basename "/dev/$disk_name")[0-9]")" -eq 6 ]; then
@@ -172,7 +169,6 @@ get_block_device_details() {
     echo -e "${GREEN}Found the OS disk  $os_disk${NC}" 
 
     # Clear the disk partitions
-    # shellcheck disable=SC2086
     for disk_name in ${blk_devices}; do
         dd if=/dev/zero of="/dev/$disk_name" bs=100M count=20
 	wipefs --all "/dev/$disk_name"
@@ -189,8 +185,8 @@ print_block_device_details() {
     # List all the available disks with size and model, ignore USB and loopback devices 
     DISK_LIST=""
     for disk in $(lsblk -dn -o NAME,TYPE,SIZE,TRAN | awk '$2 == "disk" && $4 ~ /^(sata|nvme)$/ && $3 != "0B" {print $1}'); do
-        SIZE=$(lsblk -dn -o SIZE /dev/$disk 2>/dev/null)
-        MODEL=$(lsblk -dn -o MODEL /dev/$disk 2>/dev/null | tr ' ' '_')
+        SIZE=$(lsblk -dn -o SIZE /dev/"$disk" 2>/dev/null)
+        MODEL=$(lsblk -dn -o MODEL /dev/"$disk" 2>/dev/null | tr ' ' '_')
         MODEL=${MODEL:-"Unknown"}
         DISK_LIST="$DISK_LIST /dev/$disk ${SIZE}-${MODEL}"
     done
@@ -257,7 +253,7 @@ install_os_on_disk() {
     fi
 
     # Extract partition suffix (p1, p2, 1, 2, etc.) by removing the os_disk prefix
-    os_rootfs_part=$(echo "$rootfs_dev" | sed "s|^${os_disk}||")
+    os_rootfs_part=${rootfs_dev#"${os_disk}"}
 
     if [ -z "$os_rootfs_part" ]; then
         failure "Failed to parse rootfs partition from device $rootfs_dev, please check!!"
@@ -280,7 +276,7 @@ create_user_account() {
     if ! dialog --title "User Account" \
         --yesno "Do you want to create a user account?\n\n(Select 'No' to skip if you have already created a user account)" \
         0 0 </dev/tty1 >/dev/tty1 2>"$TMPFILE"; then
-        echo "User account creation skipped." >> $LOG
+        echo "User account creation skipped." >> "$LOG"
         return 0
     fi
 
@@ -358,7 +354,7 @@ EOT
         dialog --title "User Exists" \
             --msgbox "User '$USERNAME' already exists!" \
             0 0 </dev/tty1 >/dev/tty1 2>/dev/null
-        echo "User $USERNAME already exists." >> $LOG
+        echo "User $USERNAME already exists." >> "$LOG"
         return 0
     fi
     
@@ -372,7 +368,7 @@ EOT
         dialog --title "Success" \
             --msgbox "User '$USERNAME' created successfully!" \
             0 0 </dev/tty1 >/dev/tty1 2>/dev/null
-        echo "User $USERNAME created successfully." >> $LOG
+        echo "User $USERNAME created successfully." >> "$LOG"
     else
         dialog --title "Error" \
             --msgbox "Failed to create user '$USERNAME'!\nCheck $LOG for details." \
@@ -784,7 +780,7 @@ apply_partitions() {
                 vfat)  mkfs.vfat     "$PART_PATH"  ;;
                 swap)
                     mkswap "$PART_PATH" 
-                    blockdev --rereadpt ${USER_SELECTED_DISK}
+                    blockdev --rereadpt "${USER_SELECTED_DISK}"
                     swapon "$PART_PATH" 
                     ;;
             esac
@@ -848,7 +844,7 @@ apply_partitions() {
         fi
     done
     
-    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+    if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
         echo "Warning: Could not verify all partitions after $MAX_RETRIES retries"
         return 1
     fi
@@ -906,7 +902,7 @@ install_cloud_init_file() {
     sync
     check_mnt_mount_exist
     mount "$os_disk$os_rootfs_part" /mnt
-    if cp /mnt/etc/cloud/cloud-init.yaml /mnt/etc/cloud/cloud.cfg.d/installer.cfg && chmod +x /mnt/etc/cloud/cloud.cfg.d/installer.cfg; then
+    if cp /mnt/etc/cloud/cloud-init.yaml /mnt/etc/cloud/cloud.cfg.d/installer.cfg; then
         success "Successfully copied the cloud-init file"
 	rm /mnt/etc/cloud/cloud-init.yaml
     else
@@ -971,9 +967,7 @@ setup_proxy_settings() {
         # by both the QEMU (auto-install-pkgs.yaml) and ICT build paths but are
         # not sourced from config-file.  Derive their values from http_proxy so
         # they stay consistent; clear them when http_proxy is empty.
-        # shellcheck disable=SC2034
         ftp_proxy="$http_proxy"
-        # shellcheck disable=SC2034
         socks_server=""
 
         if [ -n "$http_proxy" ] || [ -n "$https_proxy" ] || [ -n "$no_proxy" ]; then
@@ -1234,7 +1228,7 @@ EOF
         chmod 600 ~/.ssh/authorized_keys
         # export the /etc/environment values to .bashrc
 	echo "source /etc/environment" >> /home/$user_name/.bashrc
-        #exit the su -$user_name
+        chown "$user_name":"$user_name" ~/.ssh ~/.ssh/authorized_keys
         exit
 EOT
                 success "SSH-KEY Configuration Success"
@@ -1293,8 +1287,7 @@ clone_source_to_target() {
     mkdir -p "$TARGET_DIR"
 
     # Use pigz for faster parallel decompression
-    tar -xzf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1
-    if [ $? -eq 0 ]; then
+    if tar -xzf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1; then
         find "$TARGET_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
         success "Developer source extracted to target /opt/edge/developer/"
     else
@@ -1336,6 +1329,7 @@ custom_cloud_init_updates() {
         ############################################################
 	NEW_LINES=$(cat <<EOF
 
+       chmod 0700 "/home/$user/.kube"
        cp /etc/rancher/k3s/k3s.yaml /home/$user/.kube/config && chown -R $user:$user /home/$user/.kube && chmod 600 /home/$user/.kube/config
        systemctl stop docker
        systemctl disable docker
@@ -1487,7 +1481,7 @@ EOT
          # Configure the docker proxy for the user $user_name
          su - $user
          mkdir -p ~/.docker
-         chmod 755 ~/.docker
+         chmod 700 ~/.docker
          cat <<EOF >> ~/.docker/config.json
          {
         "proxies":
@@ -1501,7 +1495,7 @@ EOT
  }
 }
 EOF
-    chmod 660 ~/.docker/config.json
+    chmod 600 ~/.docker/config.json
      # exit the su - $user
         exit
 EOT
@@ -1518,8 +1512,21 @@ EOT
 # Change the boot order to disk
 boot_order_change_to_disk() {
     echo -e "${BLUE}Changing the Boot order to disk!!${NC}"
+
+    # Mount efivarfs if not already mounted — Alpine HookOS does not mount it
+    # by default (no systemd), so /sys/firmware/efi/efivars is empty and
+    # efibootmgr fails with "EFI variables are not supported on this system."
+    # Required for kernel >= 6.0 where the legacy /sys/firmware/efi/vars/
+    # sysfs interface was removed.
+    if [ -d /sys/firmware/efi ] && ! mountpoint -q /sys/firmware/efi/efivars 2>/dev/null; then
+        if ! mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null; then
+            failure "Cannot mount efivarfs — change boot order to disk manually in BIOS"
+            return 1
+        fi
+    fi
+
     boot_order=$(efibootmgr -D)
-    echo $boot_order
+    echo "$boot_order"
     usb_boot_number=$(efibootmgr | grep -i "Bootcurrent" | awk '{print $2}')
 
     boot_order=$(efibootmgr | grep -i "Bootorder" | awk '{print $2}')
@@ -1544,7 +1551,7 @@ boot_order_change_to_disk() {
     #remove trail and leading , if preset
     final_boot_order=$(echo "$final_boot_order" | sed -e  's/^,//;s/,$//' )
 
-    echo "final_boot order--->" $final_boot_order
+    echo "final_boot order--->" "$final_boot_order"
 
     # Update the boot order using efibootmgr
     efibootmgr -o "$final_boot_order"
@@ -1570,11 +1577,9 @@ create_os-partition() {
 # Ask for confirmation to reboot the system after provisioning is done in Debug Mode
 ask_confirmation_for_reboot() {
     TTY=/dev/tty1
-    dialog --title "Reboot Confirmation" \
+    if dialog --title "Reboot Confirmation" \
         --yesno "Provisioning completed successfully! Do you want to reboot now?" \
-        0 0 </dev/tty1 >/dev/tty1 2>/dev/null
-
-    if [ $? -eq 0 ]; then
+        0 0 </dev/tty1 >/dev/tty1 2>/dev/null; then
         echo "Rebooting system..."
         return 0
     else

@@ -7,6 +7,10 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 
 ## Trigger Phrases
 - create image
+- create handheld image
+- create server image
+- build companion compute image
+- build uav image
 - build host image
 - generate ubuntu image
 - build PTL image
@@ -16,7 +20,10 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 - enib_home: absolute path to this repository root (default: current workspace root)
 
 All derived paths use defaults — never prompt for them unless the user explicitly overrides:
-- `target_template`: `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+- `target_template`: auto-resolve from user intent text using these rules:
+   - If text includes any server intent phrase (`server`, `uav`, `companion`, `companion server`, `uav companion`), use `infrastructure/host-os/ict/generic-companion-os-server-template.yml`
+   - If text includes handheld intent phrase (`handheld`, `backpack`), use `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+   - If no specific server intent is detected, fall back to `infrastructure/host-os/ict/generic-handheld-os-template.yml`
 - `work_template`: `<target_template>` basename prefixed with `work-`
 - `os_image_composer_repo`: `<enib_home>/tools/image-composer-tool`
 

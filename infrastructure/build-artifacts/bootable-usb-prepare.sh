@@ -4,8 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # shellcheck source=installation_scripts/config-file
-# shellcheck disable=SC1091
-source config-file > /dev/null 2>&1 
+source config-file > /dev/null 2>&1
 #set -x
 #### Global variables
 # Color codes ####### 

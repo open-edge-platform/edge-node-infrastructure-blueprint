@@ -46,6 +46,7 @@ DL Streamer Pipelines Guide <how-to/build-dlstreamer-pipelines.md>
 Edge Workloads and Benchmarks Guide <how-to/run-edge-benchmarks.md>
 Power Profiles User Guide <how-to/power-profiles.md>
 Thermal Profiles User Guide <how-to/thermal-profiles.md>
+Power and Thermal Profiles Co-working Guide <how-to/power-and-thermal-profiles.md>
 Infrastructure Capabilities <platform-capabilities.md>
 AI Agent Integration <agent-skills.md>
 Troubleshooting <troubleshooting.md>

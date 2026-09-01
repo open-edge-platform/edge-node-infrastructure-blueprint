@@ -17,12 +17,12 @@ Some skills are meant to run from the developer host, while others are meant to 
 | `create-usb-installation-files` | Packages a complete bootable USB artifact (`usb-installation-files.tar.gz`), optionally running `create-image` first | Developer host |
 | `validate-platform-config` | Validates a provisioned edge node — checks k3s pod health, binary paths, cloud-init state, network/proxy settings, and device readiness (GPU VFs, NPU) | Provisioned host |
 | `update-install-packages` | Updates Ubuntu package configuration and installs required packages on a provisioned system | Developer host |
-| `set-power-profile` | Applies a power budget profile (`LowPower`, `BalancedLow`, `BalancedHigh`, `Performance`, `MaxPerformance`, or `Custom`) | Provisioned host |
-| `set-thermal-profile` | Applies thermal trip policy (`cool`, `warm`, `hot`, `thermal-max`, or custom) through `thermald` configuration | Provisioned host |
+| `set-power-profile` | Sets the platform power envelope — a named profile (LowPower 10 W, BalancedLow 15 W, BalancedHigh 20 W, Performance 25 W, MaxPerformance) or a custom PkgWatt (PL1) / SysWatt (psys) envelope with burst ratio and time window | Provisioned host |
+| `set-thermal-profile` | Sets the thermald thermal escalation policy — generates, validates, applies, and verifies staged Fan/Processor/powerclamp trip points (cool, warm, hot, thermal-max, or custom) | Provisioned host |
 | `monitor-power-thermal` | Monitors package temperature and RAPL power domains and logs results (`pt_mon.txt`) | Provisioned host |
-| `generate-platform-stress` | Generates bounded CPU and integrated-GPU stress (`stress-ng`) to validate behavior under load | Provisioned host |
-| `generate-openvino-stress` | Generates sustained AI inference stress (`benchmark_app`) on CPU, GPU, or NPU using Docker or k3s | Provisioned host |
-| `combined-power-thermal-profiling` | Runs a full profiling sequence (power profile, thermal policy, monitoring, stress, summary report) | Provisioned host |
+| `generate-platform-stress` | Generates configurable CPU and integrated-GPU load with stress-ng — control worker count, per-CPU load percentage, GPU worker count, and duration | Provisioned host |
+| `generate-openvino-stress` | Generates sustained AI inference load on CPU, GPU, or NPU using OpenVINO `benchmark_app` in a K3s pod or Docker container for realistic power/thermal qualification | Provisioned host |
+| `combined-power-thermal-profiling` | Orchestrates a full profiling session — chains set-power-profile → set-thermal-profile → monitor-power-thermal → generate-platform-stress and emits one consolidated enclosure report with a throttle/headroom verdict | Provisioned host |
 
 ## How to Use Skills
 
