@@ -70,6 +70,13 @@ if [[ ${#stale_containers[@]} -gt 0 ]]; then
     docker rm -f "${stale_containers[@]}" 2>/dev/null || true
 fi
 
+# Validate user credentials are provided
+if [[ -z "${USERNAME:-}" || -z "${PASSWORD:-}" ]]; then
+    error "USERNAME and PASSWORD environment variables must be set.\n" \
+          "  export USERNAME='<your-username>'\n" \
+          "  export PASSWORD=\"\$(openssl passwd -6 '<your-password>')\""
+fi
+
 # Build the Ubuntu desktop image
 log "Build Docker image"
 
@@ -91,6 +98,8 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
         --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
         --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
         --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
+        --build-arg USERNAME="${USERNAME}" \
+        --build-arg PASSWORD="${PASSWORD}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 else
@@ -102,6 +111,8 @@ else
         --build-arg HTTP_PROXY="${HTTP_PROXY:-${http_proxy:-}}" \
         --build-arg HTTPS_PROXY="${HTTPS_PROXY:-${https_proxy:-}}" \
         --build-arg NO_PROXY="${NO_PROXY:-${no_proxy:-}}" \
+        --build-arg USERNAME="${USERNAME}" \
+        --build-arg PASSWORD="${PASSWORD}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 fi

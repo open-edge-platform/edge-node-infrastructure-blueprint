@@ -116,7 +116,7 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
         --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
         --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
-        --build-arg USER_PASSWORD="${IMAGE_USER_PASSWORD}" \
+        --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
@@ -135,7 +135,7 @@ else
         --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
         --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
-        --build-arg USER_PASSWORD="${IMAGE_USER_PASSWORD}" \
+        --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
