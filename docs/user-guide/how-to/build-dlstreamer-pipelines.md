@@ -17,7 +17,7 @@ input source ! decode ! inference ! post-processing ! output sink
 
 ## Prerequisites
 
-- Edge Node Infrastructure Blueprint image deployed
+- Edge Node Infrastructure software image deployed
 - Docker Engine 25+ with CDI enabled (see [Container Device Interface Guide](configure-cdi.md))
 - Intel GPU and/or NPU hardware present
 - Network connectivity for pulling images and sample videos

@@ -1,15 +1,15 @@
-# Edge Node Infrastructure Blueprint
+# Edge Node Infrastructure software
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
 ## Documentation
 
-Full documentation is available at the [Edge Node Infrastructure Blueprint docs](https://docs.openedgeplatform.intel.com/dev/edge-ai-suites/ai-suite-federal-and-aerospace/edge-node-infrastructure-blueprint/index.html).
+Full documentation is available at the [Edge Node Infrastructure software docs](https://docs.openedgeplatform.intel.com/dev/edge-ai-suites/ai-suite-federal-and-aerospace/edge-node-infrastructure-blueprint/index.html).
 
 ## Introduction
 
-The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
+The Edge Node Infrastructure software creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
 
 This repository helps you:
 - Build bootable installation artifacts.

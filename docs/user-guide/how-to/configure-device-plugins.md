@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 Intel GPU and NPU device plugins expose hardware accelerators to Kubernetes pods without requiring privileged containers. The plugins register devices with the kubelet via the Kubernetes Device Plugin framework, allowing pods to request accelerators through standard resource limits — `gpu.intel.com/xe` for GPU and `npu.intel.com/accel` for NPU.
 
-The Edge Node Infrastructure Blueprint pre-installs these plugins during first boot. This guide covers verification, pod scheduling, and common usage patterns.
+The Edge Node Infrastructure software pre-installs these plugins during first boot. This guide covers verification, pod scheduling, and common usage patterns.
 
 | Resource Name | Plugin | Hardware | Use Case |
 |---------------|--------|----------|----------|
@@ -20,7 +20,7 @@ The Edge Node Infrastructure Blueprint pre-installs these plugins during first b
 
 ## Prerequisites
 
-- Edge Node Infrastructure Blueprint image deployed with Kubernetes (K3s) host type
+- Edge Node Infrastructure software image deployed with Kubernetes (K3s) host type
 - Intel GPU and/or NPU hardware present
 - K3s running with device plugins installed
 

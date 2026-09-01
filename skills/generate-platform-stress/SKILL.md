@@ -44,7 +44,7 @@ Acronyms and terms used throughout this skill.
 - enib_home: absolute path to this repository root (default: current workspace root). On a host provisioned with Infrastructure Blueprint, the developer source tree lives at `/opt/edge/developer`, so `enib_home` is `/opt/edge/developer` on the target system.
 - cpus: number of CPU workers, `1..nproc` (default: all CPUs / `nproc`)
 - load: per-CPU load percentage, `1..100` (default: `100`)
-- gpu: number of stress-ng GPU worker processes targeting the single iGPU (default: `12`; `0` disables GPU stress). This is a worker count, NOT a GPU count.
+- gpu: number of stress-ng GPU worker processes targeting the single iGPU, `0..12` (default: `4`; `0` disables GPU stress). This is a worker count, NOT a GPU count. Use a maximum of `4` workers for a 4 Xe-core iGPU and `12` workers for a 12 Xe-core iGPU.
 - duration: optional stress-ng timeout, e.g. `60s`, `5m`, `2h` (default: run until stopped / Ctrl-C)
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved command is shown; nothing is launched.
 - auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
@@ -74,7 +74,7 @@ Prompt only for missing required inputs:
 Input validation (fail closed before launch):
 - [ ] `cpus` is an integer in `[1, NCPU_MAX]`.
 - [ ] `load` is an integer in `[1, 100]`.
-- [ ] `gpu` is a non-negative integer.
+- [ ] `gpu` is an integer in `[0, 12]`.
 - [ ] `duration` (if supplied) matches stress-ng time syntax: `^[0-9]+(s|m|h|d)?$`.
 
 ## Steps

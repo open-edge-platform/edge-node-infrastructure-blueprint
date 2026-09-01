@@ -64,8 +64,6 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ### Configure the template
 
-Update the credentials `<USERNAME>` and `<PASSWORD>` in the template file before building.
-
 Choose the template file to build and export it as `TEMPLATE`.
 
 Select the template for your target segment. If a segment guide directed you here, use the template path it specifies. The default template location is `$ENIB_HOME/infrastructure/host-os/ict/<your-template>.yml`.
@@ -154,11 +152,12 @@ The output artefacts are written to:
 ./workspace/ubuntu-ubuntu24-x86_64/imagebuild/<config-name>/
 ```
 
-Expected artefacts:
+Expected artifact (one of the following, based on the template you choose):
 
 | File                                  | Description                                |
 | ------------------------------------- | ------------------------------------------ |
 | `minimal-desktop-ubuntu-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
+| `minimal-ubuntu-server-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
 
 ## Package the image into artifacts
 
@@ -167,7 +166,7 @@ the USB artifacts:
 
 ```bash
 cd "$ENIB_HOME"
-make build MODE=image-from-tool ICT_IMG=/absolute/path/to/minimal-desktop-ubuntu-24.04.raw.gz
+make build MODE=image-from-tool ICT_IMG=/absolute/path/to/image
 ```
 
 `ICT_IMG` may be any readable file on the host — absolute path or path relative to
@@ -175,7 +174,7 @@ the repository root. `make` resolves the path and bind-mounts the containing
 directory read-only into the build container, so the image does not need to live
 inside the repository.
 
-Example:
+Example for handheld blueprint build:
 
 ```bash
 cd "$ENIB_HOME"
@@ -198,12 +197,18 @@ Use this flow when you want to build a custom image flavor (for example, debug, 
 
 ### What you are modifying
 
-The package curation flow can update one or both of the following files:
+The package curation flow can update one or both of the following files, resolved per segment intent:
 
-- `infrastructure/host-os/auto-install-pkgs.yaml`
-- the selected ICT template (`$TEMPLATE`)
+- The relevant curation script — consumed by the Docker-based standard image build:
+  - `infrastructure/host-os/curate-host-packages.sh` for handheld builds.
+  - `infrastructure/host-os/curate-host-packages-server.sh` for UAV / companion server builds.
+- The relevant ICT template — consumed by the ICT-based advanced image build:
+  - `infrastructure/host-os/ict/generic-handheld-os-template.yml` for handheld builds (default).
+  - `infrastructure/host-os/ict/generic-companion-os-server-template.yml` for UAV / companion server builds.
 
-The ICT-based template is the preferred advanced image build method. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based template files.
+The skill auto-resolves both files from your prompt: use words like `server`, `uav`, `companion`, or `companion server` to target the server pair; use `handheld` or `backpack` to target the handheld pair. When no intent is specified, it defaults to the handheld pair.
+
+By default, if not explicitly specified, the skill updates package intent for both the Docker-based standard build (resolved curation script) and the resolved ICT template.
 
 ### End-to-end flow
 
@@ -223,11 +228,11 @@ Add htop, jq, and iperf3 to the ict-template in /home/user/edge-node-infrastruct
 ```
 
 ```text
-Delete mosquitto and mosquitto-clients from both auto-install-pkgs and the ict-template.
+Delete mosquitto and mosquitto-clients from both curate-host-packages and the ict-template.
 ```
 
 ```text
-Add sysbench and stress-ng to auto-install-pkgs only for a debug image variant.
+Add sysbench and stress-ng to curate-host-packages only for a debug image variant.
 ```
 
 The skill is expected to:
@@ -237,7 +242,7 @@ The skill is expected to:
 - optionally search repositories for packages matching hardware details (device name, model, or vendor) and confirm matches before adding
 - create backups before file changes
 - return per-file package change results (`added`, `deleted`, `already-present`, `not-found`)
-- validate YAML syntax after updates
+- validate shell and YAML syntax after updates
 
 ### Build an ICT variant from the curated baseline
 

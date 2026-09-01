@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 ## Overview
 
 Intel® Core™ Ultra edge nodes can be tuned to trade sustained performance
-against heat, fan noise, and energy use. The Infrastructure Blueprint ships a
+against heat, fan noise, and energy use. The Infrastructure software ships a
 set of local power-tuning tools under `tools/power-tuning/` that let you:
 
 - Apply a ready-made **power profile** (`LowPower` … `MaxPerformance`).
@@ -18,7 +18,7 @@ set of local power-tuning tools under `tools/power-tuning/` that let you:
 
 > **On the target system:** the commands below use repository-relative paths
 > (`tools/power-tuning/…`), which work when you run them from the repo root. On a
-> host provisioned with Infrastructure Blueprint, the same tools are available on
+> host provisioned with Infrastructure software, the same tools are available on
 > the target system at `/opt/edge/developer/tools/power-tuning/`. Either
 > `cd /opt/edge/developer` and use the relative paths as written, or prefix each
 > command with the full path (e.g.
@@ -251,7 +251,7 @@ tools/power-tuning/stress_gen.sh --gpu 8 --duration 5m
 |---|---|
 | `--cpus N` | Number of CPU workers, `1..nproc` (default: all CPUs). |
 | `--load P` | Per-CPU load percentage, `1..100` (default `100`). |
-| `--gpu N` | Number of stress-ng iGPU worker processes (default `12`; `0` disables GPU load). This is a worker count, not a GPU count. |
+| `--gpu N` | Number of stress-ng iGPU worker processes, `0..12` (default `4`; `0` disables GPU load). This is a worker count, not a GPU count. Use a maximum of `4` for a 4 Xe-core iGPU and `8` for a 12 Xe-core iGPU. |
 | `--duration D` | Run time in stress-ng syntax (`60s`, `5m`, `2h`); omit to run until stopped. |
 
 Stop a running stress test with `Ctrl-C`, or:

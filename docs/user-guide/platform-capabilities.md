@@ -3,11 +3,11 @@ SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Infrastructure Blueprint Capabilities
+# Infrastructure software Capabilities
 
 ## Collecting a Platform Report with system-info.sh
 
-`system-info.sh` is a diagnostic script for Intel® Panther Lake (PTL) systems provisioned using Infrastructure Blueprint. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
+`system-info.sh` is a diagnostic script for Intel® Panther Lake (PTL) systems provisioned using Infrastructure software. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
 
 ### Summary of Tools
 
@@ -54,7 +54,7 @@ The script produces the following sections. Use this table to navigate the outpu
 
 ## Provisioned System Profile
 
-The following tables describe what is expected to be present on a system that has been provisioned using the Infrastructure Blueprint. They cover the four key layers of a provisioned edge node: the underlying platform components, the AI and compute environment, the system services, and the orchestration stack.
+The following tables describe what is expected to be present on a system that has been provisioned using the Infrastructure software. They cover the four key layers of a provisioned edge node: the underlying platform components, the AI and compute environment, the system services, and the orchestration stack.
 
 ### Platform Components
 

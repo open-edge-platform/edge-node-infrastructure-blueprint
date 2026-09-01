@@ -1243,7 +1243,6 @@ EOT
 }
 
 # Copy provisioning scripts from hook OS to target disk.
-# Hook OS bundles scripts at /etc/scripts/ (via hook-os.yaml).
 # They are staged on the target at /opt/edge/scripts/ so cloud-init
 # can call them on first boot.
 copy_scripts_to_target() {
@@ -1289,7 +1288,9 @@ clone_source_to_target() {
     # Use pigz for faster parallel decompression
     if tar -xzf "/tmp/${TARBALL}" -C "$TARGET_DIR" --strip-components=1; then
         find "$TARGET_DIR" -type f -name "*.sh" -exec chmod +x {} + 2>/dev/null || true
-        success "Developer source extracted to target /opt/edge/developer/"
+        user=$(awk -F: '$3 >= 1000 && $3 < 60000 && $6 ~ /^\/home\// && $7 !~ /nologin|false/ {print $1; exit}' /mnt/etc/passwd)
+        chroot /mnt /usr/bin/chown -R "$user:$user" "/opt/edge/developer"
+        success "Developer source extracted to target /opt/edge/developer"
     else
         echo "WARNING: Failed to extract ${TARBALL} — /opt/edge/developer may be incomplete"
     fi

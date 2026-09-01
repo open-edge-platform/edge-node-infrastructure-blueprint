@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # AI Agent Integration and Developer Experience
 
-The Edge Node Infrastructure Blueprint ships a set of agent skills that let you run platform workflows through natural language, using GitHub Copilot or Claude Code. Instead of manually running scripts and commands, describe the outcome you want and the agent takes care of the rest.
+The Edge Node Infrastructure software ships a set of agent skills that let you run platform workflows through natural language, using GitHub Copilot or Claude Code. Instead of manually running scripts and commands, describe the outcome you want and the agent takes care of the rest.
 
 Some skills are meant to run from the developer host, while others are meant to run directly on the provisioned host.
 
