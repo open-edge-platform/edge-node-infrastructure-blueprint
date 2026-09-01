@@ -1016,10 +1016,10 @@ install_gpu_npu_pkgs_from_deb() {
 	done
 
 	# Downloading NPU drivers
-	# Version: v1.35.0.20260722 (from internal artifactory)
+	# Version: v1.35.0.20260722 (from GitHub releases, public)
 	# Aligned with ICT template: npu-linux-driver-ci-1.35.0.20260722-29947505341
 	echo "Downloading NPU driver package..."
-	npu_url="https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
+	npu_url="https://github.com/intel/linux-npu-driver/releases/download/v1.35.0/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 	npu_file="linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
 
 	if wget "$npu_url" -O "$npu_file"; then

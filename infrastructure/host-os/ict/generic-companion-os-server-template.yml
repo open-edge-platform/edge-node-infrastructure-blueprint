@@ -878,13 +878,11 @@ systemConfig:
 
     # Install NPU driver for PTL
 
-    # run "curl -s \https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz | tar -zxv --strip-components=1 -C /tmp/npu-drv-package -f -"
-
     # Version: v1.35.0.20260722-29947505341 (from GitHub releases, public)
     # Security: sha256-verified before extraction (CWE-494 mitigation)
     - cmd: "dpkg --purge --force-remove-reinstreq intel-driver-compiler-npu intel-fw-npu intel-level-zero-npu intel-level-zero-npu-dbgsym 2>/dev/null || true"
     - cmd: "mkdir -p /tmp/npu-driver"
-    - cmd: "cd /tmp/npu-driver && wget -q https://af01p-ir.devtools.intel.com/artifactory/drivers_vpu_linux_client-ir-local/builds/opensource-linux-vpu-driver/ci/opensource_main/npu-linux-driver-ci-1.35.0.20260722-29947505341/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz -O /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz && echo '398343e53fdac6023ad0856ef88bb6011b1e12447a112be55e85e27ef7f96c66  /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz' | sha256sum -c - || exit 1"
+    - cmd: "cd /tmp/npu-driver && wget -q https://github.com/intel/linux-npu-driver/releases/download/v1.35.0/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz -O /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz && echo '398343e53fdac6023ad0856ef88bb6011b1e12447a112be55e85e27ef7f96c66  /tmp/npu-driver/linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz' | sha256sum -c - || exit 1"
     - cmd: "cd /tmp/npu-driver && tar -xf linux-npu-driver-v1.35.0.20260722-29947505341-ubuntu2404.tar.gz"
     - cmd: "find /tmp/npu-driver -name '*.deb' -print0 | xargs -0 dpkg -i"
 
