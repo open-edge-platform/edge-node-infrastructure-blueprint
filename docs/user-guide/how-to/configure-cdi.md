@@ -18,7 +18,7 @@ CDI uses predefined YAML specification files in `/etc/cdi/` to describe the devi
 
 ## Prerequisites
 
-- Edge Node Infrastructure Blueprint image deployed
+- Edge Node Infrastructure software image deployed
 - Docker Engine version 25 or newer (with CDI support enabled), Podman version 4.1 or newer, or containerd version 1.7 or newer
 - Intel GPU with SR-IOV VFs enabled
 - Intel NPU hardware present (optional)
@@ -28,7 +28,7 @@ CDI uses predefined YAML specification files in `/etc/cdi/` to describe the devi
 
 ## Step 1: CDI Specification Generation (Automatic on First Boot)
 
-In Edge Node Infrastructure Blueprint images, the CDI specification generation service is **automatically started on first boot**. The service includes:
+In Edge Node Infrastructure software images, the CDI specification generation service is **automatically started on first boot**. The service includes:
 
 - **GPU specifications**: Generated using the official `intel-cdi-specs-generator-gpu` binary
   from [Intel® Resource Drivers for Kubernetes](https://github.com/intel/intel-resource-drivers-for-kubernetes)
