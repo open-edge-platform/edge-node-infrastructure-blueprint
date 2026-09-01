@@ -163,8 +163,10 @@ RUN echo "i915" >> /etc/initramfs-tools/modules && \
     echo "intel_vpu" >> /etc/initramfs-tools/modules && \
     echo "uas" >> /etc/initramfs-tools/modules
 
-ARG USERNAME=user
-ARG USER_PASSWORD
+ARG USERNAME
+ARG PASSWORD
+ENV USERNAME=${USERNAME} \
+    PASSWORD=${PASSWORD}
 
 RUN truncate -s 0 /etc/machine-id && rm -f /var/lib/dbus/machine-id
 
@@ -172,10 +174,10 @@ RUN truncate -s 0 /etc/machine-id && rm -f /var/lib/dbus/machine-id
 RUN echo "minimal-server-ubuntu" > /etc/hostname
 
 # User setup (aligned with template users section)
-RUN test -n "${USERNAME}" && test -n "${USER_PASSWORD}" || \
-    { echo "ERROR: USERNAME and USER_PASSWORD build-args are required"; exit 1; } && \
+RUN test -n "${USERNAME}" && test -n "${PASSWORD}" || \
+    { echo "ERROR: USERNAME and PASSWORD build-args are required"; exit 1; } && \
     useradd -m -s /bin/bash "${USERNAME}" && \
-    usermod -p "${USER_PASSWORD}" "${USERNAME}" && \
+    usermod -p "${PASSWORD}" "${USERNAME}" && \
     usermod -aG sudo,video,render,audio "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
