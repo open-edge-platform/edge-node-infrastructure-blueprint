@@ -252,7 +252,7 @@ tools/power-tuning/stress_gen.sh --gpu 8 --duration 5m
 |---|---|
 | `--cpus N` | Number of CPU workers, `1..nproc` (default: all CPUs). |
 | `--load P` | Per-CPU load percentage, `1..100` (default `100`). |
-| `--gpu N` | Number of stress-ng iGPU worker processes (default `12`; `0` disables GPU load). This is a worker count, not a GPU count. |
+| `--gpu N` | Number of stress-ng iGPU worker processes, `0..12` (default `4`; `0` disables GPU load). This is a worker count, not a GPU count. Use a maximum of `4` for a 4 Xe-core iGPU and `8` for a 12 Xe-core iGPU. |
 | `--duration D` | Run time in stress-ng syntax (`60s`, `5m`, `2h`); omit to run until stopped. |
 
 Stop a running stress test with `Ctrl-C`, or:
