@@ -39,6 +39,9 @@ check-build-credentials:
 	@if [[ "$(MODE)" != "image-from-tool" && ( -z "$${USERNAME:-}" || -z "$${PASSWORD:-}" ) ]]; then \
 		echo "ERROR: USERNAME and PASSWORD must be exported and can't be null before building." >&2; \
 		exit 1; \
+	elif [[ "$(MODE)" != "image-from-tool" ]] && ! grep -Eq '^\$$6\$$[a-zA-Z0-9./]{1,16}\$$[a-zA-Z0-9./]{86}$$' <<< "$${PASSWORD}"; then \
+		echo "ERROR: PASSWORD must be a valid SHA-512 crypt hash." >&2; \
+		exit 1; \
 	fi
 
 check-docker:
