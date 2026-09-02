@@ -815,9 +815,10 @@ install_eci_camera_hal_deps() {
 		libipu75xa-dev 2>/dev/null || \
 		echo "WARNING: Some libia/ipu75xa packages may not be available yet"
 	# Also install any remaining libia-*-ipu75xa0 runtime packages via wildcard
-	# shellcheck disable=SC2046
-	DEBIAN_FRONTEND=noninteractive apt-get install -y \
-		$(apt-cache search 'libia-.*-ipu75xa0' | awk '{print $1}') 2>/dev/null || true
+	mapfile -t ipu75xa_runtime_packages < <(apt-cache search 'libia-.*-ipu75xa0' 2>/dev/null | awk '{print $1}')
+	if [[ ${#ipu75xa_runtime_packages[@]} -gt 0 ]]; then
+		DEBIAN_FRONTEND=noninteractive apt-get install -y "${ipu75xa_runtime_packages[@]}" 2>/dev/null || true
+	fi
 	# Install intel-mipi-gmsl-dkms (DKMS source only; module builds on first boot via dkms autoinstall)
 	DEBIAN_FRONTEND=noninteractive apt-get install -y intel-mipi-gmsl-dkms 2>/dev/null || \
 		echo "WARNING: intel-mipi-gmsl-dkms not available or failed to install"
