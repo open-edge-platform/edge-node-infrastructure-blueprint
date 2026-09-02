@@ -84,6 +84,20 @@ verify_gpg_fingerprint() {
 	fi
 }
 
+verify_gpg_key_id() {
+	local key_file="$1"
+	local expected_key_id="$2"
+	local actual_fingerprint
+
+	actual_fingerprint=$(gpg --show-keys --with-colons "${key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [[ "${actual_fingerprint,,}" != *"${expected_key_id,,}" ]]; then
+		echo "ERROR: GPG key ID mismatch for ${key_file}." >&2
+		echo "Expected key ID: ${expected_key_id}" >&2
+		echo "Actual fingerprint: ${actual_fingerprint}" >&2
+		return 1
+	fi
+}
+
 create_ppa_sources_list() {
 	local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
 	echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
@@ -789,8 +803,14 @@ install_realsense_pkgs(){
 	echo "Installing Intel RealSense packages..."
 	# ref: generic-handheld-os-server-template.yml packageRepositories section
 	mkdir -p /etc/apt/keyrings
-	curl -sSf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xFB0B24895113F120" \
-		| gpg --dearmor | tee /etc/apt/keyrings/librealsense.gpg > /dev/null
+	local tmp_key_file="/tmp/librealsense.gpg"
+	local librealsense_key_id="FB0B24895113F120"
+	download_file "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${librealsense_key_id}" "${tmp_key_file}"
+	verify_gpg_key_id "${tmp_key_file}" "${librealsense_key_id}"
+	if ! gpg --dearmor -o /etc/apt/keyrings/librealsense.gpg "${tmp_key_file}" 2>/dev/null; then
+		cp "${tmp_key_file}" /etc/apt/keyrings/librealsense.gpg
+	fi
+	rm -f "${tmp_key_file}"
 	chmod 644 /etc/apt/keyrings/librealsense.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/librealsense.gpg] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" \
 		| tee /etc/apt/sources.list.d/librealsense.list

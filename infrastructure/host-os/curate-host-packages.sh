@@ -82,6 +82,20 @@ verify_gpg_fingerprint() {
 	fi
 }
 
+verify_gpg_key_id() {
+	local key_file="$1"
+	local expected_key_id="$2"
+	local actual_fingerprint
+
+	actual_fingerprint=$(gpg --show-keys --with-colons "${key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [[ "${actual_fingerprint,,}" != *"${expected_key_id,,}" ]]; then
+		echo "ERROR: GPG key ID mismatch for ${key_file}." >&2
+		echo "Expected key ID: ${expected_key_id}" >&2
+		echo "Actual fingerprint: ${actual_fingerprint}" >&2
+		return 1
+	fi
+}
+
 install_depended_packages() {
 	echo "Updating apt and installing initial packages..."
 	apt update
@@ -683,8 +697,17 @@ install_realsense_pkgs(){
 	mkdir -p /etc/apt/keyrings
 	KEY_ID=$(curl -sSf "https://librealsense.intel.com/Debian/apt-repo/dists/$(lsb_release -cs)/InRelease" \
 		| gpg --status-fd 1 --verify 2>/dev/null | grep "NO_PUBKEY" | awk '{print $3}')
-	curl -sSf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY_ID}" \
-		| gpg --dearmor | tee /etc/apt/keyrings/librealsense.gpg > /dev/null
+	if [ -z "${KEY_ID}" ]; then
+		echo "ERROR: Unable to determine the Intel RealSense GPG key ID." >&2
+		return 1
+	fi
+	local tmp_key_file="/tmp/librealsense.gpg"
+	download_file "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${KEY_ID}" "${tmp_key_file}"
+	verify_gpg_key_id "${tmp_key_file}" "${KEY_ID}"
+	if ! gpg --dearmor -o /etc/apt/keyrings/librealsense.gpg "${tmp_key_file}" 2>/dev/null; then
+		cp "${tmp_key_file}" /etc/apt/keyrings/librealsense.gpg
+	fi
+	rm -f "${tmp_key_file}"
 	chmod 644 /etc/apt/keyrings/librealsense.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/librealsense.gpg] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" \
 		| tee /etc/apt/sources.list.d/librealsense.list
@@ -694,18 +717,6 @@ install_realsense_pkgs(){
 
 	echo "Intel RealSense packages installed successfully."
 }
-install_performance_tools() {
-	echo "Installing performance analysis tools..."
-	if wget -nv -r -l1 -nd -A deb -P /tmp https://download.01.org/intel-linux-overlay/ubuntu/linux-tools/; then
-		echo "Successfully downloaded the debian files"
-		apt install -y  -f --fix-broken -o Dpkg::Options::="--force-overwrite" /tmp/*.deb
-		apt install -f
-	else
-		echo "Failure to download the debian files"
-	fi
-	echo "Performance analysis tools installed successfully."
-}
-
 install_gpu_npu_pkgs() {
 	echo "Installing NPU,GPU Packages.."
 

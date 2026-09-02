@@ -101,39 +101,23 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
     if [[ "${IMAGE_REBUILD}" == "true" ]]; then
         log "  HOST_OS_REBUILD=true: forcing no-cache rebuild"
     fi
-    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
-    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
-    # to external/publicly trusted Artifactory (no internal CA needed).
-    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
-    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --no-cache \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
-        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
-        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
         --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 else
-    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
-    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
-    # to external/publicly trusted Artifactory (no internal CA needed).
-    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
-    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
-        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
-        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
         --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
