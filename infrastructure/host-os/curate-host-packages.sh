@@ -25,11 +25,19 @@ INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
 INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
 INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
 
+SOF_OPENMODULES_SHA256="0bc5c1942918e86f84b9a7e97efb7e82b9aad2891398927780d5afd433128f3f"
+SOF_FIRMWARE_SHA256="ace80f314159034a2372c229a2a45443499649f6e747a63c7f2644464d399eba"
+SOF_RT722_TOPOLOGY_SHA256="fedb1f01b91b14335cca4bc5d89992f224687e633455ca7c6f0b5c00fc9cac2d"
+SOF_HDA_TOPOLOGY_SHA256="d2a6128569c980c39ecc48ab81ce253a9a3160f46e9ba843d7b056293388ee24"
+
 MOZILLA_PPA_URL="https://ppa.launchpadcontent.net/mozillateam/ppa/ubuntu"
 MOZILLA_PPA_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB215679C571D1C8325275B9BDB3D89CE49EC21"
 
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
 INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
+INTEL_ECI_KEY_FINGERPRINT="B1CDAB5E8EE9205CBD8A7500EF16D1B6C97E2FC9"
+INTEL_SW_PRODUCTS_KEY_FINGERPRINT="BF4385F91CA5FC005AB39E1C1A8497B11911E097"
+MOZILLA_PPA_KEY_FINGERPRINT="0AB215679C571D1C8325275B9BDB3D89CE49EC21"
 
 # Modern per-repo scoped trust store (deprecates /etc/apt/trusted.gpg.d/).
 APT_KEYRINGS_DIR="/etc/apt/keyrings"
@@ -42,6 +50,36 @@ download_file() {
 	local url="$1"
 	local out_file="$2"
 	curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+}
+
+download_and_verify_sha256() {
+	local url="$1"
+	local out_file="$2"
+	local expected_sha256="$3"
+	local temp_file="${out_file}.tmp"
+
+	rm -f "${temp_file}"
+	download_file "${url}" "${temp_file}"
+	if ! printf '%s  %s\n' "${expected_sha256}" "${temp_file}" | sha256sum -c -; then
+		echo "ERROR: SHA-256 verification failed for ${out_file}" >&2
+		rm -f "${temp_file}"
+		return 1
+	fi
+	mv -f "${temp_file}" "${out_file}"
+}
+
+verify_gpg_fingerprint() {
+	local key_file="$1"
+	local expected_fingerprint="$2"
+	local actual_fingerprint
+
+	actual_fingerprint=$(gpg --show-keys --with-colons "${key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [ "${actual_fingerprint}" != "${expected_fingerprint}" ]; then
+		echo "ERROR: GPG key fingerprint mismatch for ${key_file}." >&2
+		echo "Expected: ${expected_fingerprint}" >&2
+		echo "Actual:   ${actual_fingerprint}" >&2
+		return 1
+	fi
 }
 
 install_depended_packages() {
@@ -165,6 +203,7 @@ install_camera_packages() {
 	# Download and install Intel ECI GPG key
 	local tmp_key_file="/tmp/intel-eci.gpg"
 	download_file "${INTEL_ECI_KEY_URL}" "${tmp_key_file}"
+	verify_gpg_fingerprint "${tmp_key_file}" "${INTEL_ECI_KEY_FINGERPRINT}"
 	
 	# Dearmor into per-repo keyring
 	if ! gpg --dearmor -o "${APT_KEYRINGS_DIR}/intel-eci.gpg" "${tmp_key_file}" 2>/dev/null; then
@@ -337,6 +376,7 @@ setup_firefox() {
 	# the deprecated global trust store and does not set signed-by= on the list.
 	local tmp_key_file="/tmp/mozillateam-ppa.gpg"
 	download_file "${MOZILLA_PPA_KEY_URL}" "${tmp_key_file}"
+	verify_gpg_fingerprint "${tmp_key_file}" "${MOZILLA_PPA_KEY_FINGERPRINT}"
 	gpg --dearmor -o "${APT_KEYRINGS_DIR}/mozillateam-ppa.gpg" "${tmp_key_file}"
 	rm -f "${tmp_key_file}"
 	chmod 0644 "${APT_KEYRINGS_DIR}/mozillateam-ppa.gpg"
@@ -382,12 +422,23 @@ EOF
 
 	# Download PTL SOF firmware binaries.
 	mkdir -p "$sof_dir"
-	wget -O "$sof_dir/sof-ptl-openmodules.ri" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri" \
+		"$sof_dir/sof-ptl-openmodules.ri" "${SOF_OPENMODULES_SHA256}"
 	sleep 3
-	wget -O "$sof_dir/sof-ptl.ri" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl.ri
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl.ri" \
+		"$sof_dir/sof-ptl.ri" "${SOF_FIRMWARE_SHA256}"
 	sleep 3
+
+	# Download and verify both supported PTL audio topologies.
+	mkdir -p "$tplg_dir"
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-ptl-rt722.tplg" \
+		"$tplg_dir/sof-ptl-rt722.tplg" "${SOF_RT722_TOPOLOGY_SHA256}"
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-hda-generic.tplg" \
+		"$tplg_dir/sof-hda-generic.tplg" "${SOF_HDA_TOPOLOGY_SHA256}"
 
 	# Select topology by codec type.
 	# override automatic selection by setting AUDIO_TOPOLOGY_FILE.
