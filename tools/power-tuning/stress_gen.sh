@@ -13,7 +13,7 @@
 # Usage: ./stress_gen.sh [--cpus N] [--load P] [--duration D] [--gpu N]
 #   --cpus N      number of CPU workers, 1..$(nproc) (default: all CPUs)
 #   --load P      per-CPU load percentage, 1..100 (default 100)
-#   --duration D  optional stress-ng timeout, e.g. 60s, 5m (default: until Ctrl-C)
+#   --duration D  optional stress-ng timeout, e.g. 60s, 5m (default: 3m)
 #   --gpu N       number of stress-ng GPU worker processes, 0..12 (default 4; 0 = off).
 #                 Recommended maximum: 4 for a 4 Xe-core iGPU; 12 for a 12 Xe-core iGPU.
 #                 NOTE: N is the count of GPU stressor workers, NOT the number of
@@ -21,7 +21,7 @@
 #   -h, --help    show this help and exit
 #
 # Examples:
-#   ./stress_gen.sh                      # all CPUs at 100% + GPU, until Ctrl-C
+#   ./stress_gen.sh                      # all CPUs at 100% + GPU, default 3m
 #   ./stress_gen.sh --cpus 4 --load 50   # 4 CPUs at 50% load + GPU
 #   ./stress_gen.sh --cpus 8 --load 75 --duration 2m --gpu 0   # CPU only
 
@@ -53,6 +53,9 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
+# Keep runs bounded by default: unset or explicit empty duration resolves to 3m.
+DURATION="${DURATION:-3m}"
+
 if ! [[ "$LOAD" =~ ^[0-9]+$ ]] || (( LOAD < 1 || LOAD > 100 )); then
 	echo "Error: --load must be an integer 1..100 (got '$LOAD')" >&2
 	exit 1
@@ -68,7 +71,7 @@ fi
 
 ARGS=(--cpu "$CPUS" --cpu-load "$LOAD")
 (( NGPU > 0 )) && ARGS+=(--gpu "$NGPU")
-[[ -n "$DURATION" ]] && ARGS+=(--timeout "$DURATION")
+ARGS+=(--timeout "$DURATION")
 
 # Refuse to start if a stress-ng instance is already running, so we don't stack
 # multiple stressors (which would skew the load and any power measurements).

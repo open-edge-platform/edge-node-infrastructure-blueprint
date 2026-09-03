@@ -36,7 +36,6 @@ MOZILLA_PPA_KEY_URL="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
 INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
 INTEL_ECI_KEY_FINGERPRINT="B1CDAB5E8EE9205CBD8A7500EF16D1B6C97E2FC9"
-INTEL_SW_PRODUCTS_KEY_FINGERPRINT="BF4385F91CA5FC005AB39E1C1A8497B11911E097"
 MOZILLA_PPA_KEY_FINGERPRINT="0AB215679C571D1C8325275B9BDB3D89CE49EC21"
 
 # Modern per-repo scoped trust store (deprecates /etc/apt/trusted.gpg.d/).
