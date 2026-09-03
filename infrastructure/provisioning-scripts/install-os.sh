@@ -361,7 +361,7 @@ EOT
     # Create user account if not exists
     chroot /mnt /bin/bash <<EOT
 set -e
-useradd -m -s /bin/bash $USERNAME && echo "$USERNAME:$PASSWORD" | chpasswd && echo '$USERNAME ALL=(ALL) NOPASSWD:ALL' | tee /etc/sudoers.d/$USERNAME
+useradd -m -s /bin/bash $USERNAME && echo "$USERNAME:$PASSWORD" | chpasswd && echo '$USERNAME ALL=(ALL) PASSWD:ALL' | tee /etc/sudoers.d/$USERNAME
 EOT
     
     if [ $? -eq 0 ]; then
