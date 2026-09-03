@@ -86,8 +86,11 @@ if [[ -z "${IMAGE_USERNAME}" || -z "${IMAGE_USER_PASSWORD}" ]]; then
 fi
 
 # Start the build process from where script stoped previously.
-# shellcheck disable=SC2046
-docker rm -f $(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest") 2>/dev/null || true
+# Word splitting is intended here — one ID per line becomes separate arguments.
+mapfile -t stale_containers < <(docker ps -aq --filter "ancestor=${IMAGE_NAME}:latest" 2>/dev/null)
+if [[ ${#stale_containers[@]} -gt 0 ]]; then
+    docker rm -f "${stale_containers[@]}" 2>/dev/null || true
+fi
 
 # Build the Ubuntu desktop image
 log "Build Docker image"
@@ -101,39 +104,23 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
     if [[ "${IMAGE_REBUILD}" == "true" ]]; then
         log "  HOST_OS_REBUILD=true: forcing no-cache rebuild"
     fi
-    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
-    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
-    # to external/publicly trusted Artifactory (no internal CA needed).
-    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
-    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --no-cache \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
-        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
-        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
         --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
 else
-    # TODO_REMOVE_TLS_WORKAROUND_BEGIN
-    # Remove the 3 ALLOW_INSECURE/INTERNAL_CA build-args below when switching
-    # to external/publicly trusted Artifactory (no internal CA needed).
-    # Grep for TODO_REMOVE_TLS_WORKAROUND to find all related lines.
-    # TODO_REMOVE_TLS_WORKAROUND_END
     DOCKER_BUILDKIT=1 docker build \
         --network=host \
         --build-arg http_proxy="${http_proxy:-}" \
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
-        --build-arg ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-1}" \
-        --build-arg INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}" \
-        --build-arg INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
         --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
         -f "${DOCKERFILE}" \
@@ -234,9 +221,6 @@ ROOT_UUID=$(sudo blkid -o value -s UUID     "${ROOT_PART}")
 EFI_UUID=$( sudo blkid -o value -s UUID     "${EFI_PART}")
 SWAP_UUID=$(sudo blkid -o value -s UUID     "${SWAP_PART}")
 ROOT_PARTUUID=$(sudo blkid -o value -s PARTUUID "${ROOT_PART}")
-# EFI_PARTUUID reserved for future use (e.g. fstab generation)
-# shellcheck disable=SC2034
-EFI_PARTUUID=$( sudo blkid -o value -s PARTUUID "${EFI_PART}")
 
 [[ -z "${ROOT_UUID}"     ]] && error "ROOT_UUID is empty — blkid failed"
 [[ -z "${ROOT_PARTUUID}" ]] && error "ROOT_PARTUUID is empty — blkid failed"

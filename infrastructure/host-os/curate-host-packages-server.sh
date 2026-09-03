@@ -10,21 +10,21 @@ echo "https_proxy=${https_proxy:-}"
 
 INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
 INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
+SOF_OPENMODULES_SHA256="0bc5c1942918e86f84b9a7e97efb7e82b9aad2891398927780d5afd433128f3f"
+SOF_FIRMWARE_SHA256="ace80f314159034a2372c229a2a45443499649f6e747a63c7f2644464d399eba"
+SOF_RT722_TOPOLOGY_SHA256="fedb1f01b91b14335cca4bc5d89992f224687e633455ca7c6f0b5c00fc9cac2d"
+SOF_HDA_TOPOLOGY_SHA256="d2a6128569c980c39ecc48ab81ce253a9a3160f46e9ba843d7b056293388ee24"
 INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
 INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
+INTEL_ECI_KEY_FINGERPRINT="B1CDAB5E8EE9205CBD8A7500EF16D1B6C97E2FC9"
 INTEL_OPENVINO_URL="https://apt.repos.intel.com/openvino/2025"
 INTEL_ONEAPI_URL="https://apt.repos.intel.com/oneapi"
 INTEL_SW_PRODUCTS_KEY_URL="https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB"
-# TLS_WORKAROUND_BLOCK_BEGIN
-# REMOVE_WHEN_USING_EXTERNAL_ARTIFACTORY:
-# Temporary controls for internal Artifactory TLS trust chain issues.
-# Remove this block and the insecure retry block in download_file_with_tls_handling()
-# when repository endpoints are publicly trusted and no internal CA bootstrap is needed.
-ALLOW_INSECURE_INTERNAL_REPO_TLS="${ALLOW_INSECURE_INTERNAL_REPO_TLS:-0}"
-INTERNAL_CA_CERT_B64="${INTERNAL_CA_CERT_B64:-}"
-INTERNAL_CA_CERT_FILE="${INTERNAL_CA_CERT_FILE:-}"
-# TLS_WORKAROUND_BLOCK_END
+INTEL_SW_PRODUCTS_KEY_FINGERPRINT="BF4385F91CA5FC005AB39E1C1A8497B11911E097"
+MOZILLA_PPA_KEY_FINGERPRINT="0AB215679C571D1C8325275B9BDB3D89CE49EC21"
+
 
 #======================================================
 #  Edge Node Infrastructure Setup Script (SERVER/HEADLESS)
@@ -48,59 +48,55 @@ install_depended_packages() {
 	echo "Initial packages installed."
 }
 
-# TLS_WORKAROUND_BLOCK_BEGIN
-install_optional_internal_ca() {
-	if [ -n "${INTERNAL_CA_CERT_B64}" ]; then
-		echo "Installing internal CA certificate from INTERNAL_CA_CERT_B64..."
-		install -d -m 0755 /usr/local/share/ca-certificates
-		echo "${INTERNAL_CA_CERT_B64}" | base64 -d > /usr/local/share/ca-certificates/intel-internal-artifactory.crt
-		chmod 0644 /usr/local/share/ca-certificates/intel-internal-artifactory.crt
-		update-ca-certificates
-		INTERNAL_CA_CERT_FILE="/usr/local/share/ca-certificates/intel-internal-artifactory.crt"
-		echo "Internal CA certificate installed."
-		return 0
-	fi
+download_file() {
+	local url="$1"
+	local out_file="$2"
+	curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+}
 
-	if [ -n "${INTERNAL_CA_CERT_FILE}" ]; then
-		if [ -f "${INTERNAL_CA_CERT_FILE}" ]; then
-			echo "Using provided internal CA certificate: ${INTERNAL_CA_CERT_FILE}"
-		else
-			echo "ERROR: INTERNAL_CA_CERT_FILE was set but file was not found: ${INTERNAL_CA_CERT_FILE}"
-			exit 1
-		fi
+download_and_verify_sha256() {
+	local url="$1"
+	local out_file="$2"
+	local expected_sha256="$3"
+	local temp_file="${out_file}.tmp"
+
+	rm -f "${temp_file}"
+	download_file "${url}" "${temp_file}"
+	if ! printf '%s  %s\n' "${expected_sha256}" "${temp_file}" | sha256sum -c -; then
+		echo "ERROR: SHA-256 verification failed for ${out_file}" >&2
+		rm -f "${temp_file}"
+		return 1
+	fi
+	mv -f "${temp_file}" "${out_file}"
+}
+
+verify_gpg_fingerprint() {
+	local key_file="$1"
+	local expected_fingerprint="$2"
+	local actual_fingerprint
+
+	actual_fingerprint=$(gpg --show-keys --with-colons "${key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [ "${actual_fingerprint}" != "${expected_fingerprint}" ]; then
+		echo "ERROR: GPG key fingerprint mismatch for ${key_file}." >&2
+		echo "Expected: ${expected_fingerprint}" >&2
+		echo "Actual:   ${actual_fingerprint}" >&2
+		return 1
 	fi
 }
 
-download_file_with_tls_handling() {
-	url="$1"
-	out_file="$2"
+verify_gpg_key_id() {
+	local key_file="$1"
+	local expected_key_id="$2"
+	local actual_fingerprint
 
-	curl_opts=(-fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120)
-
-	if [ -n "${INTERNAL_CA_CERT_FILE}" ]; then
-		if curl "${curl_opts[@]}" --cacert "${INTERNAL_CA_CERT_FILE}" "${url}" -o "${out_file}"; then
-			return 0
-		fi
-	else
-		if curl "${curl_opts[@]}" "${url}" -o "${out_file}"; then
-			return 0
-		fi
+	actual_fingerprint=$(gpg --show-keys --with-colons "${key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [[ "${actual_fingerprint,,}" != *"${expected_key_id,,}" ]]; then
+		echo "ERROR: GPG key ID mismatch for ${key_file}." >&2
+		echo "Expected key ID: ${expected_key_id}" >&2
+		echo "Actual fingerprint: ${actual_fingerprint}" >&2
+		return 1
 	fi
-
-	if [ "${ALLOW_INSECURE_INTERNAL_REPO_TLS}" = "1" ]; then
-		# REMOVE_WHEN_USING_EXTERNAL_ARTIFACTORY:
-		# Temporary fallback for internal certificate chain problems only.
-		echo "WARNING: TLS verification failed. Retrying with insecure mode because ALLOW_INSECURE_INTERNAL_REPO_TLS=1"
-		curl "${curl_opts[@]}" -k "${url}" -o "${out_file}"
-		return $?
-	fi
-
-	echo "ERROR: TLS verification failed for ${url}."
-	echo "Set INTERNAL_CA_CERT_B64 or INTERNAL_CA_CERT_FILE to trust your internal CA,"
-	echo "or set ALLOW_INSECURE_INTERNAL_REPO_TLS=1 only as a temporary workaround."
-	return 1
 }
-# TLS_WORKAROUND_BLOCK_END
 
 create_ppa_sources_list() {
 	local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
@@ -115,12 +111,22 @@ EOF
 download_and_install_gpg_key() {
 	echo "Downloading and installing Intel overlay GPG key..."
 	install -d -m 0755 /etc/apt/keyrings
-	# TLS_WORKAROUND_BLOCK_BEGIN
 	tmp_key_file="/tmp/intel-overlay-public.gpg"
-	download_file_with_tls_handling "${INTEL_OVERLAY_KEY_URL}" "${tmp_key_file}"
+	download_file "${INTEL_OVERLAY_KEY_URL}" "${tmp_key_file}"
+
+	local actual_fingerprint
+	actual_fingerprint=$(gpg --show-keys --with-colons "${tmp_key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [ "${actual_fingerprint}" != "${INTEL_OVERLAY_KEY_FINGERPRINT}" ]; then
+		echo "ERROR: Intel overlay GPG key fingerprint mismatch! Aborting."
+		echo "Expected: ${INTEL_OVERLAY_KEY_FINGERPRINT}"
+		echo "Actual:   ${actual_fingerprint}"
+		rm -f "${tmp_key_file}"
+		return 1
+	fi
+	echo "Intel overlay GPG key fingerprint verified."
+
 	gpg --dearmor -o /etc/apt/keyrings/intel-overlay.gpg "${tmp_key_file}"
 	rm -f "${tmp_key_file}"
-	# TLS_WORKAROUND_BLOCK_END
 	chmod 0644 /etc/apt/keyrings/intel-overlay.gpg
 	echo "Intel overlay GPG key installed."
 }
@@ -137,12 +143,11 @@ EOF
 download_and_install_eci_gpg_key() {
 	echo "Downloading and installing Intel ECI GPG key..."
 	install -d -m 0755 /etc/apt/keyrings
-	# TLS_WORKAROUND_BLOCK_BEGIN
 	tmp_key_file="/tmp/intel-eci-public.gpg"
-	download_file_with_tls_handling "${INTEL_ECI_KEY_URL}" "${tmp_key_file}"
+	download_file "${INTEL_ECI_KEY_URL}" "${tmp_key_file}"
+	verify_gpg_fingerprint "${tmp_key_file}" "${INTEL_ECI_KEY_FINGERPRINT}"
 	gpg --dearmor -o /etc/apt/keyrings/intel-eci.gpg "${tmp_key_file}"
 	rm -f "${tmp_key_file}"
-	# TLS_WORKAROUND_BLOCK_END
 	chmod 0644 /etc/apt/keyrings/intel-eci.gpg
 	echo "Intel ECI GPG key installed."
 }
@@ -153,7 +158,8 @@ create_openvino_oneapi_sources() {
 
 	# Download Intel SW Products GPG key (shared by OpenVINO and oneAPI)
 	tmp_key_file="/tmp/intel-sw-products.pub"
-	download_file_with_tls_handling "${INTEL_SW_PRODUCTS_KEY_URL}" "${tmp_key_file}"
+	download_file "${INTEL_SW_PRODUCTS_KEY_URL}" "${tmp_key_file}"
+	verify_gpg_fingerprint "${tmp_key_file}" "${INTEL_SW_PRODUCTS_KEY_FINGERPRINT}"
 	gpg --dearmor -o /etc/apt/keyrings/intel-sw-products.gpg "${tmp_key_file}"
 	rm -f "${tmp_key_file}"
 	chmod 0644 /etc/apt/keyrings/intel-sw-products.gpg
@@ -177,9 +183,21 @@ create_mozilla_ppa_sources() {
 
 	# Download Mozilla Team PPA GPG key
 	tmp_key_file="/tmp/mozillateam-ppa.gpg"
-	download_file_with_tls_handling \
+	download_file \
 		"https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x0AB215679C571D1C8325275B9BDB3D89CE49EC21" \
 		"${tmp_key_file}"
+	verify_gpg_fingerprint "${tmp_key_file}" "${MOZILLA_PPA_KEY_FINGERPRINT}"
+	local actual_fingerprint
+	actual_fingerprint=$(gpg --show-keys --with-colons "${tmp_key_file}" | awk -F: '/^fpr:/ {print $10; exit}')
+	if [ "${actual_fingerprint}" != "${MOZILLA_PPA_KEY_FINGERPRINT}" ]; then
+		echo "ERROR: Mozilla PPA GPG key fingerprint mismatch! Aborting."
+		echo "Expected: ${MOZILLA_PPA_KEY_FINGERPRINT}"
+		echo "Actual:   ${actual_fingerprint}"
+		rm -f "${tmp_key_file}"
+		return 1
+	fi
+	echo "Mozilla PPA GPG key fingerprint verified."
+
 	gpg --dearmor -o /etc/apt/keyrings/mozillateam-ppa.gpg "${tmp_key_file}"
 	rm -f "${tmp_key_file}"
 	chmod 0644 /etc/apt/keyrings/mozillateam-ppa.gpg
@@ -491,21 +509,25 @@ EOF
 
 	# Download PTL SOF firmware binaries.
 	mkdir -p "$sof_dir"
-	wget -O "$sof_dir/sof-ptl-openmodules.ri" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri --no-check-certificate 2>&1 || echo 'Warning: sof-ptl-openmodules.ri download failed'
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri" \
+		"$sof_dir/sof-ptl-openmodules.ri" "${SOF_OPENMODULES_SHA256}"
 	sleep 3
-	wget -O "$sof_dir/sof-ptl.ri" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl.ri --no-check-certificate 2>&1 || echo 'Warning: sof-ptl.ri download failed'
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl.ri" \
+		"$sof_dir/sof-ptl.ri" "${SOF_FIRMWARE_SHA256}"
 	sleep 3
 
 	# Download topology files to sof-ace-tplg (aligned with template paths)
 	mkdir -p "$tplg_dir"
 	# SoundWire codec (ALC722-CG / rt722)
-	wget -O "$tplg_dir/sof-ptl-rt722.tplg" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-ptl-rt722.tplg --no-check-certificate 2>&1 || echo 'Warning: sof-ptl-rt722.tplg download failed'
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-ptl-rt722.tplg" \
+		"$tplg_dir/sof-ptl-rt722.tplg" "${SOF_RT722_TOPOLOGY_SHA256}"
 	# HD audio codec via DSP
-	wget -O "$tplg_dir/sof-hda-generic.tplg" \
-		https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-hda-generic.tplg --no-check-certificate 2>&1 || echo 'Warning: sof-hda-generic.tplg download failed'
+	download_and_verify_sha256 \
+		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-hda-generic.tplg" \
+		"$tplg_dir/sof-hda-generic.tplg" "${SOF_HDA_TOPOLOGY_SHA256}"
 
 	# Select topology by codec type.
 	# override automatic selection by setting AUDIO_TOPOLOGY_FILE.
@@ -747,27 +769,33 @@ instal_k3s() {
 }
 
 install_helm() {
+	local commit_hash="3900f434fd3ef2b84065dc04508df48f288dba00"
+	local script_url="https://raw.githubusercontent.com/helm/helm/${commit_hash}/scripts/get-helm-3"
+	local expected_hash="38b65f882d9cae3891755bdb03becc6a01ae6f9cb24826c191f219ddfee70a5d"
+	local actual_hash
+	local script_path="/tmp/get_helm.sh"
+
 	echo "Installing Helm..."
-	# Route through download_file_with_tls_handling so the internal CA / insecure
-	# fallback applies here as it does for every other download in this script.
-	if ! download_file_with_tls_handling \
-		"https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3" \
-		"/tmp/get_helm.sh"; then
+	if ! download_file "${script_url}" "${script_path}"; then
 		echo "ERROR: Failed to download Helm installer"
-		exit 1
+		rm -f "${script_path}"
+		return 1
 	fi
 
-	chmod 700 /tmp/get_helm.sh
-
-	# The installer itself curls get.helm.sh; pass the CA through so it does not
-	# hit the same trust-chain failure we just worked around.
-	if [ -n "${INTERNAL_CA_CERT_FILE}" ]; then
-		CURL_CA_BUNDLE="${INTERNAL_CA_CERT_FILE}" /tmp/get_helm.sh
-	else
-		/tmp/get_helm.sh
+	actual_hash=$(sha256sum "${script_path}" | awk '{print $1}')
+	if [ "${actual_hash}" != "${expected_hash}" ]; then
+		echo "ERROR: Helm installer checksum verification failed." >&2
+		echo "Expected: ${expected_hash}" >&2
+		echo "Actual:   ${actual_hash}" >&2
+		rm -f "${script_path}"
+		return 1
 	fi
 
-	rm -f /tmp/get_helm.sh
+	chmod 700 "${script_path}"
+
+	"${script_path}"
+
+	rm -f "${script_path}"
 	echo "Helm installed successfully."
 }
 
@@ -775,8 +803,14 @@ install_realsense_pkgs(){
 	echo "Installing Intel RealSense packages..."
 	# ref: generic-handheld-os-server-template.yml packageRepositories section
 	mkdir -p /etc/apt/keyrings
-	curl -sSf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xFB0B24895113F120" \
-		| gpg --dearmor | tee /etc/apt/keyrings/librealsense.gpg > /dev/null
+	local tmp_key_file="/tmp/librealsense.gpg"
+	local librealsense_key_id="FB0B24895113F120"
+	download_file "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${librealsense_key_id}" "${tmp_key_file}"
+	verify_gpg_key_id "${tmp_key_file}" "${librealsense_key_id}"
+	if ! gpg --dearmor -o /etc/apt/keyrings/librealsense.gpg "${tmp_key_file}" 2>/dev/null; then
+		cp "${tmp_key_file}" /etc/apt/keyrings/librealsense.gpg
+	fi
+	rm -f "${tmp_key_file}"
 	chmod 644 /etc/apt/keyrings/librealsense.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/librealsense.gpg] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" \
 		| tee /etc/apt/sources.list.d/librealsense.list
@@ -815,9 +849,10 @@ install_eci_camera_hal_deps() {
 		libipu75xa-dev 2>/dev/null || \
 		echo "WARNING: Some libia/ipu75xa packages may not be available yet"
 	# Also install any remaining libia-*-ipu75xa0 runtime packages via wildcard
-	# shellcheck disable=SC2046
-	DEBIAN_FRONTEND=noninteractive apt-get install -y \
-		$(apt-cache search 'libia-.*-ipu75xa0' | awk '{print $1}') 2>/dev/null || true
+	mapfile -t ipu75xa_runtime_packages < <(apt-cache search 'libia-.*-ipu75xa0' 2>/dev/null | awk '{print $1}')
+	if [[ ${#ipu75xa_runtime_packages[@]} -gt 0 ]]; then
+		DEBIAN_FRONTEND=noninteractive apt-get install -y "${ipu75xa_runtime_packages[@]}" 2>/dev/null || true
+	fi
 	# Install intel-mipi-gmsl-dkms (DKMS source only; module builds on first boot via dkms autoinstall)
 	DEBIAN_FRONTEND=noninteractive apt-get install -y intel-mipi-gmsl-dkms 2>/dev/null || \
 		echo "WARNING: intel-mipi-gmsl-dkms not available or failed to install"
@@ -1197,10 +1232,6 @@ EOF
 main() {
 
 	install_depended_packages
-
-	# TLS_WORKAROUND_BLOCK_BEGIN
-	install_optional_internal_ca
-	# TLS_WORKAROUND_BLOCK_END
 
 	create_ppa_sources_list
 

@@ -39,6 +39,9 @@ check-build-credentials:
 	@if [[ "$(MODE)" != "image-from-tool" && ( -z "$${USERNAME:-}" || -z "$${PASSWORD:-}" ) ]]; then \
 		echo "ERROR: USERNAME and PASSWORD must be exported and can't be null before building." >&2; \
 		exit 1; \
+	elif [[ "$(MODE)" != "image-from-tool" ]] && ! grep -Eq '^\$$6\$$[a-zA-Z0-9./]{1,16}\$$[a-zA-Z0-9./]{86}$$' <<< "$${PASSWORD}"; then \
+		echo "ERROR: PASSWORD must be a valid SHA-512 crypt hash." >&2; \
+		exit 1; \
 	fi
 
 check-docker:
@@ -216,9 +219,28 @@ lint: shellcheck
 # https://github.com/koalaman/shellcheck
 shellcheck:
 	@# Help: Lint shell scripts with shellcheck
-	shellcheck --version
-	shellcheck -x -S style \
-		$(SH_FILES)
+	@echo "Checking for forbidden shellcheck disable directives..."
+	@if grep -RInE '^[[:space:]]*#[[:space:]]*shellcheck[[:space:]]+disable([=:]|[[:space:]]|$$)' \
+		--include='*.sh' . --exclude-dir=ci; then \
+		echo "ERROR: shellcheck disable directives are not allowed."; \
+		exit 1; \
+	fi
+	@echo "Running ShellCheck..."
+	@shellcheck --version
+	@set +e; \
+	shellcheck -x -S style --format=json $(SH_FILES) > shellcheck-report.json; \
+	status=$$?; \
+	set -e; \
+	if [ "$$status" -ne 0 ]; then \
+		if jq -e 'any(.[]; .level == "error")' shellcheck-report.json >/dev/null; then \
+			echo "ERROR: ShellCheck errors found."; \
+			jq -r '.[] | "\(.file):\(.line):\(.column): \(.code) (\(.level)): \(.message)"' shellcheck-report.json; \
+			rm -f shellcheck-report.json; \
+			exit 1; \
+		fi; \
+		echo "ShellCheck found only non-error findings (info/style/warning)."; \
+	fi; \
+	rm -f shellcheck-report.json
 
 clean:
 
