@@ -2,11 +2,11 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 # =============================================================================
-# Intel Panther Lake  System Info Script for Ubuntu
+# Panther Lake  System Info Script for Ubuntu
 # -----------------------------------------------------------------------------
 # Collects CPU / GPU (Xe3) / NPU 5 / driver / firmware / userspace package /
 # frequency / P-E-LPE core / power / thermal / memory / storage / network /
-# compute runtime info on Intel Panther Lake platforms.
+# compute runtime info on Panther Lake platforms.
 #
 # Usage:
 #   sudo ./system-info.sh           # for firmware/dmidecode/turbostat
@@ -66,7 +66,7 @@ installed_pkgs_matching() {
 is_root() { [[ "${EUID:-$(id -u)}" -eq 0 ]]; }
 
 # =============================================================================
-section "INTEL PANTHER LAKE SYSTEM INFO  -  v${SCRIPT_VERSION}"
+section "PANTHER LAKE SYSTEM INFO  -  v${SCRIPT_VERSION}"
 # =============================================================================
 
 echo "Generated     : $(date -Is)"
@@ -103,12 +103,12 @@ echo "Stepping      : ${cpu_stepping:-unknown}"
 echo "Microcode     : ${cpu_microcode:-unknown}"
 
 if [[ "$vendor" != "GenuineIntel" ]]; then
-  echo "WARNING: CPU vendor is not GenuineIntel. This script targets Intel Panther Lake."
+  echo "WARNING: CPU vendor is not GenuineIntel. This script targets Panther Lake."
 fi
 
 # Panther Lake client CPUID: family 6, model 0xCC (204).
 if [[ "$cpu_family" == "6" && "$cpu_model_id" == "204" ]]; then
-  echo "Platform      : Detected Intel Panther Lake  [family 6, model 0xCC]"
+  echo "Platform      : Detected Panther Lake  [family 6, model 0xCC]"
 else
   echo "Platform      : CPUID does not match expected Panther Lake (6/0xCC = 204)."
   echo "                Could be pre-production sample, ES, or non-Panther Lake part."
@@ -696,7 +696,7 @@ else
 fi
 
 # =============================================================================
-section "RECOMMENDED PACKAGES FOR INTEL Panther Lake"
+section "RECOMMENDED PACKAGES FOR PANTHER LAKE"
 # =============================================================================
 
 cat <<'EOF'

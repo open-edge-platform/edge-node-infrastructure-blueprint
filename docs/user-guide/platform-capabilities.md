@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Collecting a Platform Report with system-info.sh
 
-`system-info.sh` is a diagnostic script for Intel® Panther Lake systems provisioned using Infrastructure software. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
+`system-info.sh` is a diagnostic script for Panther Lake systems provisioned using Infrastructure software. After provisioning, the script is available on the target system at `/opt/edge/developer/tools/system-info/`.
 
 ### Summary of Tools
 
@@ -60,7 +60,7 @@ The following tables describe what is expected to be present on a system that ha
 
 | Component | Detail |
 |---|---|
-| Platform | Intel® Panther Lake Client Platform |
+| Platform | Panther Lake Client Platform |
 | ISA extensions | SSE4.2, AVX, AVX2, AVX-VNNI, AES-NI, SHA-NI, VAES, VPCLMULQDQ, GFNI, MOVDIRI, MOVDIR64B (no AVX-512 / AMX) |
 | CPU governor | `intel_pstate` / `powersave`; HWP active, turbo enabled; |
 | OS | Ubuntu OS Version 24.04 LTS (`minimal-desktop-ubuntu`) |

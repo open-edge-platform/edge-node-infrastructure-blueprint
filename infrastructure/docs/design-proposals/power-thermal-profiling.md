@@ -9,7 +9,7 @@ Last updated: 26/07/2026
 ## Abstract
 
 This document describes the design of a **power and thermal profiling** toolkit
-for Intel Core Ultra edge platforms (tuned for Panther Lake with runtime
+for Intel® Core Ultra™ edge platforms (tuned for Panther Lake with runtime
 detection for other silicon). The toolkit lets an operator place a platform
 under a known, repeatable power envelope, drive it with a controlled or real
 workload, and observe the resulting power draw and package temperature — so a

@@ -39,7 +39,7 @@ across a reboot:
   tuning you must restore the config (see
   [What persists across a reboot](#what-persists-across-a-reboot)).
 
-> **Note:** These tools are tuned for Intel Panther Lake (Core Ultra). On other
+> **Note:** These tools are tuned for Panther Lake (Core Ultra). On other
 > Intel silicon they still run, but the Config-TDP (cTDP) levels and the
 > platform (psys/SysWatt) domain may differ or be unavailable.
 

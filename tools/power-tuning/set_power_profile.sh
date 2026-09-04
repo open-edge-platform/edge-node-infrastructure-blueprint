@@ -48,7 +48,7 @@
 #                               [--pl1Tau S] [--dry-run]
 #   ./set_power_profile.sh --list
 #
-# Tuned for Intel Panther Lake (Core Ultra, family 6 model 204). The Config-TDP
+# Tuned for Panther Lake (Core Ultra, family 6 model 204). The Config-TDP
 # levels (Nominal / Level 1 / Level 2) are read from the CPU's RAPL MSRs at
 # runtime; the requested target is clamped to [0.125 W, Level 2] and snapped to
 # the RAPL power-unit granularity (0.125 W here), where Level 2 is the silicon's

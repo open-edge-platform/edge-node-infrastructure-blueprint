@@ -8,7 +8,7 @@ Last updated: 13/04/2026
 
 ## Abstract
 
-This ADR outlines the strategy for developing a pre-configured, offline-capable Ubuntu-based edge node image designed to demonstrate Intel® AI capabilities on edge devices. The solution targets compact rugged devices running on Intel® Core/Core Ultra/Xeon platforms and delivers a ready-to-flash, USB-bootable image that encapsulates the OS, drivers, container runtime, K8S stack, and system configurations derived from a user-provided template.
+This ADR outlines the strategy for developing a pre-configured, offline-capable Ubuntu-based edge node image designed to demonstrate Intel® AI capabilities on edge devices. The solution targets compact rugged devices running on Intel® Core/Core Ultra/Xeon™ platforms and delivers a ready-to-flash, USB-bootable image that encapsulates the OS, drivers, container runtime, K8S stack, and system configurations derived from a user-provided template.
 
 The image bundles Ubuntu 24.04 (Non-RT kernel; 26.04 when enabled), Intel-provided drivers and user-space packages exposing CPU, iGPU, NPU, SR-IOV, and Intel® vPro capabilities to the application layer. It supports containerized workloads, K8S extensions, iGPU/NPU accelerated containers, and P/E core allocation.
 

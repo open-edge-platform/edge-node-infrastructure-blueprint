@@ -29,7 +29,7 @@ A good prompt answers these questions:
 | Video source    | Where to read frames from    | A Pexels URL, local file, or `rtsp://...` |
 | AI model(s)     | What intelligence to apply   | "YOLOv11 for detection"                   |
 | What to output  | What the app should produce  | "Annotated video + JSON with detections"  |
-| Target hardware | Which accelerator to use     | "Intel Core Ultra 3, prefer GPU"          |
+| Target hardware | Which accelerator to use     | "Intel® Core Ultra™ 3, prefer GPU"        |
 | App language    | Python, C++, or shell script | "Python application"                      |
 | Where to save   | Output directory name        | "Save in `my_app/`"                       |
 
@@ -43,7 +43,7 @@ If you skip any of these, the agent will ask before proceeding.
 Create a bash script that detects and tracks people using YOLO26m and Mars-Small-128.
 Input: https://videos.pexels.com/video-files/18552655/18552655-hd_1280_720_30fps.mp4
 Output: annotated video file.
-Optimized for Intel Core Ultra 3. Save in people_tracking/.
+Optimized for Intel® Core Ultra™ 3. Save in people_tracking/.
 ```
 
 **Medium — license plate OCR (Python):**

@@ -60,11 +60,11 @@ sudo apt-get install -y whois
 
 The target system is the Intel edge node on which the provisioned OS and workloads will run. The blueprint has been validated on the following hardware configurations:
 
-| CPU                       | Memory      | Storage      |
-| ------------------------- | ----------- | ------------ |
-| Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
+| CPU                         | Memory      | Storage      |
+| --------------------------- | ----------- | ------------ |
+| Intel® Core Ultra™ X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
+| Intel® Core Ultra™ X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel® Core Ultra™ 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
 
 All target configurations run **Ubuntu 24.04.4 LTS** with the Intel mainline-tracking 6.18 kernel from the Intel Linux overlay.
 

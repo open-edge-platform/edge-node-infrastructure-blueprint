@@ -8,7 +8,7 @@ This README explains what `system-info.sh` is used for and how to run it.
 
 ## What this script is used for
 
-`system-info.sh` is a diagnostic script for **Intel Panther Lake** systems on **Ubuntu/Linux**.
+`system-info.sh` is a diagnostic script for **Panther Lake** systems on **Ubuntu/Linux**.
 
 It collects a full platform report, including:
 - Panther Lake platform detection (CPU family/model checks)

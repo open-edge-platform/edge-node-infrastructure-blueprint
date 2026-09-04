@@ -43,11 +43,11 @@ The developer system is used to build installation artifacts and prepare the boo
 
 The target system is the Intel edge node on which the provisioned OS and workloads will run. The infrastructure software has been validated on the following hardware configurations:
 
-| CPU                       | Memory      | Storage      |
-| ------------------------- | ----------- | ------------ |
-| Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
-| Intel Core Ultra 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
+| CPU                         | Memory      | Storage      |
+| --------------------------- | ----------- | ------------ |
+| Intel® Core Ultra™ X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
+| Intel® Core Ultra™ X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel® Core Ultra™ 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
 
 #### Docker Setup on Developer System
 

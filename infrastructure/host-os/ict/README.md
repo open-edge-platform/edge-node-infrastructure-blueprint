@@ -75,17 +75,17 @@ if you face issues installing packages using apt.
 
 ## Configure the Template
 
-Create a copy of the template file before you edit anything.
+Create a copy of the template file you want to use instead of directly modifying it.
 
 ```bash
 # Desktop image
 cp <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml my-ubuntu24.yml
 
 # Server (headless) image
-cp <ENIB-HOME>/infrastructure/host-os/ict/generic-companion-os-server-template.yml my-ubuntu24-server.yml
+cp <ENIB-HOME>/infrastructure/host-os/ict/generic-companion-os-server-template.yml my-ubuntu24.yml
 ```
 
-Here, `ENIB-HOME` is the root directory of this project, not the Image Composer Tool.
+Here, `ENIB-HOME` is the root directory of this repository (assuming you have already cloned it), not the Image Composer Tool.
 
 Key fields to review and update before building:
 
