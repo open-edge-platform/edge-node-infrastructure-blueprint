@@ -645,12 +645,11 @@ systemConfig:
     # ----------------------------------------------------------------------------------
 
     # --- Kubernetes tools (kubectl / kubelet / kubeadm) ---
-    # Pre-install K3s binary and service (network available during build)
-    # Security: download install script, verify sha256, then execute (CWE-494 mitigation)
-    - cmd: "wget -q https://get.k3s.io -O /tmp/k3s-install.sh && echo 'ed01f89fd977bf20ac1516bbebf8370bf3ddbaa55dac8aba610956a4c78cc00b  /tmp/k3s-install.sh' | sha256sum -c - || exit 1"
-    - cmd: "INSTALL_K3S_SKIP_ENABLE=true INSTALL_K3S_SKIP_START=true INSTALL_K3S_EXEC='server --disable=traefik' sh /tmp/k3s-install.sh 2>&1 || echo Warning: K3s pre-install failed"
+    - cmd: "curl -fsSL --max-time 120 --retry 3 https://raw.githubusercontent.com/k3s-io/k3s/5aed4d7beddeb3e67120da477c876ac9efd70318/install.sh -o /tmp/k3s-install.sh"
+    - cmd: "echo '46177d4c99440b4c0311b67233823a8e8a2fc09693f6c89af1a7161e152fbfad  /tmp/k3s-install.sh' | sha256sum -c - || exit 1"
+    - cmd: "INSTALL_K3S_SKIP_ENABLE=true INSTALL_K3S_SKIP_START=true INSTALL_K3S_EXEC='server --disable=traefik' bash /tmp/k3s-install.sh 2>&1 || echo Warning: K3s pre-install failed"
     - cmd: "rm -f /tmp/k3s-install.sh"
-        # Ensure both services are disabled by default; cloud-init activates the right one
+    # Ensure both services are disabled by default; cloud-init activates the right one
     - cmd: "systemctl disable k3s 2>/dev/null || true"
     - cmd: "systemctl disable docker 2>/dev/null || true"
 
