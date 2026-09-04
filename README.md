@@ -5,7 +5,7 @@
 
 ## Documentation
 
-Full documentation is available at the [Edge Node Infrastructure software docs](https://docs.openedgeplatform.intel.com/dev/edge-ai-suites/ai-suite-federal-and-aerospace/edge-node-infrastructure-blueprint/index.html).
+Full documentation is available at [Federal And Aerospace AI Suite](https://docs.openedgeplatform.intel.com/2026.2/ai-suite-fed-aero.html).
 
 ## Introduction
 
@@ -34,12 +34,7 @@ For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guid
 
 Docker Engine is required because the build workflow uses Docker images and containers.
 
-Install Docker Engine for your Linux distribution using the official Docker documentation:
-- Linux install overview: https://docs.docker.com/engine/install/
-- Debian: https://docs.docker.com/engine/install/debian/
-- Ubuntu: https://docs.docker.com/engine/install/ubuntu/
-- RHEL: https://docs.docker.com/engine/install/rhel/
-- Fedora: https://docs.docker.com/engine/install/fedora/
+Install Docker Engine for your Linux distribution using the official Docker documentation for [Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 
 Configure Docker for non-root usage and service startup after installation:
 - https://docs.docker.com/engine/install/linux-postinstall/
@@ -47,16 +42,13 @@ Configure Docker for non-root usage and service startup after installation:
 If you are behind a proxy, configure Docker daemon proxy settings:
 - https://docs.docker.com/config/daemon/systemd/
 
-### Install Make on the Development System
+#### Install Make on the Development System
 
 Install GNU Make on your development system:
 
 ```bash
-# Ubuntu/Debian
+sudo apt update
 sudo apt-get install make
-
-# RHEL/Fedora
-sudo dnf install make
 ```
 
 #### Important Notes
@@ -67,15 +59,15 @@ sudo dnf install make
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b main
+git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git -b release-2026.2.0
 cd edge-node-infrastructure-blueprint
 ```
 
 ### 3. Build Bootable USB Artifacts
 
-From the repository root, run one of the following build modes.
-
 > Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
+
+#### Option 1: Build from a Standard Ubuntu 24.04 image
 
 Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
 These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
@@ -89,44 +81,22 @@ export PASSWORD="$(openssl passwd -6 '<your-password>')"
 # Or using mkpasswd (requires `whois` to be installed)
 export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 ```
-#### Option 1: Build from a Standard 24.04 Minimal desktop image
-
-Build the Ubuntu image, including the required tools and packages, from an Ubuntu minimal desktop image.
 
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 
-```bash
-make build
-```
 
-Or explicitly specify the standard mode:
+Now, build the Ubuntu image, including the required tools and packages.
 
 ```bash
+# User MODE=server-image for uncrewed aerial vehicle(UAV) image
 make build MODE=standard-image
 ```
 
-#### Option 2: Build from a Standard 24.04 Minimal server (headless) image
+Use the additional flag `HOST_OS_REBUILD=true` to force no cache usage for subsequent builds. Or, run `make clean-all` to restart from scratch.
 
-Build a headless Ubuntu server image, including the required tools and packages, using `Dockerfile.server`:
+#### Option 2: Build with Image Composer Tool Image
 
-> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile.server` with your new password using:
-> ```bash
-> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
-> ```
-
-```bash
-make build MODE=server-image
-```
-
-The Docker image (`custom-server-custom:latest`) is cached after the first build. Subsequent runs reuse the cached image, so the Docker build step completes quickly with only `CACHED` output. To force a full, no-cache rebuild of the server image, set `HOST_OS_REBUILD=true`:
-
-```bash
-make build MODE=server-image HOST_OS_REBUILD=true
-```
-
-#### Option 3: Build with Image Composer Tool Image
-
-See [`infrastructure/host-os/ict/README.md`](infrastructure/host-os/ict/README.md) to generate an image using Image Composer Tool.
+This path is intended for advanced users who need fine-grained control over disk layout, installed packages, and package repositories. Most users can start with Option 1. See [`infrastructure/host-os/ict/README.md`](infrastructure/host-os/ict/README.md) to generate an image using Image Composer Tool.
 
 Use the `image-from-tool` mode when you already have an image generated by Image Composer Tool. This mode skips host image creation and packages the provided Image Composer Tool image into the USB artifacts:
 
@@ -152,18 +122,6 @@ make build MODE=image-from-tool ICT_IMG=./minimal-desktop-ubuntu-24.04.raw.gz
 
 Build output:
 - `usb-installation-files.tar.gz` in `infrastructure/build-artifacts/out`
-
-### Developer Incremental Build
-
-Use the `reuse-image` mode to skip base image regeneration and reduce build time:
-
-```bash
-make build MODE=reuse-image
-```
-
-This reuses a prebuilt image. You can also manually copy an existing image to USB partition 5 when required by your process.
-
-For reusable ICT images, use `MODE=image-from-tool` with `ICT_IMG` instead of `MODE=reuse-image`.
 
 ## Phase 2: Prepare Bootable USB
 
@@ -198,12 +156,6 @@ Run the following command:
 sudo ./bootable-usb-prepare.sh /dev/sdX usb-bootable-files.tar.gz config-file
 ```
 
-To reuse a prebuilt image:
-
-```bash
-sudo ./bootable-usb-prepare.sh /dev/sdX usb-bootable-files.tar.gz config-file image.raw.gz
-```
-
 After the USB preparation completes:
 1. Safely disconnect the USB from the developer system.
 2. Connect it to the target system.
@@ -216,8 +168,19 @@ After installation, log in using the credentials specified in the configuration 
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 
+After the target system boots from the USB and completes first-boot provisioning via cloud-init, verify that services are running correctly. The orchestration mode depends on the `host_type` value set in the `config-file` during USB preparation (`container` is the default).
 
-For the Kubernetes cluster:
+For container mode (`host_type=container`):
+
+```bash
+docker info
+docker ps
+```
+
+For details on exposing Intel® GPU or NPU to containers via CDI, see the
+[Intel CDI Usage Guide](docs/user-guide/how-to/configure-cdi.md).
+
+For Kubernetes mode (`host_type=kubernetes`):
 
 ```bash
 # Kubernetes nodes and plugin pods
@@ -236,7 +199,7 @@ kube-system              coredns-xxxxx                           1/1   Running
 kube-system              metrics-server-xxxxx                    1/1   Running
 ```
 
-Verify the SR-IOV status:
+Verify SR-IOV status:
 
 ```bash
 sudo cat /sys/kernel/debug/dri/0000:00:02.1/sriov_info
@@ -250,18 +213,11 @@ enabled: yes
 mode: SR-IOV VF
 ```
 
-Verify the GPU and NPU driver bring-up:
+Verify GPU and NPU driver bring-up:
 
 ```bash
 sudo dmesg | grep xe
 sudo dmesg | grep vpu
-```
-
-For containers:
-
-```bash
-docker info
-docker ps
 ```
 
 ## Troubleshooting Checklist

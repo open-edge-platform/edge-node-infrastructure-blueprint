@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
  Intel® Core™ Ultra processor platforms using
-[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
+[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release)
 and the provided templates:
 
 - **Desktop:** [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml)
@@ -75,7 +75,7 @@ if you face issues installing packages using apt.
 
 ## Configure the Template
 
-Update the credentials `<USERNAME>` and `<PASSWORD>` in the template file before building.
+Create a copy of the template file before you edit anything.
 
 ```bash
 # Desktop image
@@ -104,9 +104,6 @@ users:
     password: <password>
 ```
 
-Generate the password hash using one of the following methods:
-In <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml, set the values
-for `users.name` and `users.password` as desired. 
 The password must contain a SHA-512 hash generated using the following tools:
 
 ```bash
@@ -125,7 +122,7 @@ Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
 
 ```bash
-./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
+./image-composer-tool validate my-ubuntu24.yml
 ```
 
 ---
@@ -137,7 +134,7 @@ and chroot environments. Pass `-E` to preserve your proxy and environment
 variables:
 
 ```bash
-sudo -E ./image-composer-tool build <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
+sudo -E ./image-composer-tool build my-ubuntu24.yml
 ```
 
 ---
@@ -193,9 +190,12 @@ The output artefacts are written to:
 
 Expected artefacts:
 
-| File | Description |
-|------|-------------|
-| `minimal-desktop-ubuntu.raw.gz` | Compressed raw disk image (ready to flash) |
+Expected artifact (one of the following, based on the template you choose):
+
+| File                                  | Description                                |
+| ------------------------------------- | ------------------------------------------ |
+| `minimal-desktop-ubuntu-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
+| `minimal-ubuntu-server-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
 
 ## Troubleshoot
 
