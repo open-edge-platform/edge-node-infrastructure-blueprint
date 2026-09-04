@@ -91,17 +91,17 @@ Key fields to review and update before building:
 
 ### User Credentials
 
-> **Important:** You **must** update the `<username>` and `<password>` placeholders
+> **Important:** You **must** update the `<USERNAME>` and `<PASSWORD>` placeholders
 > in the template before building the image. The build will fail or produce an
 > unusable image if these placeholders are left unchanged.
 
-Replace `<username>` with your desired login name and `<password>` with a
+Replace `<USERNAME>` with your desired login name and `<PASSWORD>` with a
 SHA-512 hashed password:
 
 ```yaml
 users:
-  - name: <username>
-    password: <password>
+  - name: <USERNAME>
+    password: <PASSWORD>
 ```
 
 The password must contain a SHA-512 hash generated using the following tools:
