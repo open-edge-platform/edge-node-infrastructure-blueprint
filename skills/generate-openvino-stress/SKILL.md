@@ -254,7 +254,8 @@ Input validation (fail closed before launch):
 
 ## Related Skills
 - **generate-platform-stress** — synthetic stress-ng load (CPU + iGPU); use when you don't need realistic AI inference patterns.
-- **monitor-platform-power** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while inference runs.
+- **combined-power-thermal-profiling** — end-to-end power/thermal qualification workflow that pairs profiling with sustained workload generation.
+- **monitor-power-thermal** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while inference runs.
 - **set-power-profile** — apply a power cap first, then stress with OpenVINO to see how inference throughput degrades.
 - **set-thermal-profile** — set thermal trip points, then run inference to validate the thermal policy.
 - **profile-enclosure** — full profiling session; can be extended to use OpenVINO stress instead of stress-ng.

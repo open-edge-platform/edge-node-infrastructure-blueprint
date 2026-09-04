@@ -233,8 +233,9 @@ Render the report as the following tables.
 - If firmware adaptive tables seem to override the profile: confirm the effective `ExecStart` has `--ignore-default-control` and **no** `--adaptive` (the script's systemd override sets this); check `${OVERRIDE_FILE}` if not.
 
 ## Related Skills
-- **set-power-profile** — cap the package/platform power (PkgWatt/SysWatt) so less heat is produced; the thermal profile then governs the escalation as temperature rises. Apply the power envelope first, then the thermal policy.
-- **monitor-power-thermal** — watch PkgTmp against the trip points while a load runs, to confirm the escalation engages where intended.
-- **generate-platform-stress** — drive the platform hot enough with synthetic load (stress-ng) to exercise the trip points and observe the fan / frequency-cap / idle-injection stages.
-- **generate-openvino-stress** — drive the platform with real AI inference load (OpenVINO benchmark_app on CPU/GPU/NPU) to exercise trip points under realistic workload patterns.
+- **generate-platform-stress** — synthetic stress-ng load (CPU + iGPU); use when you don't need realistic AI inference patterns.
+- **generate-openvino-stress** — apply real AI inference load (OpenVINO benchmark_app on CPU/GPU/NPU) for power/thermal profiling with realistic compute patterns.
+- **combined-power-thermal-profiling** — end-to-end power/thermal qualification workflow that pairs profiling with sustained workload generation.
+- **monitor-power-thermal** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while inference runs.
+- **set-power-profile** — apply a power cap first, then stress with OpenVINO to see how inference throughput degrades.
 - **Typical loop:** set a power profile → set this thermal profile → start `monitor-power-thermal` → run `generate-platform-stress` or `generate-openvino-stress` with a bounded duration → confirm temperature holds within the trips without unexpected throttling.

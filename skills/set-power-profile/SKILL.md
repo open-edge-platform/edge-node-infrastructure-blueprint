@@ -385,3 +385,12 @@ Render the report as the following tables.
 - If `SysWatt` still reads `0.00` in turbostat after applying: the platform (psys) RAPL counter is frozen/unpopulated on some Core Ultra platforms. This is a firmware limitation; use PkgWatt as the effective figure.
 - If the script reports "firmware clamped PL1 to <lower>W": set Config-TDP Level 2 in BIOS to raise the ceiling.
 - The RAPL power cap does not persist across reboot; to re-apply it automatically at boot, wrap the invocation in a systemd unit (out of scope for this skill). The `intel_lpmd` config the script writes does persist on disk and is re-read by the daemon at boot.
+
+## Related Skills
+
+- **generate-platform-stress** — synthetic stress-ng load (CPU + iGPU); use when you don't need realistic AI inference patterns.
+- **generate-openvino-stress** — apply real AI inference load (OpenVINO benchmark_app on CPU/GPU/NPU) for power/thermal profiling with realistic compute patterns.
+- **combined-power-thermal-profiling** — end-to-end power/thermal qualification workflow that pairs profiling with sustained workload generation.
+- **monitor-power-thermal** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while inference runs.
+- **set-thermal-profile** — set thermal trip points, then run inference to validate the thermal policy.
+- **Typical loop:** set a power profile → start `monitor-power-thermal` → run `generate-platform-stress` or `generate-openvino-stress` with a bounded duration → read the min/mean/max summary.

@@ -233,6 +233,9 @@ Render the report as the following tables.
 - An open-ended run keeps the CPUs busy indefinitely; always provide a `duration` for automated/unattended use so it self-terminates.
 
 ## Related Skills
-- **monitor-power-thermal** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while this load runs; the two are designed to be paired.
-- **set-power-profile** — apply a package/platform power cap or named profile first, then stress to see how the limit holds under load.
+- **generate-openvino-stress** — apply real AI inference load (OpenVINO benchmark_app on CPU/GPU/NPU) for power/thermal profiling with realistic compute patterns.
+- **combined-power-thermal-profiling** — end-to-end power/thermal qualification workflow that pairs profiling with sustained workload generation.
+- **monitor-power-thermal** — run in another terminal to record PkgTmp/PkgWatt/GFXWatt while inference runs.
+- **set-power-profile** — apply a power cap first, then stress with OpenVINO to see how inference throughput degrades.
+- **set-thermal-profile** — set thermal trip points, then run inference to validate the thermal policy.
 - **Typical loop:** apply a limit/profile → start `monitor-power-thermal` → run this skill with a bounded `duration` → read the min/mean/max summary.

@@ -187,7 +187,9 @@ Render the report as the following tables.
 - The default log file is overwritten each run (`tee`, not `tee -a`); pass a unique `log_path` to keep multiple traces.
 
 ## Related Skills
-- **generate-platform-stress** — apply configurable synthetic CPU/iGPU load (stress-ng) in another terminal so this monitor captures power/thermals under stress.
+- **generate-platform-stress** — synthetic stress-ng load (CPU + iGPU); use when you don't need realistic AI inference patterns.
 - **generate-openvino-stress** — apply real AI inference load (OpenVINO benchmark_app on CPU/GPU/NPU) for power/thermal profiling with realistic compute patterns.
-- **set-power-profile** — cap the package/platform power (PkgWatt/SysWatt) before or during a capture to observe the effect of a limit or named profile.
+- **combined-power-thermal-profiling** — end-to-end power/thermal qualification workflow that pairs profiling with sustained workload generation.
+- **set-power-profile** — apply a power cap first, then stress with OpenVINO to see how inference throughput degrades.
+- **set-thermal-profile** — set thermal trip points, then run inference to validate the thermal policy.
 - **Typical loop:** apply a limit/profile → start this monitor → run `generate-platform-stress` or `generate-openvino-stress` → read the min/mean/max summary.
