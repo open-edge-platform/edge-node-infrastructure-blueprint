@@ -44,14 +44,25 @@ install_depended_packages() {
 	echo "Updating apt and installing initial packages..."
 	apt update
 	apt upgrade -y
-	apt install -y --no-install-recommends wget ethtool libbpf1 wayland-protocols binutils
+	apt install -y --no-install-recommends ca-certificates wget ethtool libbpf1 wayland-protocols binutils
+	echo "Updating CA certificate bundle..."
+	update-ca-certificates --fresh
+	# Set curl environment variables for SSL verification
+	export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+	export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 	echo "Initial packages installed."
 }
 
 download_file() {
 	local url="$1"
 	local out_file="$2"
-	curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+	# Use system CA bundle or fall back to insecure if necessary
+	if [ -f /etc/ssl/certs/ca-certificates.crt ]; then
+		curl -fsSL --cacert /etc/ssl/certs/ca-certificates.crt --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+	else
+		# Fallback: try without explicit cacert
+		curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 20 --max-time 120 "${url}" -o "${out_file}"
+	fi
 }
 
 download_and_verify_sha256() {
@@ -244,7 +255,7 @@ install_essential_tools() {
 	echo "=== DEBUG_BUILD: Checking package policies ===" # DEBUG_BUILD
 	apt-cache policy intel-media-va-driver intel-media-va-driver-non-free mesa-libgallium 2>/dev/null || true # DEBUG_BUILD
 	echo "=== END DEBUG_BUILD ===" # DEBUG_BUILD
-	apt install -y --no-install-recommends \
+	apt install -y --allow-downgrades --no-install-recommends \
 		alsa-topology-conf \
 		alsa-ucm-conf \
 		alsa-utils \
@@ -1230,6 +1241,10 @@ EOF
 }
 
 main() {
+	# Set SSL/TLS environment variables for curl and wget
+	export CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+	export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+	export SSL_CERT_DIR=/etc/ssl/certs
 
 	install_depended_packages
 

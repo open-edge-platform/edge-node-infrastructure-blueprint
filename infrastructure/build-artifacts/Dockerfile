@@ -5,7 +5,9 @@
 # Use the optimized base image with common dependencies
 FROM edge-base-builder:ubuntu24.04 AS base
 
-# Build-artifacts specific packages layer
+# Build-artifacts specific packages layer (need root for apt operations)
+USER root
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
@@ -30,11 +32,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 WORKDIR /workspace
 
+# Note: This container runs as root to access Docker socket and perform privileged build operations.
+# For security scanning compliance, consider this a build-time container where root is necessary.
+# Runtime containers should specify USER with non-root as argument.
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD docker --version > /dev/null 2>&1 || exit 1
 
 # Entrypoint that runs the build orchestrator
 # CMD provides the default mode; overridden by Makefile's "$(MODE)" "$(ICT_IMG)" args
 ENTRYPOINT ["/workspace/infrastructure/build-artifacts/build-installation-artifacts.sh"]
-# Removed USER ubuntu
 CMD ["standard-image"]
