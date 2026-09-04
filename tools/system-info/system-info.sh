@@ -66,7 +66,7 @@ installed_pkgs_matching() {
 is_root() { [[ "${EUID:-$(id -u)}" -eq 0 ]]; }
 
 # =============================================================================
-section "INTEL PANTHER LAKE  SYSTEM INFO  -  v${SCRIPT_VERSION}"
+section "INTEL PANTHER LAKE SYSTEM INFO  -  v${SCRIPT_VERSION}"
 # =============================================================================
 
 echo "Generated     : $(date -Is)"
