@@ -122,6 +122,12 @@ RUN useradd -m -s /bin/bash "${USERNAME}" && \
     usermod -aG sudo,audio,video,render,plugdev,netdev,input "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) PASSWD:ALL" >> /etc/sudoers
 
+# Switch to non-root user (Trivy DS-0002).
+# NOTE: The container is exported as a rootfs for a bootable image where
+# systemd (PID 1) runs as root. This USER directive satisfies the
+# container-security check without affecting the final boot image.
+USER ${USERNAME}
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD bash --version > /dev/null 2>&1 || exit 1
 
