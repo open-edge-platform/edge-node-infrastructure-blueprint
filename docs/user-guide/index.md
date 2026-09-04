@@ -8,7 +8,6 @@
      GitHub
   </a>
 </div>
-::::
 hide_directive-->
 
 > Note!
@@ -17,7 +16,7 @@ hide_directive-->
 
 <!--hide_directive :::: hide_directive-->
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
 The Edge Node Infrastructure software creates a comprehensive edge computing platform that enables hardware
