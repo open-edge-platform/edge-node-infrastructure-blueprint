@@ -28,27 +28,42 @@ The solution bridges the gap between edge hardware capabilities and application 
 
 ### 1. Prerequisites
 
-#### Docker Setup
+#### System Requirements
 
-For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/how-to/set-up-windows-wsl.md).
+The developer system is used to build installation artifacts and prepare the bootable USB.
 
-Docker Engine is required because the build workflow uses Docker images and containers.
+| Component | Minimum                                                          |
+| --------- | ---------------------------------------------------------------- |
+| OS        | Ubuntu 24.04/22.04 or WSL environment                            |
+| CPU       | Any modern x86-64 processor with virtualisation support          |
+| Memory    | 16 GiB RAM                                                       |
+| Storage   | 100 GiB free disk space (for image build workspace)              |
+| USB       | 32 GiB USB drive (for bootable installation media)               |
+| Network   | Internet access to fetch packages and images                     |
 
-Install Docker Engine for your Linux distribution using the official Docker documentation for [Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
+The target system is the Intel edge node on which the provisioned OS and workloads will run. The infrastructure software has been validated on the following hardware configurations:
 
-Configure Docker for non-root usage and service startup after installation:
-- https://docs.docker.com/engine/install/linux-postinstall/
+| CPU                       | Memory      | Storage      |
+| ------------------------- | ----------- | ------------ |
+| Intel Core Ultra X7 358HR | 16 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra X7 358H  | 32 GiB DDR5 | 512 GiB NVMe |
+| Intel Core Ultra 5 338H   | 32 GiB DDR5 | 512 GiB NVMe |
 
-If you are behind a proxy, configure Docker daemon proxy settings:
-- https://docs.docker.com/config/daemon/systemd/
+#### Docker Setup on Developer System
 
-#### Install Make on the Development System
+Docker Engine is required because the build workflow uses Docker images and containers. Install Docker Engine for your Ubuntu system using the official Docker documentation for [Ubuntu](https://docs.docker.com/engine/install/ubuntu/). For Windows Subsystem for Linux (WSL), follow the steps in the [windows-wsl-guide](docs/user-guide/how-to/set-up-windows-wsl.md).
 
-Install GNU Make on your development system:
+Configure Docker for non-root usage and service startup after installation: https://docs.docker.com/engine/install/linux-postinstall/
+
+If you are behind a proxy, configure Docker daemon proxy settings: https://docs.docker.com/config/daemon/systemd/
+
+#### Install Make and other tools on the Development System
+
+Install GNU Make and other utilities on your development system:
 
 ```bash
 sudo apt update
-sudo apt-get install make
+sudo apt-get install -y make gdisk openssl whois
 ```
 
 #### Important Notes
@@ -69,8 +84,7 @@ cd edge-node-infrastructure-blueprint
 
 #### Option 1: Build from a Standard Ubuntu 24.04 image
 
-Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
-These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials. These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
 
 ```bash
 export USERNAME='<your-username>'
@@ -85,10 +99,10 @@ export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
 > **Note:** The output changes on every invocation because the salt is randomly generated. All outputs verify against the same password.
 
 
-Now, build the Ubuntu image, including the required tools and packages.
+Now, build the Ubuntu image, which includes the required tools and packages.
 
 ```bash
-# User MODE=server-image for uncrewed aerial vehicle(UAV) image
+# Use MODE=server-image for uncrewed aerial vehicle(UAV) image
 make build MODE=standard-image
 ```
 
@@ -125,7 +139,7 @@ Build output:
 
 ## Phase 2: Prepare Bootable USB
 
-### 4. Extract Installation Files on the Developer System
+### 1. Extract Installation Files on the Developer System
 
 ```bash
 sudo tar -xzf usb-installation-files.tar.gz
@@ -137,7 +151,7 @@ The extracted files include:
 - `bootable-usb-prepare.sh`
 - `ven-deployment.sh`
 
-### 5. Configure and Prepare the USB Device
+### 2. Configure and Prepare the USB Device
 
 Required inputs:
 - USB Device Path (usb): The target USB device identifier (for example, `/dev/sdX`). Use the `lsblk` command to locate the correct device.
@@ -161,10 +175,9 @@ After the USB preparation completes:
 2. Connect it to the target system.
 3. Enter the BIOS boot menu and boot from the USB.
 
-### Access the Edge Node
+### 3. Access the Edge Node
 
-After installation, log in using the credentials specified in the configuration file during the Ubuntu desktop image preparation.
-
+After installation, log in using the credentials specified during image build.
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 
