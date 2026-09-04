@@ -12,7 +12,7 @@ Use `AGENTS.md` as the repository context catalog and `skills/*/SKILL.md` as exe
 2. Match against skill trigger phrases.
 3. Ask for missing required inputs before running commands.
 
-For skill execution order, see [AGENTS.md](AGENTS.md#skill-execution-order-must-follow-for-all-skills).
+For skill execution order, see [AGENTS.md](../AGENTS.md#skill-execution-order-must-follow-for-all-skills).
 
 ## Sudo Handling (MUST follow before any `sudo` command)
 Before running any `sudo` command in any skill or task:
@@ -20,7 +20,7 @@ Before running any `sudo` command in any skill or task:
 2. If exit is non-zero, **do not** run the privileged command. Tell the user to run `sudo -v` in their own terminal (or add a scoped `NOPASSWD` entry in `/etc/sudoers.d/` for the specific binary), then re-trigger the skill.
 3. Never collect a password via prompts, env vars, scripts, or logs.
 
-Full rules: [AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo](AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
+Full rules: [AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo](../AGENTS.md#sudo-handling-must-follow-for-all-skills-that-invoke-sudo).
 
 ## Supported Skill
 - `create-image` at `skills/create-image/SKILL.md`
