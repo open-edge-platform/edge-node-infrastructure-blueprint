@@ -8,10 +8,10 @@ This README explains what `system-info.sh` is used for and how to run it.
 
 ## What this script is used for
 
-`system-info.sh` is a diagnostic script for **Intel Panther Lake (PTL)** systems on **Ubuntu/Linux**.
+`system-info.sh` is a diagnostic script for **Intel Panther Lake** systems on **Ubuntu/Linux**.
 
 It collects a full platform report, including:
-- PTL platform detection (CPU family/model checks)
+- Panther Lake platform detection (CPU family/model checks)
 - CPU details, hybrid P/E/LP-E topology, frequencies, and power settings
 - Memory, storage, and network information
 - Intel GPU (Xe3) driver/runtime status (`xe`, Vulkan, VA-API, OpenGL)
@@ -21,7 +21,7 @@ It collects a full platform report, including:
 - Intel-related package inventory and recommended package list
 
 Use it when you need to:
-- Validate PTL bring-up on Ubuntu
+- Validate Panther Lake bring-up on Ubuntu
 - Troubleshoot driver/firmware/runtime issues
 - Capture a full system snapshot for debugging or support
 
@@ -51,4 +51,4 @@ sudo ./system-info.sh > sys-info.txt 2>&1
 
 - The script is read/inspect oriented and prints results to standard output.
 - Some sections will show warnings or "not installed" messages if optional tools are missing.
-- If PTL is not detected (CPUID mismatch), the script still runs and reports what it finds.
+- If Panther Lake is not detected (CPUID mismatch), the script still runs and reports what it finds.

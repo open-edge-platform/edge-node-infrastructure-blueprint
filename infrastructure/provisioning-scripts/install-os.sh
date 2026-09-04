@@ -1514,7 +1514,7 @@ EOT
 boot_order_change_to_disk() {
     echo -e "${BLUE}Changing the Boot order to disk!!${NC}"
 
-    # Mount efivarfs if not already mounted — Alpine HookOS does not mount it
+    # Mount efivarfs if not already mounted — Alpine OS does not mount it
     # by default (no systemd), so /sys/firmware/efi/efivars is empty and
     # efibootmgr fails with "EFI variables are not supported on this system."
     # Required for kernel >= 6.0 where the legacy /sys/firmware/efi/vars/

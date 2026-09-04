@@ -876,7 +876,7 @@ systemConfig:
     - cmd: "find /tmp/gpu-packages -maxdepth 1 -type f -name '*.deb' | xargs -r dpkg -i; apt-get install -y --fix-broken || true"
     - cmd: "rm -rf /tmp/gpu-packages"
 
-    # Install NPU driver for PTL
+    # Install NPU driver for Panther Lake
 
     # Version: v1.35.0.20260722-29947505341 (from GitHub releases, public)
     # Security: sha256-verified before extraction (CWE-494 mitigation)
@@ -923,12 +923,12 @@ systemConfig:
     # A dangling link is worse than a missing one, so fail the build on it.
     - cmd: "for l in /usr/local/bin/* /usr/local/sbin/*; do [ -L \"$l\" ] && [ ! -e \"$l\" ] && echo \"ERROR: dangling symlink $l -> $(readlink $l)\" && exit 1; done; true"
 
-    # --- PTL audio enablement (Intel SOF / I2S + HDMI-in codec) ---
+    # --- Panther Lake audio enablement (Intel SOF / I2S + HDMI-in codec) ---
     # Step 1: Blacklist legacy HD-audio modules so the DSP/SOF stack is used
     - cmd: "printf 'blacklist snd_hda_intel\nblacklist snd_hda_core\n' > /etc/modprobe.d/blacklist_hda.conf"
     # Step 2: ALSA/SOF options for the I2S audio codec
     - cmd: "printf 'options snd_sof_intel_hda_common sof_use_tplg_nhlt=1\noptions snd_intel_dspcfg dsp_driver=3\n' > /etc/modprobe.d/alsa.conf"
-    # Step 3: SOF firmware (signed) for PTL
+    # Step 3: SOF firmware (signed) for Panther Lake
     # Security: sha256-verified after download (CWE-494 mitigation)
     - cmd: "mkdir -p /lib/firmware/intel/sof-ipc4/ptl"
     - cmd: "wget -O /lib/firmware/intel/sof-ipc4/ptl/sof-ptl-openmodules.ri https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri && echo '0bc5c1942918e86f84b9a7e97efb7e82b9aad2891398927780d5afd433128f3f  /lib/firmware/intel/sof-ipc4/ptl/sof-ptl-openmodules.ri' | sha256sum -c - || exit 1"

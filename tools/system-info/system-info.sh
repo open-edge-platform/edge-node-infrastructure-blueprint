@@ -2,11 +2,11 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 # =============================================================================
-# Intel Panther Lake (PTL) System Info Script for Ubuntu
+# Intel Panther Lake  System Info Script for Ubuntu
 # -----------------------------------------------------------------------------
 # Collects CPU / GPU (Xe3) / NPU 5 / driver / firmware / userspace package /
 # frequency / P-E-LPE core / power / thermal / memory / storage / network /
-# compute runtime info on Intel PTL platforms.
+# compute runtime info on Intel Panther Lake platforms.
 #
 # Usage:
 #   sudo ./system-info.sh           # for firmware/dmidecode/turbostat
@@ -66,7 +66,7 @@ installed_pkgs_matching() {
 is_root() { [[ "${EUID:-$(id -u)}" -eq 0 ]]; }
 
 # =============================================================================
-section "INTEL PANTHER LAKE (PTL) SYSTEM INFO  -  v${SCRIPT_VERSION}"
+section "INTEL PANTHER LAKE  SYSTEM INFO  -  v${SCRIPT_VERSION}"
 # =============================================================================
 
 echo "Generated     : $(date -Is)"
@@ -103,15 +103,15 @@ echo "Stepping      : ${cpu_stepping:-unknown}"
 echo "Microcode     : ${cpu_microcode:-unknown}"
 
 if [[ "$vendor" != "GenuineIntel" ]]; then
-  echo "WARNING: CPU vendor is not GenuineIntel. This script targets Intel PTL."
+  echo "WARNING: CPU vendor is not GenuineIntel. This script targets Intel Panther Lake."
 fi
 
-# PTL client CPUID: family 6, model 0xCC (204).
+# Panther Lake client CPUID: family 6, model 0xCC (204).
 if [[ "$cpu_family" == "6" && "$cpu_model_id" == "204" ]]; then
-  echo "Platform      : Detected Intel Panther Lake (PTL) [family 6, model 0xCC]"
+  echo "Platform      : Detected Intel Panther Lake  [family 6, model 0xCC]"
 else
-  echo "Platform      : CPUID does not match expected PTL (6/0xCC = 204)."
-  echo "                Could be pre-production sample, ES, or non-PTL part."
+  echo "Platform      : CPUID does not match expected Panther Lake (6/0xCC = 204)."
+  echo "                Could be pre-production sample, ES, or non-Panther Lake part."
 fi
 
 # Kernel version check.
@@ -119,10 +119,10 @@ kver_raw="$(uname -r)"
 kmaj="$(echo "$kver_raw" | awk -F. '{print $1}')"
 kmin="$(echo "$kver_raw" | awk -F. '{print $2}')"
 if (( kmaj < 6 )) || { (( kmaj == 6 )) && (( kmin < 13 )); }; then
-  echo "Kernel check  : WARNING - $kver_raw < 6.13. PTL enablement (Xe3, NPU 5,"
+  echo "Kernel check  : WARNING - $kver_raw < 6.13. Panther Lake enablement (Xe3, NPU 5,"
   echo "                hybrid topology) may be incomplete. Recommend 6.15+."
 else
-  echo "Kernel check  : OK for PTL ($kver_raw >= 6.13)"
+  echo "Kernel check  : OK for Panther Lake ($kver_raw >= 6.13)"
 fi
 
 # linux-firmware version.
@@ -137,7 +137,7 @@ if have mokutil; then
   echo "Secure Boot   : $(mokutil --sb-state 2>/dev/null | tr '\n' ' ')"
 fi
 
-subsection "PTL-relevant firmware blobs in /lib/firmware"
+subsection "Panther Lake-relevant firmware blobs in /lib/firmware"
 found_any=false
 for pat in 'xe/*ptl*' 'xe/ptl*' 'i915/*ptl*' 'intel/vpu/*' 'intel/ivpu/*'; do
   # $pat must stay unquoted so the shell expands the glob.
@@ -147,7 +147,7 @@ for pat in 'xe/*ptl*' 'xe/ptl*' 'i915/*ptl*' 'intel/vpu/*' 'intel/ivpu/*'; do
     found_any=true
   done
 done
-$found_any || echo "  (no PTL-specific firmware blobs found)"
+$found_any || echo "  (no Panther Lake-specific firmware blobs found)"
 
 # =============================================================================
 section "CPU INFO"
@@ -172,7 +172,7 @@ echo "Threads per core  : ${threads_per_core:-unknown}"
 echo "Sockets           : ${sockets:-unknown}"
 echo "NUMA nodes        : ${numa_nodes:-unknown}"
 
-subsection "Intel Hybrid P / E / LP-E Core Detection (PTL: Cougar Cove + Darkmont + LP-E)"
+subsection "Intel Hybrid P / E / LP-E Core Detection (Panther Lake: Cougar Cove + Darkmont + LP-E)"
 
 declare -A pcores=()
 declare -A ecores=()
@@ -377,7 +377,7 @@ if have lspci; then
 fi
 
 # =============================================================================
-section "INTEL GPU INFO (Xe3 'Celestial' on PTL)"
+section "INTEL GPU INFO (Xe3 'Celestial' on Panther Lake)"
 # =============================================================================
 
 subsection "Intel PCI GPU Devices"
@@ -416,11 +416,11 @@ else
   echo "No DRM card devices."
 fi
 
-subsection "PTL GPU Driver Check (Xe3 expects 'xe' driver)"
+subsection "Panther Lake GPU Driver Check (Xe3 expects 'xe' driver)"
 if lsmod | awk '{print $1}' | grep -qx xe; then
-  echo "OK: 'xe' kernel driver loaded (correct for PTL Xe3)."
+  echo "OK: 'xe' kernel driver loaded (correct for Panther Lake Xe3)."
 elif lsmod | awk '{print $1}' | grep -qx i915; then
-  echo "WARNING: 'i915' loaded. PTL Xe3 prefers the 'xe' driver."
+  echo "WARNING: 'i915' loaded. Panther Lake Xe3 prefers the 'xe' driver."
   echo "         Ensure CONFIG_DRM_XE is enabled and 'xe' binds to your GPU PCI ID."
 else
   echo "WARNING: Neither 'xe' nor 'i915' loaded."
@@ -472,7 +472,7 @@ else
 fi
 
 # =============================================================================
-section "INTEL NPU INFO (NPU 5 on PTL)"
+section "INTEL NPU INFO (NPU 5 on Panther Lake)"
 # =============================================================================
 
 subsection "Intel NPU PCI Devices"
@@ -501,7 +501,7 @@ else
   echo "No /sys/class/accel devices."
 fi
 
-subsection "PTL NPU 5 Driver Check (ivpu / intel_vpu)"
+subsection "Panther Lake NPU 5 Driver Check (ivpu / intel_vpu)"
 npu_loaded=false
 for m in intel_vpu ivpu; do
   if lsmod | awk '{print $1}' | grep -qx "$m"; then
@@ -510,7 +510,7 @@ for m in intel_vpu ivpu; do
     modinfo "$m" 2>/dev/null | grep -Ei '^(filename|version|srcversion|vermagic):'
   fi
 done
-$npu_loaded || echo "WARNING: No NPU kernel driver loaded. PTL NPU 5 needs ivpu/intel_vpu."
+$npu_loaded || echo "WARNING: No NPU kernel driver loaded. Panther Lake NPU 5 needs ivpu/intel_vpu."
 
 subsection "NPU Firmware Blobs"
 for d in /lib/firmware/intel/vpu /lib/firmware/intel/ivpu; do
@@ -696,11 +696,11 @@ else
 fi
 
 # =============================================================================
-section "RECOMMENDED PACKAGES FOR INTEL PTL"
+section "RECOMMENDED PACKAGES FOR INTEL Panther Lake"
 # =============================================================================
 
 cat <<'EOF'
-# Kernel + firmware (PTL needs Linux >= 6.13, ideally 6.15+)
+# Kernel + firmware (Panther Lake needs Linux >= 6.13, ideally 6.15+)
 sudo apt install -y linux-generic-hwe-24.04 linux-firmware
 
 # Core diagnostics
@@ -712,13 +712,13 @@ sudo apt install -y pciutils usbutils util-linux procps sysstat lm-sensors \
 sudo apt install -y intel-gpu-tools mesa-utils vulkan-tools vainfo \
   mesa-vulkan-drivers intel-media-va-driver-non-free
 
-# Compute (OpenCL + Level Zero) - use Intel's compute-runtime repo for PTL
+# Compute (OpenCL + Level Zero) - use Intel's compute-runtime repo for Panther Lake
 sudo apt install -y clinfo intel-opencl-icd intel-level-zero-gpu level-zero libze1
 
 # NPU 5 + OpenVINO
 # - Use latest ivpu/intel_vpu kernel driver (in kernel >= 6.15).
 # - Install matching userspace from Intel NPU driver release.
-# - For inference: pip install --upgrade openvino   (2025.x or newer for PTL)
+# - For inference: pip install --upgrade openvino   (2025.x or newer for Panther Lake)
 
 # Useful extras
 sudo apt install -y iw ethtool tpm2-tools i7z

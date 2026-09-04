@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 name: create-usb-installation-files
-description: Package bootable USB installation artifacts (HookOS, host image, deployment scripts) from a standard Docker build, an ICT image, or a previously built image.
+description: Package bootable USB installation artifacts (Alpine OS host image, deployment scripts) from a standard Docker build, an ICT image, or a previously built image.
 ---
 
 ## Trigger Phrases

@@ -433,7 +433,7 @@ options snd_sof_intel_hda_common sof_use_tplg_nhlt=1
 options snd_intel_dspcfg dsp_driver=3
 EOF
 
-	# Download PTL SOF firmware binaries.
+	# Download Panther Lake SOF firmware binaries.
 	mkdir -p "$sof_dir"
 	download_and_verify_sha256 \
 		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-v2.13/ptl/intel-signed/sof-ptl-openmodules.ri" \
@@ -444,7 +444,7 @@ EOF
 		"$sof_dir/sof-ptl.ri" "${SOF_FIRMWARE_SHA256}"
 	sleep 3
 
-	# Download and verify both supported PTL audio topologies.
+	# Download and verify both supported Panther Lake audio topologies.
 	mkdir -p "$tplg_dir"
 	download_and_verify_sha256 \
 		"https://raw.githubusercontent.com/thesofproject/sof-bin/main/v2.13.x/sof-ipc4-tplg-v2.13/sof-ptl-rt722.tplg" \
@@ -458,7 +458,7 @@ EOF
 	if [ -z "$topology_file" ]; then
 		case "$codec_type" in
 			soundwire|alc722-cg)
-				# Common PTL SoundWire topology candidates.
+				# Common Panther Lake SoundWire topology candidates.
 				for candidate in \
 					"sof-ptl-rt722.tplg" \
 					"sof-ptl-rt722-sdca.tplg" \
@@ -469,7 +469,7 @@ EOF
 					fi
 				done
 
-				# Fallback: any PTL SoundWire-like topology name.
+				# Fallback: any Panther Lake SoundWire-like topology name.
 				if [ -z "$topology_file" ]; then
 					for candidate in "$tplg_dir"/*ptl*rt7*.tplg "$tplg_dir"/*ptl*sdw*.tplg "$tplg_dir"/*ptl*.tplg; do
 						if [ -f "$candidate" ]; then
@@ -480,7 +480,7 @@ EOF
 				fi
 				;;
 			hda-dsp|hda)
-				# Common PTL HDA-over-DSP topology candidates.
+				# Common Panther Lake HDA-over-DSP topology candidates.
 				for candidate in \
 					"sof-hda-generic-2ch.tplg" \
 					"sof-hda-generic.tplg"; do
