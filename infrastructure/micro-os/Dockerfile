@@ -15,6 +15,9 @@ COPY infrastructure/installation-scripts /workspace/infrastructure/installation-
 
 RUN chmod +x /workspace/infrastructure/micro-os/build-alpine-os.sh
 
+# Note: This container runs as root to create Alpine Linux OS images with system-level operations.
+# Build containers require root for mounting filesystems, creating partitions, and system configuration.
+
 WORKDIR /workspace/infrastructure/micro-os
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

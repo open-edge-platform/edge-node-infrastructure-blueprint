@@ -26,4 +26,5 @@ FROM scratch
 COPY --from=builder /intel-cdi-specs-generator-gpu /intel-cdi-specs-generator-gpu
 # scratch has no shell; HEALTHCHECK NONE is explicit for minimal binary-only images
 HEALTHCHECK NONE
+USER guest
 ENTRYPOINT ["/intel-cdi-specs-generator-gpu"]

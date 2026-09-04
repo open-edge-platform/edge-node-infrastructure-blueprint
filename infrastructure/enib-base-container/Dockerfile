@@ -21,7 +21,7 @@ ENV http_proxy=${http_proxy} \
     DEBIAN_FRONTEND=noninteractive
 
 # Configure APT for parallel downloads and install common dependencies
-# Using cache mounts for faster subsequent builds
+# Using cache mounts for faster subsequent builds (need root for apt operations)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
@@ -54,6 +54,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         util-linux \
         wget \
         xz-utils
+
+# Note: This base image runs as root for building and system configuration.
+# Derived images that serve as runtime containers should specify USER with non-root as argument.
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD bash --version > /dev/null 2>&1 || exit 1
