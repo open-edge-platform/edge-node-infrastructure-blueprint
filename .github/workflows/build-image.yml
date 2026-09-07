@@ -53,7 +53,7 @@ jobs:
 
       - name: Clone and build Image Composer Tool
         run: |
-          git clone https://github.com/open-edge-platform/image-composer-tool.git --depth 1 -b 2026.1-Release /tmp/image-composer-tool
+          git clone https://github.com/open-edge-platform/image-composer-tool.git --depth 1 -b ICT_Release_2026.2 /tmp/image-composer-tool
           cd /tmp/image-composer-tool
           go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
 

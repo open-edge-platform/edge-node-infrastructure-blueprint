@@ -108,7 +108,7 @@ Inside the Ubuntu 24.04 terminal:
 curl -I http://archive.ubuntu.com
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y make
+sudo apt-get install -y make gdisk openssl whois
 ```
 
 ---
