@@ -239,7 +239,13 @@ shellcheck:
 			rm -f shellcheck-report.json; \
 			exit 1; \
 		fi; \
-		echo "ShellCheck found only non-error findings (info/style/warning)."; \
+	fi; \
+	if [ -s shellcheck-report.json ]; then \
+		echo ""; \
+		echo "ShellCheck findings:"; \
+		jq -r '.[] | "\(.file):\(.line):\(.column): \(.code) (\(.level)): \(.message)"' shellcheck-report.json; \
+	else \
+		echo "ShellCheck found no findings."; \
 	fi; \
 	rm -f shellcheck-report.json
 
