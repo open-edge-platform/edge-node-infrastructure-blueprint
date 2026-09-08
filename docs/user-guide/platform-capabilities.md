@@ -94,7 +94,8 @@ The following tables describe what is expected to be present on a system that ha
 | Container runtime | Docker `27.5.1`, containerd, Buildx, and Compose plugin `v2.33.1` (active when `host_type=container`) |
 | Kubernetes server | K3s `v1.32.3+k3s1` single-node server (active when `host_type=kubernetes`); traefik disabled |
 | SR-IOV | `intel-sriov-vf.service` — provisions and persists 7 GPU VFs across reboots |
-| Power monitoring and tuning | `powertop 2.15`, PCM built from the `202604` source branch, and power-tuning scripts with `LowPower`, `BalancedLow`, `BalancedHigh`, `Performance`, and `MaxPerformance` profiles |
+| Power profiling | `set_power_profile.sh` for runtime package-power limits: `LowPower` (10 W), `BalancedLow` (15 W), `BalancedHigh` (20 W), `Performance` (25 W), `MaxPerformance` (platform maximum), or `Custom` targets |
+| Thermal profiling | `thermald` policy managed by `set_thermal_profile.sh`; staged Fan/Processor/`intel_powerclamp` trips with `cool`, `warm`, `hot`, `thermal-max`, and `custom` profiles; optional CHRG cooling device and kernel-default fallback |
 | GPU monitoring | `intel-gpu-tools 1.28` (`intel_gpu_top`) |
 | Network performance and profiling | `iperf3`, `linuxptp`, and `tcpdump` |
 
