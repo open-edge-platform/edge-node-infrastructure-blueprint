@@ -1320,7 +1320,7 @@ main() {
 
 	configure_system_services
 
-        build_install_tch
+    build_install_tch
 }
 
 main "$@"
