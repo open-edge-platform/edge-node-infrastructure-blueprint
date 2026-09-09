@@ -244,7 +244,7 @@ install_essential_tools() {
 	echo "=== DEBUG_BUILD: Checking package policies ===" # DEBUG_BUILD
 	apt-cache policy intel-media-va-driver intel-media-va-driver-non-free mesa-libgallium 2>/dev/null || true # DEBUG_BUILD
 	echo "=== END DEBUG_BUILD ===" # DEBUG_BUILD
-	apt install -y --no-install-recommends \
+	apt install -y --no-install-recommends --allow-downgrades \
 		alsa-topology-conf \
 		alsa-ucm-conf \
 		alsa-utils \
