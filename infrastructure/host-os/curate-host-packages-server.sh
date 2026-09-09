@@ -1232,7 +1232,7 @@ EOF
 build_install_tch() {
 
         # Install Dependencies
-        apt install -y python3-dev gcc python3-cffi libpcre2-dev python3.12-venv pip
+        apt install -y python3-dev gcc python3-cffi libpcre2-dev
         cd /tmp
         if ! git clone -b v4.2.2 https://github.com/CESNET/libyang.git libyang; then
                 printf 'Error: failed to clone libyang v4.2.2 into /tmp/libyang.\n' >&2
