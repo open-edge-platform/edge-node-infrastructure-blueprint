@@ -938,6 +938,47 @@ install_linux_tools() {
 	echo "Linux tools installed successfully."
 }
 
+build_install_tch() {
+
+        # Install Dependencies
+        apt install -y python3-dev gcc python3-cffi libpcre2-dev python3.12-venv pip
+        cd /tmp
+        if ! git clone -b v4.2.2 https://github.com/CESNET/libyang.git libyang; then
+                printf 'Error: failed to clone libyang v4.2.2 into /tmp/libyang.\n' >&2
+                return 1
+        fi
+        cd libyang
+        mkdir build
+        cd build
+        cmake ..
+        make
+        make install
+        ldconfig /usr/local/lib
+
+        # Build and install TCH
+        cd /tmp
+        git clone https://github.com/intel/time-confighub.git tch
+        cd tch
+        if ! git checkout 83821fd; then
+                printf 'Error: failed to check out TCH revision 83821fd.\n' >&2
+                return 1
+        fi
+        chmod +x install.sh
+	apt-get update && apt-get install -y python3.12-dev python3.12-venv python3-pip
+
+	# The error can be safely ignored as the tch daemon requires a system reboot
+	# to start successfully
+        ./install.sh || true
+
+        # Check version and installation
+        tch --version
+
+        # Check daemon status
+        tch daemon-status
+
+        echo "Installed time-confighub"
+}
+
 main() {
 
 	install_depended_packages
@@ -975,6 +1016,8 @@ main() {
 	install_kernel
 
 	install_linux_tools
+
+	build_install_tch
 }
 
 main "$@"
