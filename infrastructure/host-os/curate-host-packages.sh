@@ -964,10 +964,9 @@ build_install_tch() {
                 return 1
         fi
         chmod +x install.sh
-	apt-get update && apt-get install -y python3.12-dev python3.12-venv python3-pip
-
-	# The error can be safely ignored as the tch daemon requires a system reboot
-	# to start successfully
+        apt-get update && apt-get install -y python3.12-dev python3.12-venv python3-pip
+        # The error can be safely ignored as the tch daemon requires a system reboot
+        # to start successfully
         ./install.sh || true
 
         # Check version and installation
