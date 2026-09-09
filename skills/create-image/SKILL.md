@@ -13,7 +13,7 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 - build uav image
 - build host image
 - generate ubuntu image
-- build PTL image
+- build Panther Lake image
 - run ict image build
 
 ## Required Inputs
