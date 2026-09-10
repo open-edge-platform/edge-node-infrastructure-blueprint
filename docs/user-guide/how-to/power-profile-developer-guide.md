@@ -34,7 +34,7 @@ While power management exposes numerous model-specific registers and sysfs inter
    - Energy Performance Bias (EPB)
    - Intel Turbo Boost Max Technology (ITMT)
 
-4. **LPMD configuration file** (`/etc/intel_lpmd/intel_lpmd_config.xml`) generated based on the requested power profile, using EPP, EPB, ITMT, and active CPU settings
+4. **LPMD configuration file** (`/etc/intel_lpmd/intel_lpmd_config.xml`) generated based on the requested power profile, using EPP, EPB, ITMT and active CPU settings
 
 5. **Low Power Mode Daemon** (intel_lpmd) applies the LPMD profile configuration
 
@@ -55,7 +55,7 @@ The following table summarizes the access interfaces and their properties:
 
 ---
 
-## 3. MSR reads
+## 2. MSR reads
 
 All reads use `rdmsr -0` — **CPU 0 only** — because RAPL package/platform
 registers are package-scoped, so one core is representative.
@@ -79,7 +79,7 @@ fallbacks.
 
 ---
 
-## 4. MSR writes
+## 3. MSR writes
 
 All writes use `wrmsr -a` — **every logical CPU** — so the value is applied
 regardless of which package/core the writer lands on.
@@ -94,7 +94,7 @@ regardless of which package/core the writer lands on.
 
 ---
 
-## 5. powercap sysfs reads
+## 4. powercap sysfs reads
 
 Domains are discovered by globbing `/sys/class/powercap/intel-rapl:*` (MSR-backed)
 and `/sys/class/powercap/intel-rapl-mmio:*` (MMIO mirror).
@@ -114,7 +114,7 @@ root.
 
 ---
 
-## 6. powercap sysfs writes
+## 5. powercap sysfs writes
 
 Used as the **fallback** when the MSR path is unavailable or locked, and as the
 **only** path for domains with no MSR equivalent (MMIO package mirror, NPU/VPU).
@@ -137,7 +137,7 @@ Which domains get sysfs writes
 
 ---
 
-## 7. procfs, cpufreq and cgroup reads
+## 6. procfs, cpufreq and cgroup reads
 
 | Path / command | Purpose | Impact |
 |----------------|---------|--------|
@@ -150,7 +150,7 @@ Which domains get sysfs writes
 
 ---
 
-## 10. Indirect writes performed by the `intel_lpmd` daemon
+## 7. Indirect writes performed by the `intel_lpmd` daemon
 
 These are not written by the script — they are the consequence of installing the
 config and restarting the daemon. They are listed because they are the
@@ -165,7 +165,7 @@ user-visible effect and the thing the report block reads back.
 
 ---
 
-## 13. Clamping and precedence chain (why a requested watt may not be what you get)
+## 8. Clamping and precedence chain (why a requested watt may not be what you get)
 
 The `set_power_profile.sh` script processes a requested power profile through
 several validation, conversion, and hardware-enforcement stages. The requested
@@ -178,7 +178,7 @@ the platform rather than only the value requested by the user.
 
 ---
 
-## 14. Worked example — `--profile BalancedHigh` in logical sequence
+## 9. Worked example — `--profile BalancedHigh` in logical sequence
 
 ```bash
 sudo tools/power-tuning/set_power_profile.sh --profile BalancedHigh
@@ -197,7 +197,7 @@ sequence does not:
 | Level 2 TDP (`MAX_TDP`) | MSR `0x64A` | **65 W** |
 | psys domain | `/sys/class/powercap/intel-rapl:*/name` | present |
 
-### 14.1 Step-by-step sequence
+### 9.1 Step-by-step sequence
 
 | # | Step | Access (R/W) | Value / result |
 |---|------|--------------|----------------|
@@ -224,7 +224,7 @@ programmed and enforced PL1 are all 20 W. Contrast `--profile MaxPerformance`,
 which resolves to 65 W, trips the cTDP Level 2 switch at step 10, and typically
 gets clamped back to ~25 W at step 15 unless BIOS Config-TDP Level 2 is set.
 
-### 14.2 MSR `0x610` bit layout for this example
+### 9.2 MSR `0x610` bit layout for this example
 
 | Field | Bits | Value | Meaning |
 |-------|------|-------|---------|
@@ -239,7 +239,7 @@ gets clamped back to ~25 W at step 15 unless BIOS Config-TDP Level 2 is set.
 Assembled write (clamp/lock bits clear in the read-back value):
 `wrmsr -a 0x610 0x000080bd00dc80a0`.
 
-### 14.3 Generated `intel_lpmd` config
+### 9.3 Generated `intel_lpmd` config
 
 The interesting subset of the XML installed at step 17 (full template at
 [set_power_profile.sh:554-593](../../../tools/power-tuning/set_power_profile.sh#L554-L593)):
@@ -257,7 +257,7 @@ The interesting subset of the XML installed at step 17 (full template at
 </State>
 ```
 
-### 14.4 Console output
+### 9.4 Console output
 
 ```text
 Config-TDP levels: Nominal=25W  Level1=15W  Level2(max)=65W
@@ -265,8 +265,8 @@ Profile          : BalancedHigh
 PkgWatt target   : 20W
 Burst ratio      : 1.18
 SysWatt support  : yes (psys RAPL domain / MSR 0x65C) -> SysWatt tracks PkgWatt (20W)
-PL1 time window: requested 28s -> encoded ~28s (Y=14 Z=3)
-Target: PL1=20W PL2=23.625W (ratio 1.18)  ->  EPP=136 EPB=7 ITMT=0 ActiveCPUs=0-7
+PL1 time window  : requested 28s -> encoded ~28s (Y=14 Z=3)
+Target           : PL1=20W PL2=23.625W (ratio 1.18)  ->  EPP=136 EPB=7 ITMT=0 ActiveCPUs=0-7
 Overrode model-specific config /usr/local/etc/intel_lpmd/intel_lpmd_config_F6_M204.xml (original saved as ....orig)
   cTDP level -> 0 (Nominal/25W)
 Applying RAPL caps:
@@ -290,7 +290,7 @@ not a duplicate of the first line.
 > a named string (`balance_performance`, `performance`, …) — the value is still
 > the one the daemon applied.
 
-### 14.5 Preview without touching the platform
+### 9.5 Preview without touching the platform
 
 ```console
 $ tools/power-tuning/set_power_profile.sh --profile BalancedHigh --dry-run
@@ -309,4 +309,3 @@ Effective command line (resolved explicit-target equivalent):
 No elevation happens, so the MSRs are usually unreadable and the Config-TDP
 levels shown come from the hardcoded fallbacks (25 / 15 / 65 W) rather than the
 silicon — see the `--dry-run` callout in [§1](#1-summary-of-access-surfaces).
-
