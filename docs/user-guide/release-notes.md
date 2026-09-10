@@ -9,7 +9,7 @@
 - Added server-image enablement through ICT and script-based build flows.
 - Added IPU6/IPU7 camera HAL packages.
 - Added power and thermal management capabilities, including combined profiles and analysis tools.
-- Optimized the build process, package selection, and base-image footprint.
+- Optimized the build process, package selection and base-image footprint.
 - Updated Alpine OS to version 3.21.
 - Added branch-aligned source archive support for target-system tooling.
 - Updated PCM tooling to the latest supported version.
@@ -20,10 +20,11 @@
 - Resolved image-build failures related to kernel configuration and unintended kernel upgrades during installation.
 - Corrected ICT image-build behavior with pinned base kernels.
 - Resolved a race condition between GDM and virtual-function creation.
-- Hardened the build for permissions, proxy configuration, and credential-handling.
+- Hardened the build for permissions, proxy configuration and credential-handling.
 
 **Known issues and limitations**:
 
-- First-run image build can take approximately 30 minutes.
-- CPU package and GPU power metrics may intermittently report 0 W or unrealistically high values. This occurs when the underlying RAPL energy counter wraps during sampling, resulting in an incorrect power calculation.
+- First-run image build can take approximately 30 minutes based on the network speed.
+- CPU package and GPU power metrics may intermittently reports unrealistically high values. This occurs when the underlying RAPL energy counter wraps during sampling, resulting in an incorrect power calculation.
+- CPU System power shows fixed values on unsupported CPU SKU's.
 - In WSL build environment, USB attach fails at times. User needs to unplug and plug the USB drive and retry the steps list/bind/attach.
