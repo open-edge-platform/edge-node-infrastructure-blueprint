@@ -344,7 +344,7 @@ The script changes two independent things with different lifetimes:
 
 | What changes | Where it lives | Reverts on reboot? |
 |---|---|---|
-| RAPL cap (PL1/PL2 watts) | Volatile CPU RAPL MSRs (`0x610`/`0x65C`) + powercap sysfs | **Yes** — firmware re-initializes these on every boot. |
+| RAPL cap (PL1/PL2 watts) | Volatile CPU RAPL MSRs (`0x610`/`0x65C`) + powercap sysfs | **Yes** — firmware re-initializes these on every boot. If thermald is active and enabled, it will restore the value as part of thermald daemon restart |
 | `intel_lpmd` config (EPP/EPB, ITMT, active CPUs) | `intel_lpmd_config.xml` on disk (and any model-specific file it overrides) | **No** — the file stays on disk and `intel_lpmd` re-reads it at the next boot. |
 
 So on reboot `intel_lpmd` **re-uses the config file the script wrote** (assuming
