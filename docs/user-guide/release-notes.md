@@ -26,3 +26,4 @@
 
 - First-run image build can take approximately 30 minutes.
 - CPU package and GPU power metrics may intermittently report 0 W or unrealistically high values. This occurs when the underlying RAPL energy counter wraps during sampling, resulting in an incorrect power calculation.
+- In WSL build environment, USB attach fails at times. User needs to unplug and plug the USB drive and retry the steps list/bind/attach.
