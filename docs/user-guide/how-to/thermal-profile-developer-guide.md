@@ -230,13 +230,15 @@ engaging them all at once.
 
 ## 10. Generated XML structure
 
-Emitted by `gen_xml()` / `gen_trip()` in the `set_thermal_pfoile.sh`. Steps are
+Emitted by `gen_xml()` / `gen_trip()` in the `set_thermal_profile.sh`. Steps are
 emitted **conditionally** — a step whose cooling device is absent is silently
 omitted (with a warning), and if all three are absent the script refuses to
 write an empty zone.
 
 | Element | Value | Purpose |
 |---------|-------|---------|
+| `<ThermalConfiguration>` | Root element | Contains the complete thermald configuration |
+| `<Platform>` | Platform profile container | Groups the platform name, power policy, sensors, and thermal zones |
 | `<Name>` | `Strict <CLAMP_C>C (<PROFILE>)` | Human-readable identification in thermald logs |
 | `<ProductName>` | `*` | Wildcard — applies on any machine (see the note in [§3](#3-thermal-sysfs-reads)) |
 | `<Preference>` | `QUIET` | Bias the daemon toward acoustics over performance |
@@ -347,8 +349,8 @@ cap when `thermald` starts. Without it, thermald may reset its RAPL cooling
 device to the platform ACPI/DPTF default instead of the cap selected by the
 power-profile tool. The block is emitted only when
 `constraint_0_power_limit_uw` can be read. PPCC power values are in mW and time
-windows are in seconds; in this example `200000` means 200 W and `60000` means
-60 W. `PowerLimitMinimum` is generated as 30% of the current cap, with a
+windows are in seconds; in the example below `25000` means 25 W and `7500`
+means 7.5 W. `PowerLimitMinimum` is generated as 30% of the current cap, with a
 minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
 
 ```xml
@@ -367,8 +369,8 @@ minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
              on our value, not the platform default. -->
         <PPCC>
             <PowerLimitIndex>0</PowerLimitIndex>
-            <PowerLimitMaximum>200000</PowerLimitMaximum>
-            <PowerLimitMinimum>60000</PowerLimitMinimum>
+            <PowerLimitMaximum>25000</PowerLimitMaximum>
+            <PowerLimitMinimum>7500</PowerLimitMinimum>
             <TimeWindowMinimum>20</TimeWindowMinimum>
             <TimeWindowMaximum>60</TimeWindowMaximum>
             <StepSize>1000</StepSize>
@@ -429,6 +431,7 @@ minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
         </ThermalZones>
     </Platform>
 </ThermalConfiguration>
+
 ```
 ### 14.4 Console output
 
@@ -439,20 +442,21 @@ minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
       Processor          x16
       TFN1               x1
       intel_powerclamp   x1
-[*] Current RAPL PL1 cap: 200W (from /sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw); embedding as PPCC max.
+[*] Current RAPL PL1 cap: 25W (from /sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw); embedding as PPCC max.
 [*] Profile 'warm' -> Fan:60C  Processor:75C  powerclamp:85C
 [*] Stopping running thermald for a clean validation...
 [*] Validating generated config with thermald (test mode)...
 [*] Validation OK: zone 'CPU_Zone' loaded, 3 trip point(s) parsed, platform matched.
+[*] Backed up existing config -> /etc/thermald/thermal-conf.xml.bak
 [*] Installed config -> /etc/thermald/thermal-conf.xml
-[*] Created override -> /etc/systemd/system/thermald.service.d/override.conf
-[*] systemd daemon-reloaded.
+[*] Override already correct -> /etc/systemd/system/thermald.service.d/override.conf
 [*] thermald is active.
 [*] Effective ExecStart: /usr/sbin/thermald --systemd --dbus-enable --ignore-default-control
 [*] Daemon is the sole thermal authority (ignore-default-control set, adaptive off). ✔
 [*] Live config: zone 'CPU_Zone' installed with trips 60/75/85C (validated pre-restart).
 
 [*] Done. Current package temp: 29C
+
 ```
 
 `[*]` lines are green `info`, `[!]` would be yellow `warn` (stderr), `[x]` red
@@ -464,7 +468,7 @@ minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
 $ tools/power-tuning/set_thermal_profile.sh --profile warm --dry-run
 ```
 
-Runs steps 1-9 only — cooling-device discovery still happens (it is not gated on
+Cooling-device discovery still happens (it is not gated on
 `DRY_RUN`), so the reported step availability is accurate for the current host,
 but nothing is written, no service is touched, and root is not required:
 
