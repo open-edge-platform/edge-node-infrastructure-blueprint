@@ -5,7 +5,7 @@
 
 ## Documentation
 
-Full documentation is available at the [Edge Node Infrastructure software docs](https://docs.openedgeplatform.intel.com/dev/edge-ai-suites/ai-suite-federal-and-aerospace/edge-node-infrastructure-blueprint/index.html).
+Full documentation is available at [Federal And Aerospace AI Suite](https://docs.openedgeplatform.intel.com/dev/ai-suite-fed-aero.html).
 
 ## Introduction
 
