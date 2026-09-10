@@ -228,7 +228,7 @@ Render the report as the following tables.
     the render node (confirms attachment; pair with one of the signals above to
     confirm real work).
 - GPU workers show little effect: confirm an Intel render node exists (`ls /dev/dri/renderD*`) and that the build of stress-ng includes the `gpu` stressor (`stress-ng --gpu 1 --timeout 2s` should succeed); otherwise use `--gpu 0` and stress CPU only.
-- To watch the effect under load, run [tools/power-tuning/pt_mon.sh](tools/power-tuning/pt_mon.sh) in another terminal (PkgTmp/PkgWatt), remembering that `SysWatt` may read `0.00` on platforms with a frozen psys counter.
+- To watch the effect under load, run [tools/power-tuning/pt_mon.sh](../../tools/power-tuning/pt_mon.sh) in another terminal (PkgTmp/PkgWatt), remembering that `SysWatt` may read `0.00` on platforms with a frozen psys counter.
 - To combine with a power cap, apply a profile first via the `set-power-profile` skill, then run this skill with a bounded `duration` to observe sustained (PL1) vs burst (PL2) behaviour.
 - An open-ended run keeps the CPUs busy indefinitely; always provide a `duration` for automated/unattended use so it self-terminates.
 
