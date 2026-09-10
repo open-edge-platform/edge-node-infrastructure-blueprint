@@ -13,7 +13,7 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 - build uav image
 - build host image
 - generate ubuntu image
-- build PTL image
+- build Panther Lake image
 - run ict image build
 
 ## Required Inputs
@@ -39,8 +39,8 @@ Run all checks silently. On any failure, stop and print only the error with the 
 ## Steps
 **Run silently (no prompts):**
 1. Clone `image-composer-tool` if missing, or reuse existing checkout:
-   - `git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
-   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout 2026.1-Release`
+   - `git clone --branch ICT_Release_2026.2 https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
+   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout ICT_Release_2026.2`
 2. Build the tool binary:
    - `cd <os_image_composer_repo>`
    - `go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool`
