@@ -74,7 +74,6 @@ The following table summarizes the access interfaces and their properties:
 | 5 | `/etc/systemd/system/thermald.service.d/override.conf` (+ `.bak`) | R / W | yes | **yes** (on-disk) |
 | 6 | `thermald.service` state (stop/start/restart/disable) | R / W | yes | **yes** for `--disable` (unit enablement) |
 | 7 | Cooling-device `cur_state` (via the daemon) | W (indirect) | yes | no |
-| 8 | Thermal/cooling sysfs writes; MSRs / RAPL / powercap | R / W | yes | no |
 
 ---
 
@@ -133,8 +132,9 @@ touching `/etc`, so a malformed profile can never be installed.
 parsing. The script therefore **stops the daemon first**, recording
 `was_active=1`. During that window the host falls back to kernel default
 thermal control (it is not unprotected, but it is not on the strict profile
-either). `restore_daemon()` restarts it if the script aborts, so the host is
-never left with the daemon down.
+either). `restore_daemon()` restarts it when XML validation fails after the
+daemon was stopped. Failures after validation can leave the daemon stopped and
+require manual recovery.
 
 ---
 
@@ -263,10 +263,10 @@ write an empty zone.
 
 | What was changed | Persists across reboot | How to restore |
 |------------------|------------------------|----------------|
-| `/etc/thermald/thermal-conf.xml` | **Yes** — thermald re-reads it at boot | `cp /etc/thermald/thermal-conf.xml.bak /etc/thermald/thermal-conf.xml && systemctl restart thermald` (or `rm` it if there was no prior config) |
+| `/etc/thermald/thermal-conf.xml` | **Yes** — thermald re-reads it at boot | If `.bak` exists: `sudo cp /etc/thermald/thermal-conf.xml.bak /etc/thermald/thermal-conf.xml && sudo systemctl restart thermald`; if no backup exists, remove the generated file and restore the distribution config before restarting |
 | `/etc/thermald/thermal-conf.xml.bak` | Yes | Overwritten on every apply run |
-| `/etc/systemd/system/thermald.service.d/override.conf` | **Yes** | `rm` it (or restore `.bak`), then `systemctl daemon-reload && systemctl restart thermald` |
-| `thermald` running state | Yes (unit stays enabled) | `systemctl restart thermald` |
+| `/etc/systemd/system/thermald.service.d/override.conf` | **Yes** | Remove it, or restore `.bak` if the script created one, then run `sudo systemctl daemon-reload && sudo systemctl restart thermald` |
+| `thermald` running state | Yes (unit stays enabled) | `sudo systemctl restart thermald` |
 | `thermald` **enablement** (after `--disable`) | **Yes** | `sudo systemctl enable --now thermald` — the config and override are still in place, so the strict profile returns as-is |
 | Cooling-device `cur_state` (set by the daemon) | No | Follows automatically from the daemon's state |
 | `/etc/thermald/` directory, `OVERRIDE_DIR` | Yes | Remove manually if desired |
@@ -291,9 +291,9 @@ execution order.
 | `--charge` with no `CHRG` device | Discovery | **warn only**, flag ignored | Proceeds |
 | Non-root on the apply path | Root gate | `die` (no self-re-exec) | Untouched |
 | `thermald` binary missing | Root gate | `die` | Untouched |
-| thermald rejects the generated XML | Validation | Filtered log excerpt → `restore_daemon` → `die` | **Untouched config**; daemon restarted on the old config |
+| thermald rejects the generated XML | Validation | Filtered log excerpt → `restore_daemon` → `die` | **Untouched config**; daemon is restarted on the old config when it was active before validation |
 | Installed file ≠ validated file | Post-restart | **warn only** | New config live |
-| `thermald` not active after restart | Post-restart | `systemctl status` dump → `die` with restore command | New config installed but daemon down — restore from `.bak` |
+| `thermald` not active after restart | Post-restart | `systemctl status` dump → `die` with restore guidance | New config may be installed while the daemon is down; restore `.bak` only if it exists, then run `sudo systemctl restart thermald` |
 | Effective `ExecStart` lacks `--ignore-default-control`, or has `--adaptive` | Post-restart | **warn only** — "check override.conf" | Config live but possibly **not authoritative** |
 ---
 
@@ -449,7 +449,8 @@ minimum of 2000 mW, and `StepSize` is 1000 mW (1 W).
 [*] Validation OK: zone 'CPU_Zone' loaded, 3 trip point(s) parsed, platform matched.
 [*] Backed up existing config -> /etc/thermald/thermal-conf.xml.bak
 [*] Installed config -> /etc/thermald/thermal-conf.xml
-[*] Override already correct -> /etc/systemd/system/thermald.service.d/override.conf
+[*] Created override -> /etc/systemd/system/thermald.service.d/override.conf
+[*] systemd daemon-reloaded.
 [*] thermald is active.
 [*] Effective ExecStart: /usr/sbin/thermald --systemd --dbus-enable --ignore-default-control
 [*] Daemon is the sole thermal authority (ignore-default-control set, adaptive off). ✔
