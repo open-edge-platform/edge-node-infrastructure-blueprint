@@ -228,7 +228,7 @@ shellcheck:
 	@echo "Running ShellCheck..."
 	@shellcheck --version
 	@set +e; \
-	shellcheck -x -S style --format=json $(SH_FILES) > tee shellcheck-report.json; \
+	shellcheck -x -S style --format=json $(SH_FILES) > shellcheck-report.json; \
 	status=$$?; \
 	set -e; \
 	if [ "$$status" -ne 0 ]; then \
