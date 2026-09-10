@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 
 This section shows how to build a bootable Ubuntu OS version 24.04 raw image for
  Intel® Core™ Ultra processor platforms using
-[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool)
+[Image Composer Tool](https://github.com/open-edge-platform/image-composer-tool/tree/ICT_Release_2026.2)
 and the provided templates:
 
 - **Desktop:** [`generic-handheld-os-template.yml`](./generic-handheld-os-template.yml)
@@ -40,7 +40,7 @@ and the provided templates:
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/open-edge-platform/image-composer-tool.git -b main
+git clone https://github.com/open-edge-platform/image-composer-tool.git -b ICT_Release_2026.2
 cd image-composer-tool
 ```
 
@@ -64,7 +64,7 @@ These packages are required before composing any image:
 sudo apt install systemd-ukify mmdebstrap
 ```
 
-Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites)
+Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/ICT_Release_2026.2/docs/tutorial/installation.md#image-composition-prerequisites)
 if you face issues installing packages using apt.
 
 > **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
