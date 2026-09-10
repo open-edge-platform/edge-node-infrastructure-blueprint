@@ -18,6 +18,10 @@ DEFAULT_MODEL_SUBPATH="intel/age-gender-recognition-retail-0013/FP16/age-gender-
 DEFAULT_MODEL_XML_SHA256="347b51acfce3ddf3d9a1e6e1ccd16a1d130c1fb009c647a35243d0919d18c8d4"
 DEFAULT_MODEL_BIN_SHA256="59095b3440e09d93e92c5ee79cafeeafc11a3c292a5d6133efe6a34b9d554916"
 
+# --device gpu always runs natively via pip; OV_IMAGE's bundled GPU runtime is too old for this silicon.
+GPU_VENV_DIR="${GPU_VENV_DIR:-$HOME/.cache/openvino-stress/venv}"
+GPU_RUN_DIR="/tmp/openvino-stress"
+
 die() { echo "Error: $1" >&2; exit 1; }
 
 verify_sha256() {
@@ -33,7 +37,7 @@ Generate sustained AI inference load using OpenVINO benchmark_app.
 
 OPTIONS:
   --device <cpu|gpu|npu>   Target device (default: cpu)
-  --runtime <k3s|docker>   Container runtime (default: auto-detect)
+  --runtime <k3s|docker>   Container runtime for cpu/npu (default: auto-detect); ignored for gpu, which always runs natively via pip
   --niter <N>              Iterations; 0 = time-based (default: 0)
   --duration <seconds>     Duration when niter=0 (default: 60)
   --nthreads <N>           CPU threads for inference (default: auto)
@@ -48,7 +52,7 @@ EXAMPLES:
   $(basename "$0") --device cpu --duration 120
   $(basename "$0") --device gpu --duration 300
   $(basename "$0") --device npu --niter 500000
-  $(basename "$0") --runtime docker --device gpu --duration 60
+  $(basename "$0") --runtime docker --device npu --duration 60
   $(basename "$0") --cleanup
 EOF
     exit 0
@@ -81,7 +85,9 @@ fi
 [[ -z "$NTHREADS" || ( "$NTHREADS" =~ ^[0-9]+$ && NTHREADS -ge 1 ) ]] || die "--nthreads must be a positive integer"
 
 # ── Runtime auto-detection ──
-if [[ -n "$RUNTIME" ]]; then
+if [[ "$DEVICE" == "gpu" ]]; then
+    RUNTIME="${RUNTIME:-pip}"
+elif [[ -n "$RUNTIME" ]]; then
     [[ "$RUNTIME" =~ ^(k3s|docker)$ ]] || die "--runtime must be k3s or docker"
 elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
     RUNTIME="docker"
@@ -97,7 +103,10 @@ NAME="openvino-stress-${DEVICE}"
 if $CLEANUP; then
     echo "Cleaning up OpenVINO stress workloads..."
     for dev in cpu gpu npu; do
-        if [[ "$RUNTIME" == "k3s" ]]; then
+        if [[ "$dev" == "gpu" ]]; then
+            pidfile="${GPU_RUN_DIR}/openvino-stress-gpu.pid"
+            [[ -f "$pidfile" ]] && { kill "$(cat "$pidfile")" 2>/dev/null || true; rm -f "$pidfile"; }
+        elif [[ "$RUNTIME" == "k3s" ]]; then
             kubectl delete pod "openvino-stress-${dev}" --ignore-not-found --wait=false 2>/dev/null || true
         else
             docker rm -f "openvino-stress-${dev}" 2>/dev/null || true
@@ -108,7 +117,10 @@ if $CLEANUP; then
 fi
 
 # ── Remove any existing instance before launching ──
-if [[ "$RUNTIME" == "k3s" ]]; then
+if [[ "$DEVICE" == "gpu" ]]; then
+    pidfile="${GPU_RUN_DIR}/${NAME}.pid"
+    [[ -f "$pidfile" ]] && { kill "$(cat "$pidfile")" 2>/dev/null || true; rm -f "$pidfile"; }
+elif [[ "$RUNTIME" == "k3s" ]]; then
     kubectl delete pod "$NAME" --ignore-not-found --wait=false 2>/dev/null || true
     kubectl wait --for=delete pod/"$NAME" --timeout=30s 2>/dev/null || true
 else
@@ -148,7 +160,12 @@ if [[ "$MODEL_SUBPATH" == "$DEFAULT_MODEL_SUBPATH" ]]; then
 fi
 
 # ── Build benchmark command ──
-BM_CMD="benchmark_app -m /models/${MODEL_SUBPATH} -d ${DEVICE^^}"
+# gpu references the host model path directly; cpu/npu use the container mount (/models).
+if [[ "$DEVICE" == "gpu" ]]; then
+    BM_CMD="benchmark_app -m ${MODEL_FILE} -d ${DEVICE^^}"
+else
+    BM_CMD="benchmark_app -m /models/${MODEL_SUBPATH} -d ${DEVICE^^}"
+fi
 if (( NITER > 0 )); then BM_CMD+=" -niter $NITER"; else BM_CMD+=" -t $DURATION"; fi
 BM_CMD+=" -api $API_MODE"
 if [[ "$DEVICE" != "npu" ]]; then
@@ -172,20 +189,6 @@ generate_pod_yaml() {
 
     case "$DEVICE" in
         cpu) DEVCHK='nproc' ;;
-        gpu)
-            GID=992; SUPPL="    supplementalGroups: [44, 992]"
-            RESOURCES='    resources: { limits: { "gpu.intel.com/xe": "1" } }'
-            ENVS='    env:
-    - { name: LD_LIBRARY_PATH, value: "/usr/local/lib:/opt/intel/openvino/runtime/lib/intel64:/opt/intel/openvino/runtime/3rdparty/tbb/lib" }
-    - { name: OCL_ICD_VENDORS, value: "/etc/OpenCL/vendors" }'
-            XMOUNTS='    - { name: host-ocl-vendors, mountPath: /etc/OpenCL/vendors, readOnly: true }
-    - { name: host-gpu-opencl-dir, mountPath: /usr/lib/x86_64-linux-gnu/intel-opencl, readOnly: true }
-    - { name: host-local-lib, mountPath: /usr/local/lib, readOnly: true }'
-            XVOLS='  - { name: host-ocl-vendors, hostPath: { path: /etc/OpenCL/vendors, type: Directory } }
-  - { name: host-gpu-opencl-dir, hostPath: { path: /usr/lib/x86_64-linux-gnu/intel-opencl, type: Directory } }
-  - { name: host-local-lib, hostPath: { path: /usr/local/lib, type: Directory } }'
-            DEVCHK='ls -la /dev/dri/ 2>/dev/null || echo "No /dev/dri/"'
-            ;;
         npu)
             GID=992; SUPPL="    supplementalGroups: [44, 992]"
             RESOURCES='    resources: { limits: { "npu.intel.com/accel": 1 } }'
@@ -254,26 +257,13 @@ launch_k3s() {
 launch_docker() {
     local ARGS=(run -d --name "$NAME" -v "${MODEL_PATH}:/models:ro")
 
-    case "$DEVICE" in
-        gpu)
-            if [[ -f /etc/cdi/intel.com-gpu.yaml ]]; then
-                ARGS+=(--device intel.com/gpu=card0)
-            else
-                ARGS+=(--device /dev/dri)
-            fi
-            ARGS+=(--group-add video)
-            ARGS+=(-v /usr/lib/x86_64-linux-gnu/intel-opencl:/usr/lib/x86_64-linux-gnu/intel-opencl:ro)
-            ARGS+=(-v /usr/local/lib:/usr/local/lib:ro)
-            ARGS+=(-e "OCL_ICD_VENDORS=/etc/OpenCL/vendors")
-            ;;
-        npu)
-            if [[ -f /etc/cdi/intel.com-npu.yaml ]]; then
-                ARGS+=(--device intel.com/npu=npu0)
-            else
-                for dev in /dev/accel/*; do [[ -e "$dev" ]] && ARGS+=(--device "$dev"); done
-            fi
-            ;;
-    esac
+    if [[ "$DEVICE" == "npu" ]]; then
+        if [[ -f /etc/cdi/intel.com-npu.yaml ]]; then
+            ARGS+=(--device intel.com/npu=npu0)
+        else
+            for dev in /dev/accel/*; do [[ -e "$dev" ]] && ARGS+=(--device "$dev"); done
+        fi
+    fi
 
     ARGS+=("$OV_IMAGE" bash -c "${BM_CMD} 2>&1; echo '=== Benchmark Complete ==='")
     docker "${ARGS[@]}"
@@ -285,8 +275,37 @@ launch_docker() {
     echo "Stop:    docker rm -f $NAME"
 }
 
+# ── Launch GPU natively via pip (host's OpenCL/Level Zero stack is newer than OV_IMAGE's) ──
+ensure_gpu_pip_venv() {
+    [[ -x "${GPU_VENV_DIR}/bin/benchmark_app" ]] && return
+    echo "Setting up pip OpenVINO venv at ${GPU_VENV_DIR}..." >&2
+    python3 -m venv "$GPU_VENV_DIR"
+    "${GPU_VENV_DIR}/bin/pip" install --quiet --upgrade pip openvino
+}
+
+launch_gpu_native() {
+    ensure_gpu_pip_venv
+    mkdir -p "$GPU_RUN_DIR"
+    local LOG="${GPU_RUN_DIR}/${NAME}.log" PIDFILE="${GPU_RUN_DIR}/${NAME}.pid"
+
+    PATH="${GPU_VENV_DIR}/bin:${PATH}" \
+        nohup bash -c "${BM_CMD} 2>&1; echo '=== Benchmark Complete ==='" >"$LOG" 2>&1 &
+    echo $! > "$PIDFILE"
+    disown
+
+    echo "Process '$NAME' running (pid $(cat "$PIDFILE"))."
+    echo ""
+    echo "Monitor: tail -f $LOG"
+    echo "Stop:    kill \$(cat $PIDFILE)"
+}
+
 # ── Launch ──
-echo "Launching on ${RUNTIME}..."
-if [[ "$RUNTIME" == "k3s" ]]; then launch_k3s; else launch_docker; fi
+if [[ "$DEVICE" == "gpu" ]]; then
+    echo "Launching natively (pip)..."
+    launch_gpu_native
+else
+    echo "Launching on ${RUNTIME}..."
+    if [[ "$RUNTIME" == "k3s" ]]; then launch_k3s; else launch_docker; fi
+fi
 echo ""
 echo "Pair with power monitor: $(dirname "$0")/pt_mon.sh"
