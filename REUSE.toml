@@ -13,6 +13,7 @@ path = [
     "**/*.png",
     "**/*.svg",
     "**/*.txt",
+    "**/evals/*.json",
     "**/go.sum",
     "VERSION",
     "gitleaks_baselines/*"

@@ -1,0 +1,19 @@
+{
+  "skill_name": "set-power-profile",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run plan for applying the BalancedHigh power profile on an Intel host with default burst ratio and PL1 tau. Do not write RAPL settings or restart services. Show the precondition checks, psys handling, required dry-run/planned-changes table, confirmation gate, and rollback path.",
+      "expected_output": "Provide a dry-run-only power plan for BalancedHigh with fail-closed checks, resolved targets, confirmation outcome, and rollback guidance without claiming post-change RAPL evidence.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves BalancedHigh to 20 W, default burst ratio 1.18, default PL1 tau, and no user-supplied overrides",
+        "Lists executable, Intel/x86, msr/module, psys, and input validation checks and does not prompt for omitted defaults",
+        "Always places the absolute script dry-run and pre-change snapshot before the planned-changes table and confirmation gate",
+        "Explains psys-capable versus absent/frozen SysWatt behavior and firmware clamp notes",
+        "Records dry_run_only with no apply/post-change claims and gives runtime RAPL plus persistent intel_lpmd rollback guidance"
+      ]
+    }
+  ]
+}

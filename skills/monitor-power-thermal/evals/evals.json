@@ -1,0 +1,19 @@
+{
+  "skill_name": "monitor-power-thermal",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run plan for a 20-second power/thermal capture at 1-second intervals to /tmp/pt-mon.txt. Do not run turbostat or sudo. Show the resolved command, prerequisite checks, confirmation gate, bounded row-count/summary method, and stop guidance.",
+      "expected_output": "Provide a Planned Monitor summary, fail-closed prerequisites, dry-run confirmation outcome, capture validation method, SysWatt annotation, and cleanup guidance without claiming samples or a log exist.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves duration=20s, interval=1, /tmp/pt-mon.txt, and the documented PkgTmp/PkgWatt/CorWatt/GFXWatt/RAMWatt/SysWatt columns",
+        "Lists script, turbostat, Intel/x86, writable log parent, and sudo probe checks",
+        "Uses direct turbostat for non-default interval/log settings and does not edit pt_mon.sh",
+        "Renders the Planned Monitor summary before confirmation and states dry-run/declined means no process or log is started",
+        "Describes bounded log/row validation, min/mean/max metrics, SysWatt limitation annotation, and stop guidance without claiming capture evidence"
+      ]
+    }
+  ]
+}
