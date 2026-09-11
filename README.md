@@ -1,11 +1,15 @@
-# Edge Node Infrastructure Blueprint
+# Edge Node Infrastructure software
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/open-edge-platform/edge-node-infrastructure-blueprint/badge)](https://scorecard.dev/viewer/?uri=github.com/open-edge-platform/edge-node-infrastructure-blueprint)
 
+## Documentation
+
+Full documentation is available at [Federal And Aerospace AI Suite](https://docs.openedgeplatform.intel.com/dev/ai-suite-fed-aero.html).
+
 ## Introduction
 
-The Edge Node Infrastructure Blueprint creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
+The Edge Node Infrastructure software creates a comprehensive edge computing platform that enables hardware acceleration capabilities including GPU, NPU, SR-IOV, and other features for modern applications, allowing containerized and cloud-native applications to be deployed seamlessly on edge nodes.
 
 This repository helps you:
 - Build bootable installation artifacts.
@@ -101,7 +105,26 @@ Or explicitly specify the standard mode:
 make build MODE=standard-image
 ```
 
-#### Option 2: Build with Image Composer Tool Image
+#### Option 2: Build from a Standard 24.04 Minimal server (headless) image
+
+Build a headless Ubuntu server image, including the required tools and packages, using `Dockerfile.server`:
+
+> **Note**: Default credentials are `user`/`user`. For production, replace the SHA-512 hash in `infrastructure/host-os/Dockerfile.server` with your new password using:
+> ```bash
+> openssl passwd -6 'your-new-password'  # or mkpasswd --method=sha-512 'your-new-password'
+> ```
+
+```bash
+make build MODE=server-image
+```
+
+The Docker image (`custom-server-custom:latest`) is cached after the first build. Subsequent runs reuse the cached image, so the Docker build step completes quickly with only `CACHED` output. To force a full, no-cache rebuild of the server image, set `HOST_OS_REBUILD=true`:
+
+```bash
+make build MODE=server-image HOST_OS_REBUILD=true
+```
+
+#### Option 3: Build with Image Composer Tool Image
 
 See [`infrastructure/host-os/ict/README.md`](infrastructure/host-os/ict/README.md) to generate an image using Image Composer Tool.
 

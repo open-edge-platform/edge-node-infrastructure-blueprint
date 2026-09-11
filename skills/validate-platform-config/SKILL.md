@@ -2,62 +2,55 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 name: validate-platform-config
-description: Validate whether a provisioned platform is correctly configured over SSH, including k3s pod health, binary paths, cloud-init state, network and proxy setup, and device readiness.
+description: Validate whether a provisioned platform is correctly configured when run locally on that host, including k3s pod health, binary paths, cloud-init state, network and proxy setup, and device readiness.
 ---
 
 ## Trigger Phrases
 - validate platform config
-- validate node over ssh
+- validate provisioned host
 - check provisioned node health
 - validate k3s platform readiness
-- post provision ssh validation
-- ssh health check
+- post provision local validation
+- host health check
 
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
-- ssh_host: target node IP or hostname
-- ssh_user: remote login user (default: `user`)
-- ssh_port: SSH port (default: `22`)
 - kubeconfig_path: expected kubeconfig path (default: `/etc/rancher/k3s/k3s.yaml`)
-
-Note: Private key authentication is auto-detected from `~/.ssh/` (searches `id_rsa`, `id_ed25519`, and `id_ecdsa` in order). No prompt for key path.
 
 ## Preconditions
 Run silently without user prompts:
 - [ ] Skill file exists and is readable:
   - `test -f <enib_home>/skills/validate-platform-config/SKILL.md`
-- [ ] SSH client exists locally:
-  - `command -v ssh`
-- [ ] Remote host is reachable on SSH port:
-  - `timeout 5 bash -c '</dev/tcp/<ssh_host>/<ssh_port>'`
-- [ ] Attempt remote login directly using the SSH agent or default keys (no key path required):
-  - `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host> true`
-  - if exit code is `0`, proceed; record `SSH_AUTH=default`
-  - only if direct login fails, fall back to explicit key discovery in `~/.ssh/`:
-    - Run: `for key in ~/.ssh/id_rsa ~/.ssh/id_ed25519 ~/.ssh/id_ecdsa; do if [ -f "$key" ]; then perms=$(stat -c %a "$key" 2>/dev/null); if [ "$perms" -le 600 ]; then echo "KEY_FOUND=$key"; exit 0; fi; fi; done; echo "KEY_FOUND=none"`
-    - if output contains `KEY_FOUND=none`, stop and report missing/unsafe key error
-    - retry login with `-i <key>`; if it still fails, stop and report SSH authentication error
+- [ ] Verify this skill is running on the provisioned host (local execution model):
+  - `test -f /etc/cloud/config-file`
+- [ ] Required local tools exist:
+  - `command -v grep`
+  - `command -v ip`
+  - `command -v systemctl`
+  - `command -v lscpu`
+  - `command -v lspci`
+  - `command -v curl`
+- [ ] Probe sudo non-interactively before any sudo fallback command:
+  - `sudo -n true`
+  - if exit code is `0`, record `SUDO_NONINTERACTIVE=yes`
+  - if non-zero, record `SUDO_NONINTERACTIVE=no` and skip sudo fallback commands later (do not fail preconditions)
 
 Prompt only for missing required inputs:
-- [ ] Ask for missing `ssh_host` and `ssh_port` only. Assume `ssh_user=user` unless the user overrides it.
+- [ ] Ask only for missing `enib_home` and/or `kubeconfig_path`.
 
 ## Steps
-1. Build SSH command using the authentication method established in preconditions.
-  - If `SSH_AUTH=default` (direct login worked): `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -p <ssh_port> <ssh_user>@<ssh_host>`
-  - Otherwise, use the discovered `$ssh_key` from the fallback step: `ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i $ssh_key -p <ssh_port> <ssh_user>@<ssh_host>`
-
-2. Detect the host_type from the remote configuration.
+1. Detect the `host_type` from local configuration.
   - command:
     - `grep -E '^host_type' /etc/cloud/config-file 2>/dev/null || echo 'host_type=unknown'`
   - parse the output to extract the value (e.g. `kubernetes`, `container`, or `unknown`)
-  - store as `HOST_TYPE` for conditional branching in Steps 3 and 4
+  - store as `HOST_TYPE` for conditional branching in Steps 2 and 3
 
-3. **If HOST_TYPE=kubernetes**: Validate k3s pods and device plugins.
+2. **If HOST_TYPE=kubernetes**: Validate k3s pods and device plugins.
   - command (try in order until one succeeds):
     - `kubectl get pods -A --no-headers`
     - `KUBECONFIG=~/.kube/config kubectl get pods -A --no-headers`
-    - `sudo -n kubectl get pods -A --no-headers`
-    - `sudo -n k3s kubectl get pods -A --no-headers`
+    - if `SUDO_NONINTERACTIVE=yes`: `sudo -n kubectl get pods -A --no-headers`
+    - if `SUDO_NONINTERACTIVE=yes`: `sudo -n k3s kubectl get pods -A --no-headers`
   - required pod name prefixes and expected status:
     - `intel-gpu-plugin` in `default` namespace, `Running`, `READY 1/1`
     - `intel-npu-plugin` in `default` namespace, `Running`, `READY 1/1`
@@ -80,7 +73,7 @@ Prompt only for missing required inputs:
     - one of expected locations exists: `/usr/local/bin/k3s`, `/usr/bin/k3s`
     - k3s service is enabled and active
 
-4. **If HOST_TYPE!=kubernetes** (container or unknown): Validate Docker, Docker Compose, and Container Device Interface (CDI).
+3. **If HOST_TYPE!=kubernetes** (container or unknown): Validate Docker, Docker Compose, and Container Device Interface (CDI).
   - commands:
     - `command -v docker`
     - `docker --version 2>/dev/null || true`
@@ -101,7 +94,7 @@ Prompt only for missing required inputs:
     - CDI spec files present in `/etc/cdi/` or `/var/run/cdi/` (e.g. `intel-gpu.json`, `intel-npu.json`)
     - CDI devices exposed to Docker runtime
 
-5. Validate cloud-init completion.
+4. Validate cloud-init completion.
   - commands:
     - `cloud-init status --long || true`
     - `test -f /var/lib/cloud/instance/boot-finished && echo CLOUD_INIT_BOOT_FINISHED=1 || echo CLOUD_INIT_BOOT_FINISHED=0`
@@ -111,7 +104,7 @@ Prompt only for missing required inputs:
     - `/var/lib/cloud/instance/boot-finished` exists
     - no blocking cloud-init errors relevant to first boot provisioning
 
-6. Validate network connectivity and assigned IP.
+5. Validate network connectivity and assigned IP.
   - commands:
     - `ip -o -4 addr show scope global`
     - `ip route show default`
@@ -127,14 +120,14 @@ Prompt only for missing required inputs:
       - DNS/config issue: `DNS=fail`
     - if `NET_INTERNET=fail` and `DNS=ok`, do not hard-fail validation; report as "likely proxy required" with proxy evidence from Step 6
 
-7. Collect proxy values (brief).
+6. Collect proxy values (brief).
   - command:
     - `grep -hsE '^(https?_proxy|no_proxy)=' /etc/environment 2>/dev/null | head -5 || echo 'no proxy configured'`
   - expected:
     - report proxy variables from `/etc/environment` if set; otherwise report "no proxy configured"
     - do NOT dump k3s.service.env or docker proxy.conf unless network checks in Step 6 indicate proxy issues
 
-8. Inventory CPU/GPU/NPU devices.
+7. Inventory CPU/GPU/NPU devices.
   - commands:
     - `nproc`
     - `lscpu`
@@ -161,7 +154,7 @@ Prompt only for missing required inputs:
     - GPU presence determined from Peripheral Component Interconnect (PCI) and/or `/dev/dri`
     - NPU presence determined from PCI scan output
 
-9. If GPU is present, report GPU Virtual Function (VF) counts.
+8. If GPU is present, report GPU Virtual Function (VF) counts.
   - commands:
     - `for f in /sys/class/drm/card*/device/sriov_numvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
     - `for f in /sys/class/drm/card*/device/sriov_totalvfs; do [ -f "$f" ] && echo "$f=$(cat $f)"; done`
@@ -169,7 +162,7 @@ Prompt only for missing required inputs:
     - report per-GPU `sriov_numvfs` and `sriov_totalvfs`
     - if GPU exists but no SR-IOV files are present, report as unsupported/not enabled.
 
-10. Check SR-IOV service if `enable_sriov` is set to true.
+9. Check SR-IOV service if `enable_sriov` is set to true.
   - first check:
     - `grep -E '^enable_sriov' /etc/cloud/config-file 2>/dev/null || echo 'enable_sriov=unset'`
   - if value is `true`, validate:
@@ -181,9 +174,8 @@ Prompt only for missing required inputs:
 
 ## Validation
 Validation section is criteria-only. Do not render the pass/fail results table here.
-- SSH connectivity check passes.
 - `host_type` is detected and reported; conditional checks branch accordingly.
-- **If kubernetes**: All required k3s pods listed in Step 3 are found in the correct namespaces and are healthy (`Running`, `1/1`); `kubectl` and `k3s` binaries are present.
+- **If kubernetes**: All required k3s pods listed in Step 2 are found in the correct namespaces and are healthy (`Running`, `1/1`); `kubectl` and `k3s` binaries are present.
 - **If container/unknown**: Docker and Docker Compose are available, Docker service is active, and CDI specification files are present.
 - cloud-init completion indicators are successful.
 - Network check reports assigned IP and route; connectivity is classified as direct or proxy/restricted with explicit reason.
@@ -197,7 +189,6 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 This is a read-only validation skill. No rollback required.
 
 ## Safety Rules
-- Never print private key contents or paths in user-visible output.
 - Prefer read-only commands; do not alter target host configuration in this skill.
 - Do not use destructive or privileged write operations.
 - If a check fails, continue collecting remaining checks and return a complete report.
@@ -210,8 +201,9 @@ Render the report as the following tables.
 | Field | Value |
 |---|---|
 | Preconditions | PASS/FAIL |
-| SSH endpoint | `<ssh_user>@<ssh_host>:<ssh_port>` |
-| Auth method | `default` (agent/default keys) or `key:<auto-discovered key name>` (mask path) |
+| Execution mode | `local` |
+| Host context | `provisioned host` |
+| Sudo fallback availability | `yes/no` from `sudo -n true` probe |
 
 ### Validation Results
 
@@ -252,7 +244,7 @@ Render the report as the following tables.
 ## Troubleshooting Notes
 - If `kubectl` fails due to kubeconfig permissions, retry with `k3s kubectl`.
 - If Docker is installed but inactive, include `systemctl status docker --no-pager` and recent `journalctl -u docker -n 50 --no-pager` output.
-- If reading k3s.service.env or docker proxy.conf returns "Permission denied", try: `sudo cat /etc/systemd/system/k3s.service.env` or `sudo cat /etc/systemd/system/docker.service.d/proxy.conf` respectively.
+- If reading k3s.service.env or docker proxy.conf returns "Permission denied" and `SUDO_NONINTERACTIVE=yes`, try: `sudo -n cat /etc/systemd/system/k3s.service.env` or `sudo -n cat /etc/systemd/system/docker.service.d/proxy.conf` respectively.
 - If pods are `Pending` or `CrashLoopBackOff`, include `kubectl describe` and recent logs for those pods.
 - If cloud-init is not complete, inspect `/var/log/cloud-init-output.log` and relevant systemd units.
 - If `NET_INTERNET=fail` but `DNS=ok`, classify as "likely proxy required/restricted ICMP" and include proxy values, route output, and `HTTPS_EGRESS` result in findings.

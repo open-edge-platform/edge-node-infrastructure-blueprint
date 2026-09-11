@@ -77,7 +77,6 @@ echo "Kernel        : $(uname -r)"
 echo "Architecture  : $(uname -m)"
 
 if [[ -r /etc/os-release ]]; then
-  # shellcheck disable=SC1091
   . /etc/os-release
   echo "OS            : ${PRETTY_NAME:-unknown}"
 fi
@@ -142,7 +141,6 @@ subsection "PTL-relevant firmware blobs in /lib/firmware"
 found_any=false
 for pat in 'xe/*ptl*' 'xe/ptl*' 'i915/*ptl*' 'intel/vpu/*' 'intel/ivpu/*'; do
   # $pat must stay unquoted so the shell expands the glob.
-  # shellcheck disable=SC2086
   for match in /lib/firmware/$pat; do
     [[ -e "$match" ]] || continue
     echo "  ${match}"

@@ -60,7 +60,7 @@ After USB preparation completes:
 
 ### Access the Edge Node
 
-After installation, log in using the credentials configured during the Ubuntu desktop image preparation.
+After installation, log in using the credentials configured during image preparation.
 
 ## Phase 3: Post-Boot Bring-Up and Validation on Target System
 

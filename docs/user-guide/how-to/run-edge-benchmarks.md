@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 The [Edge Workloads and Benchmarks](https://github.com/open-edge-platform/edge-workloads-and-benchmarks) suite validates Intel edge platform performance across four workload categories: vision AI inference, hardware-accelerated media processing, end-to-end video analytics pipelines, and generative AI. It measures throughput, latency, power consumption, and power efficiency across CPU, GPU, and NPU devices.
 
-Use this guide after provisioning an edge node with the Infrastructure Blueprint to quantify platform performance and validate hardware acceleration readiness.
+Use this guide after provisioning an edge node with the Infrastructure software to quantify platform performance and validate hardware acceleration readiness.
 
 ## Benchmark Categories
 
@@ -22,7 +22,7 @@ Use this guide after provisioning an edge node with the Infrastructure Blueprint
 
 ## Prerequisites
 
-- [Edge Node Infrastructure Blueprint](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint) deployed.
+- [Edge Node Infrastructure software](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint) deployed.
 - During target system installation, set `host_type=container` in the `config-file`.
 - Network connectivity for model and media downloads.
 
@@ -52,7 +52,7 @@ cd edge-workloads-and-benchmarks
 
 ### Install Prerequisites and Download Collateral
 
-GPU and NPU drivers are already installed by the Infrastructure Blueprint provisioning step, so disable their installation by passing `INCLUDE_GPU=False INCLUDE_NPU=False` to `make prereqs`. Then download the benchmark collateral and validate the environment:
+GPU and NPU drivers are already installed by the Infrastructure software provisioning step, so disable their installation by passing `INCLUDE_GPU=False INCLUDE_NPU=False` to `make prereqs`. Then download the benchmark collateral and validate the environment:
 
 ```bash
 make prereqs INCLUDE_GPU=False INCLUDE_NPU=False

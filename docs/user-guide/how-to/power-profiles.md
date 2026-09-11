@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 ## Overview
 
 Intel® Core™ Ultra edge nodes can be tuned to trade sustained performance
-against heat, fan noise, and energy use. The Infrastructure Blueprint ships a
+against heat, fan noise, and energy use. The Infrastructure software ships a
 set of local power-tuning tools under `tools/power-tuning/` that let you:
 
 - Apply a ready-made **power profile** (`LowPower` … `MaxPerformance`).
@@ -18,7 +18,7 @@ set of local power-tuning tools under `tools/power-tuning/` that let you:
 
 > **On the target system:** the commands below use repository-relative paths
 > (`tools/power-tuning/…`), which work when you run them from the repo root. On a
-> host provisioned with Infrastructure Blueprint, the same tools are available on
+> host provisioned with Infrastructure software, the same tools are available on
 > the target system at `/opt/edge/developer/tools/power-tuning/`. Either
 > `cd /opt/edge/developer` and use the relative paths as written, or prefix each
 > command with the full path (e.g.
@@ -30,7 +30,10 @@ across a reboot:
 
 - The **RAPL power cap** (the PL1/PL2 wattage limits) is programmed into volatile
   CPU registers and **reverts automatically on reboot** to firmware defaults.
-  This is the main enforcement and the built-in safety net.
+  This is the main enforcement and the built-in safety net. The **thermald
+  profile also acts on these limits**: applying the profile initializes
+  thermald's RAPL cooling device and reconfigures the effective power limit from
+  the PPCC value embedded in the thermal profile.
 - The **`intel_lpmd` config file** is written to disk, so it **persists across a
   reboot** and is re-read by the daemon on the next boot. To undo the daemon-side
   tuning you must restore the config (see
@@ -66,8 +69,7 @@ across a reboot:
   Setting names and menu paths vary by vendor. See the **BIOS Settings**
   sections in [`skills/set-power-profile/SKILL.md`](../../../skills/set-power-profile/SKILL.md)
   for the full mandatory list plus optional settings (e.g. disabling firmware
-  DBPM, unlocking the power-limit MSRs, and *Config Base Power* / cTDP).
-- `sudo` access. The power scripts read/write MSRs and restart a system service,
+  DBPM, unlocking the power-limit MSRs, and *Config Base Power* / cTDP). `sudo` access. The power scripts read/write MSRs and restart a system service,
   so they re-run themselves with `sudo`.
 - `msr` kernel module and `msr-tools` (`rdmsr` / `wrmsr`) — required to read the
   cTDP levels and program the RAPL MSRs:
@@ -249,7 +251,7 @@ tools/power-tuning/stress_gen.sh --gpu 8 --duration 5m
 |---|---|
 | `--cpus N` | Number of CPU workers, `1..nproc` (default: all CPUs). |
 | `--load P` | Per-CPU load percentage, `1..100` (default `100`). |
-| `--gpu N` | Number of stress-ng iGPU worker processes (default `12`; `0` disables GPU load). This is a worker count, not a GPU count. |
+| `--gpu N` | Number of stress-ng iGPU worker processes, `0..12` (default `4`; `0` disables GPU load). This is a worker count, not a GPU count. Use a maximum of `4` for a 4 Xe-core iGPU and `8` for a 12 Xe-core iGPU. |
 | `--duration D` | Run time in stress-ng syntax (`60s`, `5m`, `2h`); omit to run until stopped. |
 
 Stop a running stress test with `Ctrl-C`, or:
@@ -342,7 +344,7 @@ The script changes two independent things with different lifetimes:
 
 | What changes | Where it lives | Reverts on reboot? |
 |---|---|---|
-| RAPL cap (PL1/PL2 watts) | Volatile CPU RAPL MSRs (`0x610`/`0x65C`) + powercap sysfs | **Yes** — firmware re-initializes these on every boot. |
+| RAPL cap (PL1/PL2 watts) | Volatile CPU RAPL MSRs (`0x610`/`0x65C`) + powercap sysfs | **Yes** — firmware re-initializes these on every boot. If thermald is active and enabled, it will restore the value as part of thermald daemon restart |
 | `intel_lpmd` config (EPP/EPB, ITMT, active CPUs) | `intel_lpmd_config.xml` on disk (and any model-specific file it overrides) | **No** — the file stays on disk and `intel_lpmd` re-reads it at the next boot. |
 
 So on reboot `intel_lpmd` **re-uses the config file the script wrote** (assuming
@@ -362,14 +364,6 @@ sudo systemctl restart intel_lpmd.service
 > **Note:** Only overridden *model-specific* files get an `.orig` backup. The
 > generic `intel_lpmd_config.xml` the script writes has no backup if no config
 > existed there before.
-
-## Reference
-
-- [Power Profile Developer Guide](power-profile-developer-guide.md) — every MSR,
-  powercap sysfs node, config file and service `set_power_profile.sh` touches,
-  with the reason for each access and how to restore it.
-- [Thermal Profile Developer Guide](thermal-profile-developer-guide.md) — the
-  same inventory for `set_thermal_profile.sh`.
 
 ## Related Agent Skills
 

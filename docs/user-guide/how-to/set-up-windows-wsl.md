@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 ```
 hide_directive-->
 
-# Windows WSL Guide: Setup Developer Linux build system with Windows Subsystem Linux (WSL2)
+# Set Up a Developer Build System with Windows Subsystem for Linux 2 (WSL2)
 
 This guide explains how to prepare a Windows machine using Windows Subsystem for Linux 2 (WSL2) with Ubuntu 24.04.
 
@@ -44,15 +44,15 @@ This opens a Ubuntu 24.04 terminal. All subsequent steps run inside this termina
 
 ---
 
-## Step 3: Network configuration
+## Step 3: Configure Networking
 
-Depending on the Windows development system's network connectivity, the networking settings must be configured accordingly.
+Configure network settings based on your connection type.
 
-### 3.1: The Windows development system is connected to a lab network via a proxy server (no VPN).
+### Option A: Proxy-based lab network (no VPN)
 
-### 3.1.1: Configure proxy environment variables according to your network setup.
+Configure proxy environment variables:
 
-**Note**: Use "" if the proxy is not required in your network for all the proxy environment variables.
+> **Note:** If no proxy is required on your network, leave all values empty.
 
 ```bash
 # Append the proxy environment variables to /etc/environment
@@ -64,7 +64,6 @@ HTTPS_PROXY="http://proxy-server-ip:port"
 NO_PROXY=".internal,127.0.0.1,::1,localhost"
 
 # Append the following lines to ~/.bashrc
-export PATH=$PATH:/usr/local/go/bin
 export http_proxy="http://proxy-server-ip:port"
 export https_proxy="http://proxy-server-ip:port"
 export no_proxy=".internal,127.0.0.1,::1,localhost"
@@ -72,43 +71,36 @@ export HTTP_PROXY="http://proxy-server-ip:port"
 export HTTPS_PROXY="http://proxy-server-ip:port"
 export NO_PROXY=".internal,127.0.0.1,::1,localhost"
 
-# Configure apt proxy variables according to your network setup /etc/apt/apt.conf.d/apt.conf
+# Configure apt proxy in /etc/apt/apt.conf.d/apt.conf
 Acquire::http::proxy "http://proxy-server-ip:port";
 Acquire::https::proxy "http://proxy-server-ip:port";
 ```
 
-### 3.2: The system is connected through a VPN (automated proxy using mirrored mode).
+### Option B: VPN with mirrored networking
 
-If you are on VPN and WSL2 cannot connect to the internet
-(e.g., `apt update` fails or proxy is unreachable), enable **mirrored networking mode**.
+If you are on VPN and WSL2 cannot connect to the internet (for example, `apt update` fails or the proxy is unreachable), enable **mirrored networking mode**. This makes WSL2 share the Windows network stack directly, so VPN routing applies to WSL2 too.
 
-This makes WSL2 share Windows' network stack directly so VPN routing applies to WSL2 too.
-
-### 3.2.1: Open `.wslconfig` in Notepad
-
-In **Windows PowerShell** (not inside WSL):
+Open `.wslconfig` in Notepad from **Windows PowerShell** (not inside WSL):
 
 ```powershell
 notepad "$env:USERPROFILE\.wslconfig"
 ```
 
-### 3.2.2: Add the following configuration
+Add the following configuration and save the file:
 
 ```ini
 [wsl2]
 networkingMode=mirrored
 ```
 
-Save and close Notepad.
-
-### 3.3 Restart WSL
+### Restart WSL
 
 ```powershell
 wsl --shutdown
 wsl -d Ubuntu-24.04
 ```
 
-### 3.4 Verify connectivity
+### Verify Connectivity
 
 Inside the Ubuntu 24.04 terminal:
 
@@ -116,30 +108,101 @@ Inside the Ubuntu 24.04 terminal:
 curl -I http://archive.ubuntu.com
 sudo apt update
 sudo apt upgrade -y
-
-# Install go lang and tools required for build
-wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz
-sudo apt install -y make
+sudo apt-get install -y make gdisk openssl whois
 ```
 
 ---
 
-## Step 4: Clone the Repository and Build Artifacts
+## Step 4: Install Docker
 
-The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository and run `make build MODE=image-from-iso ...`.
+Inside the Ubuntu 24.04 terminal, install Docker Engine:
 
-Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 5 below to attach your USB drive to WSL2.
+```bash
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list
+
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io \
+  docker-buildx-plugin docker-compose-plugin
+```
+
+Configure Docker proxy settings when operating behind a proxy:
+
+```bash
+mkdir ~/.docker
+
+vi  ~/.docker/config.json
+{
+        "proxies": {
+                "default": {
+                        "httpProxy": "http://proxy-server-ip:port",
+                        "httpsProxy": "http://proxy-server-ip:port",
+                        "noProxy": "localhost,127.0.0.0/8,/var/run/docker.sock"
+                }
+        }
+}
+```
+
+Allow your user to run Docker without `sudo`, then activate the change:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Reload daemon and restart the service:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart docker.service
+```
+
+
+Verify Docker is working:
+
+```bash
+docker run --rm hello-world
+```
 
 ---
 
-## Step 5: Attach USB Drive to WSL2
+## Step 5: Clone the Repository and Build Artifacts
+
+The build steps are the same on WSL2 as on a native Linux developer system. From inside the Ubuntu 24.04 terminal, follow **Phase 1 — Build Artifacts on the Developer System** in the [Build from Source](../get-started/build-from-source.md) guide to clone the repository
+
+Before building standard-image, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
+These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
+
+```bash
+export USERNAME='<your-username>'
+# Generate the SHA-512 password hash with one of the following methods.
+# Using openssl (requires `openssl` to be installed)
+export PASSWORD="$(openssl passwd -6 '<your-password>')"
+
+# Or using mkpasswd (requires `whois` to be installed)
+export PASSWORD="$(mkpasswd --method=sha-512 '<your-password>')"
+
+# Build the image — use MODE=standard-image for handheld or MODE=server-image for UAV
+make build MODE=standard-image
+```
+
+Once the build completes and you have `usb-installation-files.tar.gz`, continue with Step 6 below to attach your USB drive to WSL2.
+
+---
+
+## Step 6: Attach USB Drive to WSL2
 
 To run `bootable-usb-prepare.sh` inside WSL2, the USB drive must be explicitly attached
 using **usbipd-win**.
 
-### 5a. Install usbipd-win on Windows
+### 6a. Install usbipd-win on Windows
 
 In **Windows PowerShell as Administrator**:
 
@@ -149,7 +212,7 @@ winget install usbipd
 
 Alternatively, download the installer from [USBIPD-WIN Releases](https://github.com/dorssel/usbipd-win/releases).
 
-### 5b. List available USB devices
+### 6b. List available USB devices
 
 In **Windows PowerShell as Administrator**:
 
@@ -164,7 +227,7 @@ BUSID  VID:PID    DEVICE                                                        
 1-13   2174:2100  USB Attached SCSI (UAS) Mass Storage Device                   Not shared
 ```
 
-### 5c. Bind the USB device (one-time setup per device)
+### 6c. Bind the USB device (one-time setup per device)
 
 ```powershell
 usbipd bind -f -b 1-13
@@ -172,7 +235,7 @@ usbipd bind -f -b 1-13
 
 Replace `1-13` with the BUSID of your USB drive from the list above.
 
-### 5d. Attach the USB device to WSL2
+### 6d. Attach the USB device to WSL2
 
 ```powershell
 usbipd attach -w -b 1-13
@@ -185,7 +248,7 @@ BUSID  VID:PID    DEVICE                                                        
 1-13   2174:2100  USB Attached SCSI (UAS) Mass Storage Device                   Attached
 ```
 
-### 5e. Verify the device is visible in WSL2
+### 6e. Verify the device is visible in WSL2
 
 Inside the Ubuntu 24.04 terminal:
 
@@ -200,7 +263,7 @@ cd infrastructure/build-artifacts
 sudo ./bootable-usb-prepare.sh /dev/sdb usb-bootable-files.tar.gz config-file
 ```
 
-### 5f. Detach when done
+### 6f. Detach when done
 
 ```powershell
 usbipd detach -b 1-13

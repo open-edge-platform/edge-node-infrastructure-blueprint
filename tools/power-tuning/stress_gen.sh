@@ -14,7 +14,8 @@
 #   --cpus N      number of CPU workers, 1..$(nproc) (default: all CPUs)
 #   --load P      per-CPU load percentage, 1..100 (default 100)
 #   --duration D  optional stress-ng timeout, e.g. 60s, 5m (default: until Ctrl-C)
-#   --gpu N       number of stress-ng GPU worker processes (default 12; 0 = off).
+#   --gpu N       number of stress-ng GPU worker processes, 0..12 (default 4; 0 = off).
+#                 Recommended maximum: 4 for a 4 Xe-core iGPU; 12 for a 12 Xe-core iGPU.
 #                 NOTE: N is the count of GPU stressor workers, NOT the number of
 #                 GPUs. They all target the single integrated GPU.
 #   -h, --help    show this help and exit
@@ -28,7 +29,7 @@ NCPU_MAX=$(nproc)
 CPUS="$NCPU_MAX"
 LOAD=100
 DURATION=""
-NGPU=12
+NGPU=4
 
 usage() { sed -n '13,25p' "$0" | sed 's/^# \{0,1\}//'; }
 
@@ -60,8 +61,8 @@ if ! [[ "$CPUS" =~ ^[0-9]+$ ]] || (( CPUS < 1 || CPUS > NCPU_MAX )); then
 	echo "Error: --cpus must be an integer 1..${NCPU_MAX} (got '$CPUS')" >&2
 	exit 1
 fi
-if ! [[ "$NGPU" =~ ^[0-9]+$ ]]; then
-	echo "Error: --gpu must be a non-negative integer (got '$NGPU')" >&2
+if ! [[ "$NGPU" =~ ^[0-9]+$ ]] || (( NGPU > 12 )); then
+	echo "Error: --gpu must be an integer 0..12 (got '$NGPU')" >&2
 	exit 1
 fi
 

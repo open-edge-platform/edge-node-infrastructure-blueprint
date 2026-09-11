@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Advanced Image Customization (Using Image Composer Tool)
 
-The [Image Composer Tool (ICT)](https://github.com/open-edge-platform/image-composer-tool/tree/2026.1-Release)
+The [Image Composer Tool (ICT)](https://github.com/open-edge-platform/image-composer-tool/tree/ICT_Release_2026.2)
 is a command-line tool for building custom Linux images from pre-built packages.
 To get a bootable RAW or ISO image, you define the target OS, packages, kernel, and disk layout.
 ICT supports multiple distributions including Ubuntu, Azure Linux, and Red Hat compatible
@@ -13,7 +13,7 @@ distros on x86_64.
 
 > Note that this path is intended for advanced users who need fine-grained control over disk
 > layout, installed packages, and package repositories. Most users can start with the simpler
-> path, [using a Standard 24.04 Minimal desktop image](../get-started/build-from-source.md#option-1-build-from-a-standard-2404-minimal-desktop-image).
+> path, [using a Standard Ubuntu 24.04 image](../get-started/build-from-source.md#option-1-build-from-a-standard-ubuntu-2404-image).
 
 This article will show you how to:
 
@@ -29,17 +29,22 @@ This article will show you how to:
 ```bash
 # If edge-node-infrastructure-blueprint is not already cloned, uncomment the line below
 # git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
-git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git
+git clone -b ICT_Release_2026.2 https://github.com/open-edge-platform/image-composer-tool.git
 ```
 
-Now, you should have the source codes available in `edge-node-infrastructure-blueprint` and `image-composer-tool` directories in your workpsace (say `/home/user`).
+Now, you should have the source code available in `edge-node-infrastructure-blueprint` and `image-composer-tool` directories in your workspace (for example, `/home/user`).
+
+```bash
+export ENIB_HOME=$(pwd)/edge-node-infrastructure-blueprint
+export ICT_HOME=$(pwd)/image-composer-tool
+```
 
 ### Build the tool
 
 Produces `./image-composer-tool` in the repo root:
 
 ```bash
-cd image-composer-tool
+cd "$ICT_HOME"
 go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool
 ```
 
@@ -51,7 +56,7 @@ These packages are required before composing any image:
 sudo apt install systemd-ukify mmdebstrap
 ```
 
-Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/2026.1-Release/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
+Follow the instructions at [Image Composition Prerequisites](https://github.com/open-edge-platform/image-composer-tool/blob/ICT_Release_2026.2/docs/tutorial/installation.md#image-composition-prerequisites) if you face issues installing packages using apt.
 
 > **Note:** `mmdebstrap` version 0.8.x (shipped with Ubuntu OS version 22.04) has known
 > issues. Ensure you have version 1.4.3 or later. On Ubuntu OS version 23.04 or later, the
@@ -59,10 +64,15 @@ Follow the instructions at [Image Composition Prerequisites](https://github.com/
 
 ### Configure the template
 
-Update the credentials `<USERNAME>` and `<PASSWORD>` in the template file before building.
+Choose the template file to build and export it as `TEMPLATE`.
 
-In <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml, set the values
-for `users.name` and `users.password` as desired. 
+Select the template for your target segment. If a segment guide directed you here, use the template path it specifies. The default template location is `$ENIB_HOME/infrastructure/host-os/ict/<your-template>.yml`.
+
+```bash
+export TEMPLATE="$ENIB_HOME/infrastructure/host-os/ict/<your-template>.yml"
+```
+
+In `$TEMPLATE`, set the values for `users.name` and `users.password` as desired.
 The password must contain a SHA-512 hash generated using the following tools:
 
 ```bash
@@ -72,8 +82,8 @@ openssl passwd -6 'your-password-here'
 # Using mkpasswd (requires `whois` to be installed)
 mkpasswd --method=sha-512 'your-password-here'
 ```
-Now, you can adapt this template to suit your use case. The advanced customization options are discussed
-below in the [Package curation and template customization](#package-curation-and-template-customization) section.
+
+Adapt this template to suit your use case. The advanced customization options are discussed in the [Package curation and template customization](#package-curation-and-template-customization) section below.
 
 ### Validate the template
 
@@ -81,7 +91,7 @@ Check the template for syntax and schema errors before starting a full
 build (fast, no root required):
 
 ```bash
-./image-composer-tool validate <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
+./image-composer-tool validate "$TEMPLATE"
 ```
 ---
 ### Build the image
@@ -90,7 +100,7 @@ Run the build with elevated privileges so that the tool can manage loop devices
 and chroot environments. Pass `-E` to preserve your proxy and environment variables:
 
 ```bash
-sudo -E ./image-composer-tool build <ENIB-HOME>/infrastructure/host-os/ict/generic-handheld-os-template.yml
+sudo -E ./image-composer-tool build "$TEMPLATE"
 ```
 
 ### Build output
@@ -142,11 +152,12 @@ The output artefacts are written to:
 ./workspace/ubuntu-ubuntu24-x86_64/imagebuild/<config-name>/
 ```
 
-Expected artefacts:
+Expected artifact (one of the following, based on the template you choose):
 
 | File                                  | Description                                |
 | ------------------------------------- | ------------------------------------------ |
 | `minimal-desktop-ubuntu-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
+| `minimal-ubuntu-server-24.04.raw.gz` | Compressed raw disk image (ready to flash) |
 
 ## Package the image into artifacts
 
@@ -154,8 +165,8 @@ Use the `image-from-tool` mode with `make build` now to package the OS image int
 the USB artifacts:
 
 ```bash
-cd ../edge-node-infrastructure-blueprint
-make build MODE=image-from-tool ICT_IMG=/absolute/path/to/minimal-desktop-ubuntu-24.04.raw.gz
+cd "$ENIB_HOME"
+make build MODE=image-from-tool ICT_IMG=/absolute/path/to/image
 ```
 
 `ICT_IMG` may be any readable file on the host — absolute path or path relative to
@@ -163,10 +174,10 @@ the repository root. `make` resolves the path and bind-mounts the containing
 directory read-only into the build container, so the image does not need to live
 inside the repository.
 
-Example:
+Example for handheld blueprint build:
 
 ```bash
-cd ../edge-node-infrastructure-blueprint
+cd "$ENIB_HOME"
 make build MODE=image-from-tool ICT_IMG=/home/user/image-composer-tool/workspace/ubuntu-ubuntu24-x86_64/imagebuild/minimal/minimal-desktop-ubuntu-24.04.raw.gz
 ```
 
@@ -186,12 +197,18 @@ Use this flow when you want to build a custom image flavor (for example, debug, 
 
 ### What you are modifying
 
-The package curation flow can update one or both of the following files:
+The package curation flow can update one or both of the following files, resolved per segment intent:
 
-- `infrastructure/host-os/auto-install-pkgs.yaml`
-- `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+- The relevant curation script — consumed by the Docker-based standard image build:
+  - `infrastructure/host-os/curate-host-packages.sh` for handheld builds.
+  - `infrastructure/host-os/curate-host-packages-server.sh` for UAV / companion server builds.
+- The relevant ICT template — consumed by the ICT-based advanced image build:
+  - `infrastructure/host-os/ict/generic-handheld-os-template.yml` for handheld builds (default).
+  - `infrastructure/host-os/ict/generic-companion-os-server-template.yml` for UAV / companion server builds.
 
-The ICT-based template is the preferred advanced image build method. For consistency, if not explicitly specified, the method updates package intent for both ISO-based (`auto-install-pkgs.yaml`) and ICT-based (`generic-handheld-os-template.yml`) images.
+The skill auto-resolves both files from your prompt: use words like `server`, `uav`, `companion`, or `companion server` to target the server pair; use `handheld` or `backpack` to target the handheld pair. When no intent is specified, it defaults to the handheld pair.
+
+By default, if not explicitly specified, the skill updates package intent for both the Docker-based standard build (resolved curation script) and the resolved ICT template.
 
 ### End-to-end flow
 
@@ -211,11 +228,11 @@ Add htop, jq, and iperf3 to the ict-template in /home/user/edge-node-infrastruct
 ```
 
 ```text
-Delete mosquitto and mosquitto-clients from both auto-install-pkgs and the ict-template.
+Delete mosquitto and mosquitto-clients from both curate-host-packages and the ict-template.
 ```
 
 ```text
-Add sysbench and stress-ng to auto-install-pkgs only for a debug image variant.
+Add sysbench and stress-ng to curate-host-packages only for a debug image variant.
 ```
 
 The skill is expected to:
@@ -225,15 +242,15 @@ The skill is expected to:
 - optionally search repositories for packages matching hardware details (device name, model, or vendor) and confirm matches before adding
 - create backups before file changes
 - return per-file package change results (`added`, `deleted`, `already-present`, `not-found`)
-- validate YAML syntax after updates
+- validate shell and YAML syntax after updates
 
 ### Build an ICT variant from the curated baseline
 
 After package curation succeeds, create a variant template from the default template:
 
 ```bash
-cp infrastructure/host-os/ict/generic-handheld-os-template.yml \
-   infrastructure/host-os/ict/my-variant-template.yml
+cp "$TEMPLATE" \
+   "$(dirname "$TEMPLATE")/my-variant-template.yml"
 ```
 
 For detailed validation and build instructions, refer to [Building an Ubuntu OS Version 24.04 Image with Image Composer Tool](https://github.com/open-edge-platform/edge-node-infrastructure-blueprint/blob/main/infrastructure/host-os/ict/README.md). That guide covers:

@@ -84,6 +84,29 @@ else
 fi
 popd > /dev/null || exit 1
 }
+
+# Build Host OS (Ubuntu headless server) using custom Docker approach
+build-host-os-server(){
+
+pushd ../host-os > /dev/null || exit 1
+
+echo "Building Host OS (server/headless) from Dockerfile.server using custom-image-setup-server.sh..."
+chmod +x custom-image-setup-server.sh
+bash custom-image-setup-server.sh || exit 1
+
+echo "Host OS server image created successfully!!"
+os_filename="../host-os/build/custom-server.raw.gz"
+
+if [ -n "$os_filename" ] && [ -f "$os_filename" ]; then
+    cp "$os_filename" ../build-artifacts/
+    echo "Copied $os_filename to build-artifacts/"
+else
+    echo "Host OS server image file not found"
+    popd > /dev/null || exit 1
+    exit 1
+fi
+popd > /dev/null || exit 1
+}
 # Create alpine-iso
 create-alpine-os-iso(){
 #Check hook_x86_64.tar.gz file  present under build directory
@@ -151,8 +174,8 @@ build-developer-src(){
     mkdir -p out
 
     if [ ! -d "${REPO_ROOT}/.git" ]; then
-        echo "WARNING: ${REPO_ROOT} is not a git checkout — skipping developer-src.tar.gz creation"
-        return 0
+        echo "WARNING: ${REPO_ROOT} is not a git checkout — developer-src.tar.gz creation failed"
+        exit 1
     fi
 
     # Mark the mounted workspace as a safe directory (uid mismatch between host and container).
@@ -167,9 +190,11 @@ build-developer-src(){
     if git -C "${REPO_ROOT}" archive --format=tar --prefix=developer-src/ HEAD \
         | pigz > "${OUT_TARBALL}"; then
         echo "Created ${OUT_TARBALL} ($(du -h "${OUT_TARBALL}" | awk '{print $1}'))"
+		return 0
     else
         rm -f "${OUT_TARBALL}"
-        echo "WARNING: git archive failed — developer-src.tar.gz will not be shipped"
+        echo "WARNING: git archive failed — developer-src.tar.gz creation failed"
+		exit 1
     fi
 }
 
@@ -272,6 +297,10 @@ case "$MODE" in
         echo "Preparing Custom Host OS. It will take some time Please wait...."
 	build-host-os
         ;;
+    server-image)
+        echo "Preparing Custom Host OS (server/headless). It will take some time Please wait...."
+	build-host-os-server
+        ;;
     image-from-tool)
         echo "Building using ICT-generated image..."
         use-ict-image
@@ -283,6 +312,8 @@ case "$MODE" in
         echo "Invalid mode: $MODE"
         echo "Usage....."
         echo " make build MODE=standard-image"
+        echo "or"
+        echo " make build MODE=server-image"
         echo "or"
         echo " make build MODE=image-from-tool "
         echo "or"

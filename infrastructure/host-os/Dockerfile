@@ -98,8 +98,6 @@ RUN systemctl --root=/ enable NetworkManager   || true && \
     systemctl --root=/ enable gdm               || true && \
     systemctl --root=/ set-default graphical.target
 
-ARG USERNAME=user
-ARG USER_PASSWORD='$6$z62Fexi.jttmcREt$Ltc4kdydbL39UAgY05sWtQ6EyeCjro48EIghXJD8dxw6G4OfWmoF3F9X9ayEaOYqgmcpMoXpjC.IJZPXjr6Vx.'
 
 RUN sed -i 's/#WaylandEnable=false/WaylandEnable=false/' /etc/gdm3/custom.conf
 
@@ -113,9 +111,14 @@ RUN echo "i915" >> /etc/initramfs-tools/modules
 RUN mkdir -p /lib/systemd/system/gdm.service.d && \
     printf "[Service]\nExecStartPre=/bin/sleep 1\n" > /lib/systemd/system/gdm.service.d/override.conf
 
+ARG USERNAME
+ARG PASSWORD
+ENV USERNAME=${USERNAME} \
+    PASSWORD=${PASSWORD}
+
 # User setup
 RUN useradd -m -s /bin/bash "${USERNAME}" && \
-    usermod -p "${USER_PASSWORD}" "${USERNAME}" && \
+    usermod -p "${PASSWORD}" "${USERNAME}" && \
     usermod -aG sudo,audio,video,render,plugdev,netdev,input "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
