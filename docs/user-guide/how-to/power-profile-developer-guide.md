@@ -71,11 +71,11 @@ registers are package-scoped, so one core is representative.
 | `0x610` `MSR_PKG_POWER_LIMIT` | Preserve unrelated bits, refuse locked writes, and verify what the firmware accepted | `set_msr_pl` returns non-zero → sysfs `apply_cap` fallback |
 | `0x65C` `MSR_PLATFORM_POWER_LIMIT` | Read and verify the psys/SysWatt power-limit register | sysfs `apply_cap` on the `psys` domain |
 
-**Shared dependencies for §3:** `msr-tools` (`rdmsr`), the `msr` kernel module,
+**Shared dependencies for [§2](#2-msr-reads) and [§3](#3-msr-writes):** `msr-tools` (`rdmsr`), the `msr` kernel module,
 root privileges, and a kernel without a lockdown policy that blocks
-`/dev/cpu/*/msr`. Secure Boot with kernel lockdown enabled will make every MSR
-access fail → the script degrades to the sysfs-only path with hardcoded
-fallbacks.
+`/dev/cpu/*/msr`. Secure Boot with kernel lockdown enabled causes every MSR
+access to fail, so the script falls back to the sysfs-only path with hardcoded
+values.
 
 ---
 
@@ -109,9 +109,9 @@ and `/sys/class/powercap/intel-rapl-mmio:*` (MMIO mirror).
 | `<dom>/constraint_0_power_limit_uw`, `constraint_1_power_limit_uw`, `enabled` | Read back what was applied for the per-domain report line | Output only |
 | `intel-rapl:*` + `intel-rapl-mmio:*` `package-*/constraint_0_power_limit_uw` and `constraint_0_max_power_uw` | Compute the **effective** enforced PL1 = min over package domains of `min(PL1, max)` | Produces `EFF_PL1_W`, `EFF_RATIO` and the "clamped by firmware/cTDP ceiling" warning |
 
-**Dependencies for §5:** `CONFIG_POWERCAP` + `intel_rapl_common` /
-`intel_rapl_msr` drivers loaded. Reads are unprivileged; only writes (§6) need
-root.
+**Dependencies for [§4](#4-powercap-sysfs-reads):** `CONFIG_POWERCAP` +
+`intel_rapl_common` / `intel_rapl_msr` drivers loaded. Reads are unprivileged;
+only writes ([§5](#5-powercap-sysfs-writes)) need root.
 
 ---
 
@@ -159,7 +159,7 @@ user-visible effect and the thing the report block reads back.
 
 | Written by daemon | Source value | Impact |
 |-------------------|--------------|--------|
-| `/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference` | `<EPP>` — interpolated from the 5 W-spaced Panther Lake table, then divided by the effective burst ratio ([508-533](../../../tools/power-tuning/set_power_profile.sh#L508-L533)) | Changes turbo aggressiveness and idle-to-load ramp |
+| `/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference` | `<EPP>` — interpolated from the 5 W-spaced Panther Lake table, then divided by the effective burst ratio | Changes turbo aggressiveness and idle-to-load ramp |
 | `/sys/devices/system/cpu/cpu*/power/energy_perf_bias` | `<EPB>` — same interpolation, clamped 0–15 | Same direction as EPP, coarser |
 | ITMT / preferred-core bias | `<ITMTState>` — nearest table sample (`-1` = leave, `0` = off, `1` = on) | At low wattage disables preferred-core bias; from 40 W up enables it |
 | Task placement / cpuset | `<ActiveCPUs>` — `0-1`/`0-3`/`0-5`/`0-7` at 5–20 W, `all` from 25 W | Large latency/throughput effect at low wattages; visible in `cpuset.cpus.effective` |
