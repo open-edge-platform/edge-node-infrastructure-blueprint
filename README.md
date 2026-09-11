@@ -75,7 +75,7 @@ cd edge-node-infrastructure-blueprint
 
 From the repository root, run one of the following build modes.
 
-> Note:If your development environment is behind a firewall, add proxy configuration to the `.proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
+> Note:If your development environment is behind a firewall, add proxy configuration to the `proxy.env` file in the `edge-node-infrastructure-blueprint` directory. To skip the proxy settings, pass `skip-proxy=true` to the make command.
 
 Before building, export the `USERNAME` and `PASSWORD` environment variables with your own credentials.
 These are required and must not be null or empty; the build exits before starting if either variable is unset or empty.
