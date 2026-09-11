@@ -168,7 +168,7 @@ RUN test -n "${USERNAME}" && test -n "${PASSWORD}" || \
     useradd -m -s /bin/bash "${USERNAME}" && \
     usermod -p "${PASSWORD}" "${USERNAME}" && \
     usermod -aG sudo,video,render,audio "${USERNAME}" && \
-    echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "${USERNAME} ALL=(ALL) PASSWD:ALL" >> /etc/sudoers
 
 # Switch to non-root user (Trivy DS-0002).
 # NOTE: The container is exported as a rootfs for a bootable image where
