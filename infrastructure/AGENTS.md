@@ -20,7 +20,7 @@ This context applies to the `infrastructure/` tree.
 Skills are defined under `skills/`.
 - `create-image`: Build host images via the Image Composer Tool (ICT) and validate resulting artifacts.
 - `create-usb-installation-files`: Package bootable USB installation artifacts (HookOS OS, host image, and deployment scripts) from an ICT image, Ubuntu ISO image, or previously built image.
-- `validate-platform-config`: Validate a provisioned node over SSH for k3s health, cloud-init status, network or proxy setup, and hardware inventory.
+- `validate-platform-config`: Validate a provisioned node for k3s health, cloud-init status, network or proxy setup, and hardware inventory.
 
 ## Constraints
 - Never edit source templates in place; create and use a working copy.

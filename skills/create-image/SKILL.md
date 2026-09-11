@@ -7,16 +7,23 @@ description: Build a host OS image using the Image Composer Tool (ICT) from a so
 
 ## Trigger Phrases
 - create image
+- create handheld image
+- create server image
+- build companion compute image
+- build uav image
 - build host image
 - generate ubuntu image
-- build PTL image
+- build Panther Lake image
 - run ict image build
 
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root)
 
 All derived paths use defaults — never prompt for them unless the user explicitly overrides:
-- `target_template`: `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+- `target_template`: auto-resolve from user intent text using these rules:
+   - If text includes any server intent phrase (`server`, `uav`, `companion`, `companion server`, `uav companion`), use `infrastructure/host-os/ict/generic-companion-os-server-template.yml`
+   - If text includes handheld intent phrase (`handheld`, `backpack`), use `infrastructure/host-os/ict/generic-handheld-os-template.yml`
+   - If no specific server intent is detected, fall back to `infrastructure/host-os/ict/generic-handheld-os-template.yml`
 - `work_template`: `<target_template>` basename prefixed with `work-`
 - `os_image_composer_repo`: `<enib_home>/tools/image-composer-tool`
 
@@ -32,8 +39,8 @@ Run all checks silently. On any failure, stop and print only the error with the 
 ## Steps
 **Run silently (no prompts):**
 1. Clone `image-composer-tool` if missing, or reuse existing checkout:
-   - `git clone --branch 2026.1-Release https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
-   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout 2026.1-Release`
+   - `git clone --branch ICT_Release_2026.2 https://github.com/open-edge-platform/image-composer-tool.git <os_image_composer_repo>`
+   - If already cloned: `cd <os_image_composer_repo> && git fetch --tags && git checkout ICT_Release_2026.2`
 2. Build the tool binary:
    - `cd <os_image_composer_repo>`
    - `go build -buildmode=pie -ldflags "-s -w" ./cmd/image-composer-tool`

@@ -9,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
 
 Intel® Core™ Ultra edge nodes let you control **how the platform reacts as its
 temperature rises** — when fans spin up, when the CPU frequency is capped, and
-when idle cycles are forced in as a hard limit. The Infrastructure Blueprint
+when idle cycles are forced in as a hard limit. The Infrastructure software
 ships a local tool under `tools/power-tuning/` that configures this policy
 through the Linux thermal daemon, `thermald`:
 
@@ -33,7 +33,7 @@ firmware DPTF/GDDV adaptive tables do not override the trip points).
 
 > **On the target system:** the commands below use repository-relative paths
 > (`tools/power-tuning/…`), which work when you run them from the repo root. On a
-> host provisioned with Infrastructure Blueprint, the same tools are available on
+> host provisioned with Infrastructure software, the same tools are available on
 > the target system at `/opt/edge/developer/tools/power-tuning/`. Either
 > `cd /opt/edge/developer` and use the relative paths as written, or prefix each
 > command with the full path (e.g.

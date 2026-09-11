@@ -1,6 +1,6 @@
 <!-- SPDX-FileCopyrightText: (C) 2026 Intel Corporation -->
 <!-- SPDX-License-Identifier: LicenseRef-Intel -->
-# Design Proposal: Edge Node Infrastructure BluePrint
+# Design Proposal: Edge Node Infrastructure software
 
 Author(s): Edge Infrastructure Team
 
