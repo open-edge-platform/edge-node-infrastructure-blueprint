@@ -494,6 +494,12 @@ systemConfig:
     - libsystemd-dev
     - libupower-glib-dev
 
+    # Time Config Hub source build dependencies (installed in configurations below)
+    - python3-cffi
+    - libpcre2-dev
+    - python3.12-dev
+    - python3.12-venv
+
   additionalFiles:
     - local: ../additionalfiles/ptl/01-network-manager-all.yaml
       final: /etc/netplan/01-network-manager-all.yaml
@@ -633,6 +639,13 @@ systemConfig:
     - cmd: "test -x /usr/local/bin/pcm"
     - cmd: "rm -rf /tmp/pcm"
     - cmd: "echo 'msr' > /etc/modules-load.d/intel-pcm.conf"
+    # --- Time Config Hub (TCH) source build in chroot ---
+    # TCH requires libyang v4.2.2; install it from the pinned upstream tag.
+    - cmd: "git clone --depth 1 --branch v4.2.2 https://github.com/CESNET/libyang.git /tmp/libyang && cmake -S /tmp/libyang -B /tmp/libyang/build && cmake --build /tmp/libyang/build -j$(nproc) && cmake --install /tmp/libyang/build && ldconfig /usr/local/lib"
+    # Pin TCH to the revision validated in PR 278.
+    - cmd: "git clone https://github.com/intel/time-confighub.git /tmp/tch && cd /tmp/tch && git checkout 83821fd && chmod +x install.sh && ./install.sh || test -x /opt/tch/venv/bin/tch"
+    - cmd: "tch --version && rm -rf /tmp/libyang /tmp/tch"
+
 
 
     # ----------------------------------------------------------------------------------
