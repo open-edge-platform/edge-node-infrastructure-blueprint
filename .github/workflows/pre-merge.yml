@@ -32,6 +32,7 @@ jobs:
       run_security_scans: true
       run_reuse_check: true
       run_test: false
+      security_scans_advisory: true
 
   final-check:
     runs-on: ubuntu-latest
