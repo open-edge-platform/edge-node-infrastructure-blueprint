@@ -28,27 +28,46 @@ jobs:
     uses: open-edge-platform/orch-ci/.github/workflows/pre-merge.yml@01030326a494973f76c238081be34477e6e4b1b0  # v2026.1.4
     with:
       run_build: false
-      run_lint: true
+      run_lint: false
       run_security_scans: true
       run_reuse_check: true
       run_test: false
-      bootstrap_tools: shellcheck,jq
+
+  local-lint:
+    needs: pre-checks
+    runs-on: 'ubuntu-latest'
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Bootstrap lint dependencies
+        uses: open-edge-platform/orch-ci/.github/actions/bootstrap@99256d03ab0676a340065ca4203144008bb5587e  # v2026.1.4
+        with:
+          bootstrap_tools: shellcheck,jq
+      - name: Lint Code
+        run: make lint
 
   final-check:
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    needs: [pre-merge-pipeline]
+    needs: [pre-merge-pipeline, local-lint]
     env:
-      RESULT: ${{ needs.pre-merge-pipeline.result }}
+      PRE_MERGE_RESULT: ${{ needs.pre-merge-pipeline.result }}
+      LOCAL_LINT_RESULT: ${{ needs.local-lint.result }}
     steps:
       - name: Final Status Check
         run: |
-          pre_merge_pipeline_result="${RESULT}"
+          pre_merge_pipeline_result="${PRE_MERGE_RESULT}"
+          local_lint_result="${LOCAL_LINT_RESULT}"
 
           echo "Pre-merge pipeline result: $pre_merge_pipeline_result"
+          echo "Local lint result: $local_lint_result"
 
-          if [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; then
-            echo "Pre-merge check passed successfully."
+          if { [ "$pre_merge_pipeline_result" == "success" ] || [ "$pre_merge_pipeline_result" == "skipped" ]; } \
+            && { [ "$local_lint_result" == "success" ] || [ "$local_lint_result" == "skipped" ]; }; then
+            echo "Pre-merge checks passed successfully."
           else
             echo "Pre-merge checks failed. PR can't get merged"
             exit 1
