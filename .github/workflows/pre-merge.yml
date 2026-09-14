@@ -32,6 +32,7 @@ jobs:
       run_security_scans: true
       run_reuse_check: true
       run_test: false
+      bootstrap_tools: shellcheck,jq
 
   final-check:
     runs-on: ubuntu-latest

@@ -30,6 +30,7 @@ jobs:
       run_lint: true
       run_test: false
       run_version_tag: true
+      bootstrap_tools: shellcheck,jq
     secrets:
       SYS_EMF_GH_TOKEN: ${{ secrets.SYS_EMF_GH_TOKEN }}
       NO_AUTH_ECR_PUSH_USERNAME: ${{ secrets.NO_AUTH_ECR_PUSH_USERNAME }}
