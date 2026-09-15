@@ -880,7 +880,7 @@ install_performance_tools() {
 		linux-intel-hyperv-daemons \
 		libcpupower-intel-dev \
 		linux-config-6.18 \
-		linux-kbuild-6.18.38
+		linux-kbuild-6.18.49
 
 	echo "Performance analysis tools installed successfully."
 }
@@ -889,7 +889,7 @@ install_performance_tools() {
 # REMOVE_WHEN_OVERLAY_SHIPS_CANONICAL_BIN_NAMES:
 # The Intel overlay ships kernel user-space tools under linux-intel-* package names and
 # frequently installs the executables with decorated names (e.g. usbip-intel,
-# bpftool_6.18.38) or only under /usr/lib/linux-tools/<kver>/. Canonical's linux-tools-*
+# bpftool_6.18.49) or only under /usr/lib/linux-tools/<kver>/. Canonical's linux-tools-*
 # packages expose them as plain commands on PATH (usbip, bpftool, perf, cpupower, rtla,
 # turbostat, ...). This function reconciles the two by copying every executable shipped
 # by those packages into /usr/local/bin under its undecorated Canonical name.

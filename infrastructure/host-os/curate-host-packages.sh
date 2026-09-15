@@ -886,7 +886,7 @@ install_linux_tools() {
 	echo "Installing Linux tools..."
 	apt update
 	apt install -y \
-		linux-kbuild-6.18.38 \
+		linux-kbuild-6.18.49 \
 		linux-config-6.18 \
 		linux-bpf-dev \
 		linux-intel-bpftool \
@@ -936,7 +936,7 @@ install_linux_tools() {
 	# Rename cpupower systemd service to canonical name
 	if [ -f /usr/lib/systemd/system/cpupower-intel.service ]; then mv /usr/lib/systemd/system/cpupower-intel.service /usr/lib/systemd/system/cpupower.service || true; fi
 	# out-of-tree builds look for /lib/modules/$(uname -r)/build
-	if [ -d /usr/lib/linux-kbuild-6.18.38 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k" || true; done; fi
+	if [ -d /usr/lib/linux-kbuild-6.18.49 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.49 "$k" || true; done; fi
 	# Report what resolved, so a missing tool is visible in the build log.
 	for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v "$t" 2>/dev/null || true); echo "kernel-tool: $t -> ${p:-MISSING}"; done
 	

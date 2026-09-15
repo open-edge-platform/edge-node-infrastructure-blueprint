@@ -168,7 +168,7 @@ packageRepositories:
       # - intel-lpmd
       - thermald
       # -- Performance & Profiling Tools ------------------------------------------
-      - linux-kbuild-6.18.38
+      - linux-kbuild-6.18.49
       - linux-config-6.18
       - linux-bpf-dev
       - linux-intel-bpftool
@@ -412,7 +412,7 @@ systemConfig:
     - linux-headers-6.18-intel
     - linux-image-6.18-intel
     # -- Performance & Profiling Tools ------------------------------------------
-    - linux-kbuild-6.18.38
+    - linux-kbuild-6.18.49
     - linux-config-6.18
     - linux-bpf-dev
     - linux-intel-bpftool
@@ -503,12 +503,12 @@ systemConfig:
       final: /etc/netplan/01-network-manager-all.yaml
 
   kernel:
-    version: "260717t053932z-r2"
+    version: "260903t031657z-r2"
     cmdline: "xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192 console=tty0 console=ttyS0,115200n8"
     enableExtraModules: "intel_vpu uas"
     packages:
-      - linux-image-6.18-intel_260717t053932z-r2
-      - linux-headers-6.18-intel_260717t053932z-r2
+      - linux-image-6.18-intel_260903t031657z-r2
+      - linux-headers-6.18-intel_260903t031657z-r2
   users:
     - name: <USERNAME>
       password: <PASSWORD>
@@ -585,7 +585,7 @@ systemConfig:
     - cmd: 'for f in /usr/share/man/man1/{perf,rtla,bpftool,cpupower}-intel*.1.gz; do [ -e "$f" ] || continue; b=$(basename "$f"); n=$(echo "$b" | sed ''s/-intel//''); [ "$b" = "$n" ] || ln -sf "$f" "/usr/share/man/man1/$n"; done; true'
     - cmd: "[ -f /usr/lib/systemd/system/cpupower-intel.service ] && ln -sf /usr/lib/systemd/system/cpupower-intel.service /etc/systemd/system/cpupower.service || true"
     # out-of-tree builds look for /lib/modules/$(uname -r)/build
-    - cmd: '[ -d /usr/lib/linux-kbuild-6.18.38 ] && for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k"; done || true'
+    - cmd: '[ -d /usr/lib/linux-kbuild-6.18.49 ] && for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.49 "$k"; done || true'
     # Report what resolved, so a missing tool is visible in the build log.
     - cmd: 'for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v $t 2>/dev/null || true); echo "kernel-tool symlink: $t -> ${p:-MISSING} $(readlink -f ${p:-/nonexistent} 2>/dev/null || true)"; done'
     # A dangling link is worse than a missing one, so fail the build on it.
