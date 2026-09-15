@@ -148,7 +148,7 @@ require manual recovery.
 | `install -m 0644 "$tmp_xml" "$CONF_FILE"` | W (**overwrite**) | Install the validated profile as the live thermald config | Atomic, mode-explicit install of the exact bytes that passed validation |
 | `cmp -s "$tmp_xml" "$CONF_FILE"` | R | Confirm the installed file is byte-identical to the validated one | Re-parsing after the restart is impossible (the live daemon holds the lock), so on-disk equality is checked instead |
 
-> **Sharp edge — backup is not one-time.** The `.bak` is overwritten on **every** apply run. The
+> **Note — backup is not one-time.** The `.bak` is overwritten on **every** apply run. The
 > first run preserves your original vendor config; a second run overwrites that
 > backup with the first run's generated profile, so the pristine original is
 > gone. Copy the `.bak`somewhere safe after the first run, or restore from the `thermald` package if requird to
