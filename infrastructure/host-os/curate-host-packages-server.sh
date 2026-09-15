@@ -8,14 +8,18 @@ set -x
 echo "http_proxy=${http_proxy:-}"
 echo "https_proxy=${https_proxy:-}"
 
-INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
-INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+# INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
+INTEL_OVERLAY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260827-1034_2026_SW_A_REL4_RC01"
+# INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+INTEL_OVERLAY_KEY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg"
+# INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
 INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
 SOF_OPENMODULES_SHA256="0bc5c1942918e86f84b9a7e97efb7e82b9aad2891398927780d5afd433128f3f"
 SOF_FIRMWARE_SHA256="ace80f314159034a2372c229a2a45443499649f6e747a63c7f2644464d399eba"
 SOF_RT722_TOPOLOGY_SHA256="fedb1f01b91b14335cca4bc5d89992f224687e633455ca7c6f0b5c00fc9cac2d"
 SOF_HDA_TOPOLOGY_SHA256="d2a6128569c980c39ecc48ab81ce253a9a3160f46e9ba843d7b056293388ee24"
-INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
+# INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
+INTEL_OVERLAY_COMPONENTS="main non-free multimedia internal"
 INTEL_ECI_URL="https://eci.intel.com/repos/noble"
 INTEL_ECI_KEY_URL="https://eci.intel.com/repos/gpg-keys/GPG-PUB-KEY-INTEL-ECI.gpg"
 INTEL_ECI_KEY_FINGERPRINT="B1CDAB5E8EE9205CBD8A7500EF16D1B6C97E2FC9"
@@ -99,11 +103,13 @@ verify_gpg_key_id() {
 }
 
 create_ppa_sources_list() {
-	local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
-	echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
+	# local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
+	# echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
+	echo "Creating Intel overlay repository sources list..."
 	mkdir -p /etc/apt/sources.list.d
 	cat > /etc/apt/sources.list.d/intel-overlay.list << EOF
-deb [signed-by=/etc/apt/keyrings/intel-overlay.gpg] ${INTEL_OVERLAY_URL} noble/snapshots/${SNAPSHOT_NAME} ${INTEL_OVERLAY_COMPONENTS}
+# deb [signed-by=/etc/apt/keyrings/intel-overlay.gpg] ${INTEL_OVERLAY_URL} noble/snapshots/${SNAPSHOT_NAME} ${INTEL_OVERLAY_COMPONENTS}
+deb [signed-by=/etc/apt/keyrings/intel-overlay.gpg] ${INTEL_OVERLAY_URL} noble ${INTEL_OVERLAY_COMPONENTS}
 EOF
 	echo "Intel overlay repository sources list created."
 }

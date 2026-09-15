@@ -18,11 +18,15 @@ echo "https_proxy=${https_proxy:-}"
 # ---------------------------------------------------------------------------
 # Repository / GPG key configuration
 # ---------------------------------------------------------------------------
-# Defaults point at the public Intel overlay on download.01.org 
+# Defaults point at the Intel Noble release repository.
 
-INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
-INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
-INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+# INTEL_OVERLAY_URL="https://download.01.org/edge-linux-overlay/ubuntu"
+INTEL_OVERLAY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260827-1034_2026_SW_A_REL4_RC01"
+# INTEL_OVERLAY_COMPONENTS="main non-free multimedia kernels"
+INTEL_OVERLAY_COMPONENTS="main non-free multimedia internal"
+# INTEL_OVERLAY_KEY_URL="https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+INTEL_OVERLAY_KEY_URL="https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg"
+# INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
 INTEL_OVERLAY_KEY_FINGERPRINT="9C63745D2A211728B8CE98C5F84B1B6A704E41B2"
 
 SOF_OPENMODULES_SHA256="0bc5c1942918e86f84b9a7e97efb7e82b9aad2891398927780d5afd433128f3f"
@@ -105,14 +109,16 @@ install_depended_packages() {
 }
 
 create_ppa_sources_list() {
-    local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
-    echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
+	# local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
+	# echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
+	echo "Creating Intel overlay repository sources list..."
     mkdir -p /etc/apt/sources.list.d
     cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
-deb [signed-by=${APT_KEYRINGS_DIR}/ptl.gpg] ${INTEL_OVERLAY_URL} noble/snapshots/${SNAPSHOT_NAME} ${INTEL_OVERLAY_COMPONENTS}
+# deb [signed-by=${APT_KEYRINGS_DIR}/ptl.gpg] ${INTEL_OVERLAY_URL} noble/snapshots/${SNAPSHOT_NAME} ${INTEL_OVERLAY_COMPONENTS}
+deb [signed-by=${APT_KEYRINGS_DIR}/ptl.gpg] ${INTEL_OVERLAY_URL} noble ${INTEL_OVERLAY_COMPONENTS}
 EOF
 
-    echo "Intel overlay repository sources list created from frozen snapshot."
+	echo "Intel overlay repository sources list created."
 }
 
 download_and_install_gpg_key() {

@@ -66,10 +66,14 @@ disk:
 # Additional package repositories for this image
 packageRepositories:
   # Intel overlay repository (aligned with installer script)
-  - codename: "noble/snapshots/2026_S_REL3-meta-data-fix"
-    url: "https://download.01.org/edge-linux-overlay/ubuntu"
-    pkey: "https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
-    component: "main non-free multimedia kernels"
+  # - codename: "noble/snapshots/2026_S_REL3-meta-data-fix"
+  #   url: "https://download.01.org/edge-linux-overlay/ubuntu"
+  #   pkey: "https://download.01.org/edge-linux-overlay/ubuntu/9C63745D2A211728B8CE98C5F84B1B6A704E41B2.gpg"
+  #   component: "main non-free multimedia kernels"
+  - codename: "noble"
+    url: "https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/noble/noble/20260827-1034_2026_SW_A_REL4_RC01"
+    pkey: "https://af01p-png.devtools.intel.com/artifactory/hspe-edge-png-local/ubuntu/keys/adl-hirsute-public.gpg"
+    component: "main non-free multimedia internal"
     priority: 2000
     allowPackages:
       - libigfxcmrt7
@@ -460,7 +464,7 @@ systemConfig:
     # Note: libcamera-apps (libcamera-hello) is RPi-specific; cam from libcamera-tools
     # is the standard cross-platform tool available in Ubuntu 24.04 repos
     # libcamera0t64 not listed: pulled automatically as dependency of libcamera-tools
-    - libcamera-tools        # 'cam' utility: enumerate and capture from libcamera devices
+    - libcamera-tools # 'cam' utility: enumerate and capture from libcamera devices
     - gstreamer1.0-libcamera # GStreamer libcamerasrc element (pipeline integration)
     # Power and Thermal daamons for power and perfromance management
     # - intel-lpmd
@@ -633,7 +637,6 @@ systemConfig:
     - cmd: "test -x /usr/local/bin/pcm"
     - cmd: "rm -rf /tmp/pcm"
     - cmd: "echo 'msr' > /etc/modules-load.d/intel-pcm.conf"
-
 
     # ----------------------------------------------------------------------------------
     # Pre-install K3s and Docker CE (both disabled by default)
