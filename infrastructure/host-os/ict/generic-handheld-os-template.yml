@@ -160,7 +160,6 @@ packageRepositories:
       - xdp-tools
       - rpc-go
       - lms
-      - metee
       - libxdp-dev
       - libxdp1
       - intel-media-va-driver-non-free
@@ -399,7 +398,6 @@ systemConfig:
     - xdp-tools
     - rpc-go
     - lms
-    - metee
     - libxdp-dev
     - libxdp1
     - intel-media-va-driver-non-free

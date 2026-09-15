@@ -408,7 +408,6 @@ install_essential_tools() {
 		mdadm \
 		mesa-utils \
 		mesa-vulkan-drivers \
-		metee \
 		mosquitto \
 		mosquitto-clients \
 		msr-tools \

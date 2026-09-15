@@ -316,7 +316,7 @@ install_essential_tools() {
 		libnl-3-200 libnl-genl-3-200 iproute2 net-tools iputils-ping tcpdump curl linuxptp dnsmasq-base network-manager \
 		bluez \
 		libtpms0 libtpms-dev \
-		intel-gpu-tools thermald rpc-go lms metee stress-ng \
+		intel-gpu-tools thermald rpc-go lms stress-ng \
 		pahole libbabeltrace1 libdebuginfod1t64 libopencsd1 libtracefs1 libtraceevent1 libpci3 pciutils \
 		vim nano mc less file mawk grep diffutils findutils debianutils ncurses-base ncurses-bin cron msr-tools i2c-tools \
 		lsscsi sg3-utils dosfstools gdisk pigz rpm \
