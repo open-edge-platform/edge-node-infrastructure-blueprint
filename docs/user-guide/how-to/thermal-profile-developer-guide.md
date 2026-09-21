@@ -13,24 +13,35 @@ depends on.
 Companion document:
 [power-profile-developer-guide.md](power-profile-developer-guide.md) — the two
 tools are complementary (power caps the watts, thermal caps the degrees) but
-their I/O profiles are very different, as [§4](#4-thermal-sysfs-writes--none-by-design)
+their I/O profiles are very different, as [§3](#3-thermal-sysfs-writes--none-by-design)
 explains.
 
 Legend used in the tables:
 
-- **R** = read only, **W** = write, **RMW** = read-modify-write.
+- **R** = read only, **W** = write, **R/W** = read and write.
 - "Fallback" = what the script does when the access fails. Unlike
   `set_power_profile.sh`, this script is **fail-closed**: most failures call
   `die` and abort rather than degrading.
 
-> **Note:** For acronym definitions and additional context, refer to the scripts, user guide and skills documentation.
+> **Note:** For [Terminology definitions](thermal-profiles.md#terminology) and additional context, refer to the scripts, user guide and skills documentation.
 
 ---
 
 ## 1. Summary of access surfaces
 `set_thermal_profile.sh` generates a thermald configuration, validates it, installs it, and makes `thermald` the sole thermal authority for the package sensor. The script therefore touches a much narrower set of system interfaces than the power-profile tool, and it is intentionally fail-closed if a profile cannot be validated.
 
-`set_thermal_profile.sh` operates through the following interfaces:
+`set_thermal_profile.sh` operates through the following interfaces; the table summarizes their access properties:
+
+| # | Surface | Mode | Root needed | Persists across reboot |
+|---|---------|------|-------------|------------------------|
+| 1 | `/sys/class/thermal/cooling_device*/type` | R | no | n/a |
+| 2 | `/sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw` | R | no | n/a |
+| 3 | `/sys/class/thermal/thermal_zone4/temp` | R | no | n/a |
+| 4 | `/etc/thermald/thermal-conf.xml` (+ `.bak`) | R / W | yes | **yes** (on-disk) |
+| 5 | `/etc/systemd/system/thermald.service.d/override.conf` (+ `.bak`) | R / W | yes | **yes** (on-disk) |
+| 6 | `thermald.service` state (stop/start/restart/disable) | R / W | yes | **yes** for `--disable` (unit enablement) |
+| 7 | Cooling-device `cur_state` (via the daemon) | W (indirect) | yes | no |
+
 
 1. **Cooling-device discovery** via `/sys/class/thermal/cooling_device*/type`
    - Detects whether `Fan`, `Processor`, `intel_powerclamp`, and optional `CHRG` devices exist on the platform
@@ -48,6 +59,7 @@ Legend used in the tables:
    - The script treats it as informational only and falls back to `0C` if the zone is unavailable
 
 4. **Generated thermald configuration** at `/etc/thermald/thermal-conf.xml`
+    - See the [reference thermal configuration profile](#103-generated-thermald-config) below
    - Produces a strict staged profile on the `x86_pkg_temp` sensor named `CPU_Zone`
    - Emits `Fan`/`Processor`/`intel_powerclamp` steps in order, with `ControlType>SEQUENTIAL</ControlType>`
    - Optional `<PPCC>` block is embedded only when a current RAPL PL1 cap was read from sysfs
@@ -63,21 +75,10 @@ Legend used in the tables:
 
 7. **Runtime behavior:** cooling actions are performed indirectly by `thermald`, not by the script itself. The XML is persistent on disk and re-read at boot, but the actual writes to cooling-device `cur_state` occur when the daemon is running.
 
-The following table summarizes the access interfaces and their properties:
-
-| # | Surface | Mode | Root needed | Persists across reboot |
-|---|---------|------|-------------|------------------------|
-| 1 | `/sys/class/thermal/cooling_device*/type` | R | no | n/a |
-| 2 | `/sys/class/powercap/intel-rapl/intel-rapl:0/constraint_0_power_limit_uw` | R | no | n/a |
-| 3 | `/sys/class/thermal/thermal_zone4/temp` | R | no | n/a |
-| 4 | `/etc/thermald/thermal-conf.xml` (+ `.bak`) | R / W | yes | **yes** (on-disk) |
-| 5 | `/etc/systemd/system/thermald.service.d/override.conf` (+ `.bak`) | R / W | yes | **yes** (on-disk) |
-| 6 | `thermald.service` state (stop/start/restart/disable) | R / W | yes | **yes** for `--disable` (unit enablement) |
-| 7 | Cooling-device `cur_state` (via the daemon) | W (indirect) | yes | no |
 
 ---
 
-## 3. Thermal sysfs reads
+## 2. Thermal sysfs reads
 
 | Path | Purpose | Fallback |
 |------|---------|----------|
@@ -94,7 +95,7 @@ The following table summarizes the access interfaces and their properties:
 
 ---
 
-## 4. Thermal sysfs writes — none, by design
+## 3. Thermal sysfs writes — none, by design
 
 The `set_thermal_profile.sh` script writes **no** sysfs, **no** MSRs and **no** cooling-device state. It
 is purely a *configuration generator plus daemon supervisor*: it writes two
@@ -115,7 +116,7 @@ persistence model:
 
 ---
 
-## 5. Temporary files and the validation subprocess
+## 4. Temporary files and the validation subprocess
 
 The apply path validates the generated XML with a real `thermald` parse **before**
 touching `/etc`, so a malformed profile can never be installed.
@@ -138,7 +139,7 @@ require manual recovery.
 
 ---
 
-## 6. Configuration file writes
+## 5. Configuration file writes
 
 | Path / action | Mode | Purpose | Reason |
 |---------------|------|---------|--------|
@@ -156,61 +157,7 @@ require manual recovery.
 
 ---
 
-## 7. systemd override writes
-
-The drop-in makes the installed XML authoritative. Written idempotently: the
-desired content is compared against what is on disk, and the file is only
-rewritten when it differs.
-
-| Path / action | Mode | Purpose | Reason |
-|---------------|------|---------|--------|
-| `mkdir -p "$OVERRIDE_DIR"` | W | Create `/etc/systemd/system/thermald.service.d` | Drop-in directory may not exist |
-| Read `$OVERRIDE_FILE` and compare to `$desired_override` | R | Decide create / update / no-op | Avoids a needless `daemon-reload` and needless `.bak` churn when the override is already correct |
-| Write `$OVERRIDE_FILE` (create case) | W | Install `ExecStart=` reset + re-declaration | The empty `ExecStart=` is required to clear the packaged unit's value before re-declaring it — without the reset, systemd would try to run **both** |
-| `cp -f "$OVERRIDE_FILE" "$OVERRIDE_FILE.bak"` then write (update case) | W | Preserve a differing pre-existing override before replacing it | The existing override may be someone else's deliberate tuning |
-
-Override content written:
-
-```ini
-[Service]
-# Managed by set_thermal_profile.sh
-# Reset the packaged ExecStart, then re-declare it with --ignore-default-control
-# and WITHOUT --adaptive, so the trip points in /etc/thermald/thermal-conf.xml
-# are the sole thermal authority (firmware DPTF/GDDV adaptive tables would
-# otherwise win).
-ExecStart=
-ExecStart=/usr/sbin/thermald --systemd --dbus-enable --ignore-default-control
-```
-
----
-
-## 8. Service and daemon control
-
-The script temporarily stops `thermald` for validation, then reloads systemd, restarts the daemon with the new configuration, and verifies that it is active and authoritative.
-
-The following table explains each service-control action, its access mode, and why the script performs it.
-
-| Action | Mode | Purpose | Reason |
-|--------|------|---------|--------|
-| `systemctl is-active --quiet thermald` | R | Record `was_active` before the validation stop | Needed to decide whether `restore_daemon` should bring it back on abort |
-| `systemctl stop thermald` | W | Release the lock file so the `--no-daemon` validation run can parse | A running daemon makes validation exit "already running" instead of parsing |
-| `systemctl start thermald` (`restore_daemon`) | W | Restart the daemon if the script aborts after stopping it | The host must never be left with the daemon down |
-| `systemctl daemon-reload` | W | Make systemd pick up a new/changed drop-in | A changed unit is otherwise ignored until reload |
-| `systemctl restart thermald` | W | Start the daemon on the new config and new `ExecStart` | Config and flags are read at startup only |
-| `systemctl is-active --quiet thermald` (post-restart) | R | Confirm the daemon actually came up | A restart can succeed and the daemon still exit |
-| `systemctl status thermald --no-pager -n 15` | R | Diagnostics for the failure path | Puts the reason in front of the user immediately |
-| `systemctl show thermald -p ExecStart` | R | Extract the **effective** argv the daemon is running with | The drop-in could be shadowed or malformed; this reads what systemd actually resolved |
-| `systemctl stop thermald` (`--disable`) | W | Stop the daemon | User asked to revert to kernel default control |
-| `systemctl disable thermald` (`--disable`) | W | Prevent it starting at boot | Makes the revert persistent |
-| `systemctl is-active --quiet thermald` (`--disable`) | R | Confirm it actually stopped | Something else may have restarted it |
-
-> `--disable` leaves `thermal-conf.xml` and `override.conf` **in place**, so
-> `sudo systemctl enable --now thermald` restores the exact strict profile
-> without re-running this script.
-
----
-
-## 9. Indirect writes performed by `thermald`
+## 6. Indirect writes performed by `thermald`
 
 The script itself never actuates cooling. These are what the daemon does once the
 config is live — the actual user-visible effect.
@@ -230,7 +177,7 @@ engaging them all at once.
 
 ---
 
-## 10. Generated XML structure
+## 7. Generated XML structure
 
 Emitted by `gen_xml()` / `gen_trip()` in the `set_thermal_profile.sh`. Steps are
 emitted **conditionally** — a step whose cooling device is absent is silently
@@ -242,7 +189,7 @@ write an empty zone.
 | `<ThermalConfiguration>` | Root element | Contains the complete thermald configuration |
 | `<Platform>` | Platform profile container | Groups the platform name, power policy, sensors, and thermal zones |
 | `<Name>` | `Strict <CLAMP_C>C (<PROFILE>)` | Human-readable identification in thermald logs |
-| `<ProductName>` | `*` | Wildcard — applies on any machine (see the note in [§3](#3-thermal-sysfs-reads)) |
+| `<ProductName>` | `*` | Wildcard — applies on any machine (see the note in [§2](#2-thermal-sysfs-reads)) |
 | `<Preference>` | `QUIET` | Bias the daemon toward acoustics over performance |
 | `<PPCC>` | Optional RAPL power-control block | Keeps thermald's startup RAPL reset aligned with the current package cap; omitted when the cap cannot be read |
 | `<PowerLimitIndex>` | `0` | Selects the package RAPL power-limit control |
@@ -261,7 +208,7 @@ write an empty zone.
 
 ---
 
-## 12. Persistence and restore
+## 8. Persistence and restore
 
 | What was changed | Persists across reboot | How to restore |
 |------------------|------------------------|----------------|
@@ -275,7 +222,7 @@ write an empty zone.
 
 ---
 
-## 13. Failure and abort paths
+## 9. Failure and abort paths
 
 The script is deliberately fail-closed; these are the ways it stops, in
 execution order.
@@ -299,7 +246,7 @@ execution order.
 | Effective `ExecStart` lacks `--ignore-default-control`, or has `--adaptive` | Post-restart | **warn only** — "check override.conf" | Config live but possibly **not authoritative** |
 ---
 
-## 14. Worked example — `--profile warm` in logical sequence
+## 10. Worked example — `--profile warm` in logical sequence
 
 ```bash
 sudo tools/power-tuning/set_thermal_profile.sh --profile warm
@@ -316,7 +263,7 @@ sudo tools/power-tuning/set_thermal_profile.sh --profile warm
 | Pre-existing config | `/etc/thermald/thermal-conf.xml` | present (vendor default) |
 | Pre-existing override | `override.conf` | absent |
 
-### 14.1 Step-by-step sequence
+### 10.1 Step-by-step sequence
 
 | # | Step | Access (R/W) | Value / result |
 |---|------|--------------|----------------|
@@ -336,7 +283,7 @@ forced idle injection is held back until 85 °C — 25 °C of headroom below the
 ~110 °C Tjmax. Contrast `thermal-max` (95 / 100 / 104 °C), which deliberately
 runs near Tjmax and only just clears the `CLAMP_C < 105` guard.
 
-### 14.2 Trip-point summary for this example
+### 10.2 Trip-point summary for this example
 
 | Step | Trip | thermald `<Temperature>` | Type | Cooling device | Sampling(Sec) | Cost when engaged |
 |------|------|--------------------------|------|----------------|----------|-------------------|
@@ -344,7 +291,7 @@ runs near Tjmax and only just clears the `CLAMP_C < 105` guard.
 | 2 | 75 °C | `75000` | `passive` | `Processor` | 2 | Frequency capped |
 | 3 | 85 °C | `85000` | `passive` | `intel_powerclamp` | 1 | Forced idle cycles injected |
 
-### 14.3 Generated thermald config
+### 10.3 Generated thermald config
 
 The optional `<PPCC>` block preserves the currently applied RAPL package power
 cap when `thermald` starts. Without it, thermald may reset its RAPL cooling
@@ -437,7 +384,7 @@ The following example shows a reference thermal configuration file generated by 
 </ThermalConfiguration>
 
 ```
-### 14.4 Console output
+### 10.4 Console output
 The following is the reference output generated by applying the `warm` profile.
 ```text
 [*] Cooling devices detected on this platform:
@@ -467,7 +414,7 @@ The following is the reference output generated by applying the `warm` profile.
 `[*]` lines are green `info`, `[!]` would be yellow `warn` (stderr), `[x]` red
 `err` (stderr).
 
-### 14.5 Preview without touching the platform
+### 10.5 Preview without touching the platform
 
 ```console
 $ tools/power-tuning/set_thermal_profile.sh --profile warm --dry-run

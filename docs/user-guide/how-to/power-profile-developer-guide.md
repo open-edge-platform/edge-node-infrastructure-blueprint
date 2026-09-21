@@ -7,10 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 
 This guide explains the implementation details of the power profile functionality, enabling developers to create, modify, adopt, and customize power profiles on their systems.
 
-> **Note:** For acronym definitions and additional context, refer to the user guide and skills documentation.
+> **Note:** For [Terminology definitions](power-profiles.md#terminology) and additional context, refer to the user guide and skills documentation.
 
 Legend used in the tables:
-- **R** = read only, **W** = write, **RMW** = read-modify-write.
+- **R** = read only, **W** = write, **R/W** = read and write.
 
 ---
 
