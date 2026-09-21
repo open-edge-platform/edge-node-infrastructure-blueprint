@@ -59,7 +59,7 @@ Legend used in the tables:
    - The script treats it as informational only and falls back to `0C` if the zone is unavailable
 
 4. **Generated thermald configuration** at `/etc/thermald/thermal-conf.xml`
-    - See the [reference thermal configuration profile](#103-generated-thermald-config) below
+    - See the [reference thermal configuration profile in Section 10.3](#103-generated-thermald-config).
    - Produces a strict staged profile on the `x86_pkg_temp` sensor named `CPU_Zone`
    - Emits `Fan`/`Processor`/`intel_powerclamp` steps in order, with `ControlType>SEQUENTIAL</ControlType>`
    - Optional `<PPCC>` block is embedded only when a current RAPL PL1 cap was read from sysfs
