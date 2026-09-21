@@ -1247,13 +1247,11 @@ build_install_tch() {
         ldconfig /usr/local/lib
 
         # Build and install TCH
-        cd /tmp
-        git clone https://github.com/intel/time-confighub.git tch
-        cd tch
-        if ! git checkout 83821fd; then
-                printf 'Error: failed to check out TCH revision 83821fd.\n' >&2
+        if ! git clone -b 1.0 https://github.com/intel/time-confighub.git /tmp/tch; then
+                printf 'Error: failed to clone time-confighub into /tmp/tch \n' >&2
                 return 1
         fi
+	cd /tmp/tch
         chmod +x install.sh
         apt-get update && apt-get install -y python3.12-dev python3.12-venv python3-pip
 
