@@ -257,6 +257,7 @@ packageRepositories:
     allowPackages:
       - libcamhal-ipu75xa0
       - libcamhal-ipu75xa
+      - libcamhal-ipu75xa-common
       - libcamera-tools
       - libcamhal-common
       - libcamhal0
@@ -859,6 +860,16 @@ systemConfig:
     - cmd: "printf 'Package: systemd-boot systemd-boot-efi\\nPin: release *\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/no-systemd-boot"
     - cmd: "dpkg --purge --force-all systemd-boot systemd-boot-efi 2>/dev/null || true"
 
+    # ----------------------------------------------------------------------------------
+    # Harden ICT-generated apt preferences: ICT's allowPackages only filters the
+    # build-time package index. The runtime /etc/apt/preferences.d/ file it ships
+    # for the ECI repo still pins "Package: *", which lets ECI outrank Ubuntu for
+    # ANY package sharing a name post-boot (e.g. ROS's libpcl-*1.14 resolving to
+    # ECI's libpcl-oneapi-*1.14 instead). Replace that generated file with the
+    # allowPackages whitelist + a "-1" catch-all so only the intended camera/MIPI
+    # packages are ever pinned above Ubuntu.
+    - cmd: "find /etc/apt/preferences.d -type f -exec grep -l 'origin eci.intel.com' {} \\; | xargs -r rm -f"
+    - cmd: "printf 'Package: libcamhal-ipu75xa0 libcamhal-ipu75xa libcamhal-ipu75xa-common libcamera-tools libcamhal-common libcamhal0 libia-*-ipu75xa0 gstreamer1.0-icamera libgsticamerainterface-1.0-1 intel-mipi-gmsl-dkms v4l-utils libv4l-0t64 libv4l2rds0t64 libv4lconvert0t64\\nPin: origin eci.intel.com\\nPin-Priority: 600\\n\\nPackage: *\\nPin: origin eci.intel.com\\nPin-Priority: -1\\n' > /etc/apt/preferences.d/intel-eci-scoped"
 
     # ----- Intel GPU Compute Stack (wget from GitHub releases) -----
     # Intel-graphics-compiler Version: v2.38.2

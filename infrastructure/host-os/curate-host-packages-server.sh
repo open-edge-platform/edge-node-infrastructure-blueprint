@@ -228,11 +228,18 @@ Pin: origin download.01.org
 Pin-Priority: 2000
 EOF
 
-	# Intel ECI repo: priority 600 (provides ethtool, systemd, v4l-utils, udev with eci patches)
+	# Intel ECI repo: scoped to the camera/MIPI HAL packages this script
+	# actually installs from ECI, with a "-1" catch-all for everything else so
+	# ECI can't outrank Ubuntu/ROS packages of the same name post-boot (e.g.
+	# libpcl-oneapi-*/libflann1.9-dpcpp outranking Ubuntu's libpcl-*/libflann1.9).
 	cat > /etc/apt/preferences.d/intel-eci << EOF
-Package: *
+Package: libcamhal-ipu75xa0 libcamhal-ipu75xa libcamhal-ipu75xa-common libcamera-tools libcamhal-common libcamhal0 libia-*-ipu75xa* libipu75xa-dev gstreamer1.0-icamera gstreamer1.0-libcamera libgsticamerainterface-1.0-1 intel-mipi-gmsl-dkms v4l-utils libv4l-0t64 libv4l2rds0t64 libv4lconvert0t64
 Pin: origin eci.intel.com
 Pin-Priority: 600
+
+Package: *
+Pin: origin eci.intel.com
+Pin-Priority: -1
 EOF
 }
 
