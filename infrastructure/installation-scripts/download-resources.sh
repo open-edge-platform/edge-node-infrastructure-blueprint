@@ -31,6 +31,14 @@ COMPOSE_VERSION="${COMPOSE_VERSION:-v2.33.1}"
 HELM_VERSION="${HELM_VERSION:-v3.17.2}"
 INTEL_DEVICE_PLUGINS_VERSION="${INTEL_DEVICE_PLUGINS_VERSION:-v0.36.0}"
 
+# Optional: Pin checksums for independent verification (unset by default).
+# When set, verifies artifacts against pinned values instead of co-downloaded manifests.
+# Unset warnings note that manifests are same-origin and not independently authenticated.
+K3S_BINARY_SHA256="${K3S_BINARY_SHA256:-}"
+DOCKER_SHA256="${DOCKER_SHA256:-}"
+COMPOSE_SHA256="${COMPOSE_SHA256:-}"
+HELM_SHA256="${HELM_SHA256:-}"
+
 # ------------------------------------------------------------------------------
 # Architecture detection
 # ------------------------------------------------------------------------------
@@ -118,16 +126,29 @@ echo ""
 # K3s
 # ==============================================================================
 K3S_BASE_URL="https://github.com/k3s-io/k3s/releases/download/${K3S_VERSION}"
-info "Downloading K3s checksums..."
-curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
-    -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
-K3S_SUMS="${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
-success "sha256sum-${K3S_ARCH}.txt saved"
-
 info "Downloading K3s binary..."
 curl -fL "${K3S_BASE_URL}/${K3S_BINARY}" \
     -o "${RESOURCES_DIR}/k3s/k3s"
-verify_sha256_from_sumfile "${RESOURCES_DIR}/k3s/k3s" "${K3S_SUMS}" "${K3S_BINARY}"
+
+if [[ -n "${K3S_BINARY_SHA256:-}" ]]; then
+    # Verify against independently pinned checksum (primary trust source)
+    verify_sha256_hex "${RESOURCES_DIR}/k3s/k3s" "${K3S_BINARY_SHA256}"
+else
+    # Fall back to co-downloaded manifest (same-origin, not independently verified)
+    warn "K3S_BINARY_SHA256 not set — k3s binary checksum is not independently verified."
+    warn "  The checksum manifest is fetched from the same origin as the binary."
+    warn "  Pin it for reproducibility: K3S_BINARY_SHA256=<sha> ./download-resources.sh"
+    echo ""
+
+    info "Downloading K3s checksums..."
+    curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
+        -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+    K3S_SUMS="${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+    success "sha256sum-${K3S_ARCH}.txt saved"
+
+    verify_sha256_from_sumfile "${RESOURCES_DIR}/k3s/k3s" "${K3S_SUMS}" "${K3S_BINARY}"
+fi
+
 chmod +x "${RESOURCES_DIR}/k3s/k3s"
 success "k3s binary saved"
 
@@ -185,12 +206,24 @@ COMPOSE_URL="https://github.com/docker/compose/releases/download/${COMPOSE_VERSI
 curl -fL "${COMPOSE_URL}" \
     -o "${RESOURCES_DIR}/docker/docker-compose"
 
-curl -fL "${COMPOSE_URL}.sha256" \
-    -o "${RESOURCES_DIR}/docker/docker-compose.sha256"
-verify_sha256_from_sumfile \
-    "${RESOURCES_DIR}/docker/docker-compose" \
-    "${RESOURCES_DIR}/docker/docker-compose.sha256" \
-    "docker-compose-linux-${COMPOSE_ARCH}"
+if [[ -n "${COMPOSE_SHA256:-}" ]]; then
+    # Verify against independently pinned checksum (primary trust source)
+    verify_sha256_hex "${RESOURCES_DIR}/docker/docker-compose" "${COMPOSE_SHA256}"
+else
+    # Fall back to co-downloaded manifest (same-origin, not independently verified)
+    warn "COMPOSE_SHA256 not set — docker-compose checksum is not independently verified."
+    warn "  The checksum sidecar is fetched from the same origin as the binary."
+    warn "  Pin it for reproducibility: COMPOSE_SHA256=<sha> ./download-resources.sh"
+    echo ""
+
+    curl -fL "${COMPOSE_URL}.sha256" \
+        -o "${RESOURCES_DIR}/docker/docker-compose.sha256"
+    verify_sha256_from_sumfile \
+        "${RESOURCES_DIR}/docker/docker-compose" \
+        "${RESOURCES_DIR}/docker/docker-compose.sha256" \
+        "docker-compose-linux-${COMPOSE_ARCH}"
+fi
+
 chmod +x "${RESOURCES_DIR}/docker/docker-compose"
 success "docker-compose saved"
 
@@ -210,15 +243,26 @@ curl -fL "${HELM_BASE_URL}/${HELM_TARBALL}" \
     -o "${RESOURCES_DIR}/helm/${HELM_TARBALL}"
 success "${HELM_TARBALL} saved"
 
-info "Downloading Helm checksum..."
-curl -fL "${HELM_BASE_URL}/${HELM_TARBALL}.sha256sum" \
-    -o "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum"
-success "${HELM_TARBALL}.sha256sum saved"
+if [[ -n "${HELM_SHA256:-}" ]]; then
+    # Verify against independently pinned checksum (primary trust source)
+    verify_sha256_hex "${RESOURCES_DIR}/helm/${HELM_TARBALL}" "${HELM_SHA256}"
+else
+    # Fall back to co-downloaded manifest (same-origin, not independently verified)
+    warn "HELM_SHA256 not set — helm checksum is not independently verified."
+    warn "  The checksum sidecar is fetched from the same origin as the tarball."
+    warn "  Pin it for reproducibility: HELM_SHA256=<sha> ./download-resources.sh"
+    echo ""
 
-verify_sha256_from_sumfile \
-    "${RESOURCES_DIR}/helm/${HELM_TARBALL}" \
-    "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum" \
-    "${HELM_TARBALL}"
+    info "Downloading Helm checksum..."
+    curl -fL "${HELM_BASE_URL}/${HELM_TARBALL}.sha256sum" \
+        -o "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum"
+    success "${HELM_TARBALL}.sha256sum saved"
+
+    verify_sha256_from_sumfile \
+        "${RESOURCES_DIR}/helm/${HELM_TARBALL}" \
+        "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum" \
+        "${HELM_TARBALL}"
+fi
 
 # Store the version
 echo "${HELM_VERSION}" > "${RESOURCES_DIR}/helm/VERSION"

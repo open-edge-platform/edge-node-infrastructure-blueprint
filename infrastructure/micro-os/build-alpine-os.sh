@@ -16,6 +16,12 @@ ALPINE_VERSION="3.21"
 ARCH="x86_64"
 MIRROR="https://dl-cdn.alpinelinux.org/alpine"
 
+# Optional: Pin Alpine minirootfs checksum for independent verification.
+# Unset by default; if set, verifies downloaded tarball against this value.
+# Get the real hash from https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/${ARCH}/SHA256SUMS
+# Pin it for reproducibility: ALPINE_MINIROOTFS_SHA256=<hash> ./build-alpine-os.sh
+ALPINE_MINIROOTFS_SHA256="${ALPINE_MINIROOTFS_SHA256:-}"
+
 # Directory paths
 WORKDIR="${WORKDIR:-$SCRIPT_DIR/build}"
 ROOTFS="$WORKDIR/rootfs"
@@ -76,12 +82,33 @@ download_and_extract_rootfs() {
     echo "Downloading Alpine minirootfs..."
     cd "$WORKDIR"
     wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/$tarball"
-    wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/$tarball.sha256"
 
     echo "Verifying checksum..."
-    if ! sha256sum -c "$tarball.sha256"; then
-        echo "ERROR: Checksum verification failed for $tarball!"
-        exit 1
+    if [[ -n "$ALPINE_MINIROOTFS_SHA256" ]]; then
+        # Verify against independently pinned checksum (primary trust source)
+        local expected="$ALPINE_MINIROOTFS_SHA256" got
+        got="$(sha256sum "$tarball" | awk '{print $1}')"
+        if [[ "$got" != "$expected" ]]; then
+            echo "ERROR: Checksum verification failed for $tarball (independent pin mismatch)"
+            echo "  expected: $expected"
+            echo "  got:      $got"
+            exit 1
+        fi
+        echo "OK: Alpine minirootfs checksum verified against independent pin"
+    else
+        # Fall back to co-downloaded checksum (same-origin, not independently verified)
+        echo "[WARN] ALPINE_MINIROOTFS_SHA256 not set — minirootfs checksum is not independently verified."
+        echo "  The checksum file is fetched from the same origin as the tarball."
+        echo "  Pin it for reproducibility: ALPINE_MINIROOTFS_SHA256=<hash> ./build-alpine-os.sh"
+        echo "  Get the official hash from: https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/${ARCH}/SHA256SUMS"
+        echo ""
+
+        wget -q "$MIRROR/v$ALPINE_VERSION/releases/$ARCH/$tarball.sha256"
+        if ! sha256sum -c "$tarball.sha256"; then
+            echo "ERROR: Checksum verification failed for $tarball (co-downloaded checksum)!"
+            exit 1
+        fi
+        echo "OK: Alpine minirootfs checksum verified against co-downloaded manifest"
     fi
 
     echo "Extracting..."
