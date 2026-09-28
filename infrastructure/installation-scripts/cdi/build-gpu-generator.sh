@@ -23,6 +23,12 @@ UPSTREAM_URL="https://github.com/intel/intel-resource-drivers-for-kubernetes.git
 SOURCE_DIR=""
 CLEANUP_SOURCE=false
 
+# Pin the current default tag to its immutable commit SHA for security.
+# Only enforced when TAG matches the default and COMMIT is not explicitly provided.
+DEFAULT_TAG="gpu-v0.10.1"
+DEFAULT_COMMIT="5ed70dac2c31c020bdf82fc5b913e807e7127436"
+EXPECTED_COMMIT=""
+
 usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
@@ -30,13 +36,19 @@ Usage: $(basename "$0") [OPTIONS]
 Build the official Intel CDI GPU specs generator from source (tag: ${TAG}).
 
 Options:
-  --source DIR    Path to existing intel-resource-drivers-for-kubernetes clone
-  --output FILE   Output binary path (default: ${OUTPUT})
-  --tag TAG       Git tag to build from (default: ${TAG})
-  -h, --help      Show this help
+  --source DIR      Path to existing intel-resource-drivers-for-kubernetes clone
+  --output FILE     Output binary path (default: ${OUTPUT})
+  --tag TAG         Git tag to build from (default: ${TAG})
+  --commit SHA      Expected commit SHA for the tag (enables independent verification)
+  -h, --help        Show this help
 
 If --source is not given, the script looks for the repo at common locations.
 If not found, it does a shallow clone into /tmp (cleaned up after build).
+
+Verification:
+  When TAG matches the default (${DEFAULT_TAG}), the checkout is verified against
+  the pinned commit ${DEFAULT_COMMIT}. To override with a custom tag, use --commit
+  to provide the expected commit SHA for independent verification.
 
 Output:
   ${OUTPUT}
@@ -53,10 +65,16 @@ while [[ $# -gt 0 ]]; do
     --source) SOURCE_DIR="$2"; shift 2 ;;
     --output) OUTPUT="$2"; shift 2 ;;
     --tag)    TAG="$2"; shift 2 ;;
+    --commit) EXPECTED_COMMIT="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
+
+# Set default expected commit if using the default tag and no explicit override
+if [[ "$TAG" == "$DEFAULT_TAG" && -z "$EXPECTED_COMMIT" ]]; then
+  EXPECTED_COMMIT="$DEFAULT_COMMIT"
+fi
 
 if ! command -v go &>/dev/null; then
   echo "ERROR: Go compiler not found. Install Go 1.22+ from https://go.dev/dl/" >&2
@@ -85,6 +103,20 @@ else
   echo "  ${UPSTREAM_URL} -> ${SOURCE_DIR}"
   echo ""
   git clone --depth 1 --branch "$TAG" "$UPSTREAM_URL" "$SOURCE_DIR"
+
+  # After cloning, verify the commit if a pin is set
+  if [[ -n "$EXPECTED_COMMIT" ]]; then
+    cd "$SOURCE_DIR"
+    ACTUAL_COMMIT=$(git rev-parse HEAD)
+    if [[ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+      echo "ERROR: Commit verification failed for tag ${TAG}" >&2
+      echo "  expected: $EXPECTED_COMMIT" >&2
+      echo "  got:      $ACTUAL_COMMIT" >&2
+      exit 1
+    fi
+    echo "✓ Tag ${TAG} verified against commit ${EXPECTED_COMMIT}" >&2
+    cd - > /dev/null
+  fi
 fi
 
 echo "Building intel-cdi-specs-generator-gpu from tag: ${TAG}"
@@ -105,6 +137,24 @@ if ! $CLEANUP_SOURCE; then
 
   echo "Checking out ${TAG}..."
   git checkout "$TAG" 2>/dev/null
+
+  # Verify commit if a pin is set
+  if [[ -n "$EXPECTED_COMMIT" ]]; then
+    ACTUAL_COMMIT=$(git rev-parse HEAD)
+    if [[ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+      echo "ERROR: Commit verification failed for tag ${TAG}" >&2
+      echo "  expected: $EXPECTED_COMMIT" >&2
+      echo "  got:      $ACTUAL_COMMIT" >&2
+      # Restore previous state before aborting
+      if [[ "$PREV_REF" == "detached" ]]; then
+        git checkout "$PREV_HEAD" 2>/dev/null
+      else
+        git checkout "${PREV_REF#refs/heads/}" 2>/dev/null
+      fi
+      exit 1
+    fi
+    echo "✓ Tag ${TAG} verified against commit ${EXPECTED_COMMIT}" >&2
+  fi
 fi
 
 echo "Syncing vendor..."

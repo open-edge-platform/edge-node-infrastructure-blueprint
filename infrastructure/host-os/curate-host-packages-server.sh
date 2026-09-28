@@ -25,6 +25,9 @@ INTEL_SW_PRODUCTS_KEY_URL="https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KE
 INTEL_SW_PRODUCTS_KEY_FINGERPRINT="BF4385F91CA5FC005AB39E1C1A8497B11911E097"
 MOZILLA_PPA_KEY_FINGERPRINT="0AB215679C571D1C8325275B9BDB3D89CE49EC21"
 
+# Pin git clones to immutable commit SHAs (not mutable branches/tags)
+PCM_COMMIT="${PCM_COMMIT:-abb6bce87cc2ed23d6677541ebcfc47ca769d1ed}"
+INTEL_LPMD_COMMIT="${INTEL_LPMD_COMMIT:-956df747e56aca1739b39bff8cff77e81758af9a}"
 
 #======================================================
 #  Edge Node Infrastructure Setup Script (SERVER/HEADLESS)
@@ -470,8 +473,15 @@ install_essential_tools() {
 	systemctl --root=/ enable  chrony || true
     echo "Installing pcm"
 	cd /tmp
-	git clone -b 202604 --recursive https://github.com/intel/pcm.git
+	git clone https://github.com/intel/pcm.git
 	cd pcm
+	git checkout "$PCM_COMMIT" || { echo "ERROR: Failed to checkout PCM commit $PCM_COMMIT"; exit 1; }
+	ACTUAL_COMMIT=$(git rev-parse HEAD)
+	if [[ "$ACTUAL_COMMIT" != "$PCM_COMMIT" ]]; then
+		echo "ERROR: PCM commit verification failed: expected $PCM_COMMIT, got $ACTUAL_COMMIT"
+		exit 1
+	fi
+	git submodule update --init --recursive
 	mkdir build
 	cd build
 	cmake ..
@@ -1116,8 +1126,14 @@ install_intel_lpmd () {
 	apt install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
 	         libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
 	cd /tmp
-	git clone --branch v0.1.0 https://github.com/intel/intel-lpmd.git lpmd
+	git clone https://github.com/intel/intel-lpmd.git lpmd
 	cd lpmd
+	git checkout "$INTEL_LPMD_COMMIT" || { echo "ERROR: Failed to checkout intel-lpmd commit $INTEL_LPMD_COMMIT"; exit 1; }
+	ACTUAL_COMMIT=$(git rev-parse HEAD)
+	if [[ "$ACTUAL_COMMIT" != "$INTEL_LPMD_COMMIT" ]]; then
+		echo "ERROR: intel-lpmd commit verification failed: expected $INTEL_LPMD_COMMIT, got $ACTUAL_COMMIT"
+		exit 1
+	fi
 	./autogen.sh
 	make
 	sudo make install
