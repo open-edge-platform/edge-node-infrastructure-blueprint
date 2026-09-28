@@ -45,7 +45,7 @@ Acronyms and terms used throughout this skill.
 - cpus: number of CPU workers, `1..nproc` (default: all CPUs / `nproc`)
 - load: per-CPU load percentage, `1..100` (default: `100`)
 - gpu: number of stress-ng GPU worker processes targeting the single iGPU, `0..12` (default: `4`; `0` disables GPU stress). This is a worker count, NOT a GPU count. Use a maximum of `4` workers for a 4 Xe-core iGPU and `12` workers for a 12 Xe-core iGPU.
-- duration: optional stress-ng timeout, e.g. `60s`, `5m`, `2h` (default: run until stopped / Ctrl-C)
+- duration: optional stress-ng timeout, e.g. `60s`, `5m`, `2h` (default: `3m`)
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved command is shown; nothing is launched.
 - auto_confirm: `true` | `false` (default: `false`). When `true`, skip the confirmation gate.
 
@@ -69,7 +69,7 @@ Run silently without user prompts:
   - `ls /dev/dri/renderD* 2>/dev/null` — if absent, warn that GPU workers may fall back to software rendering.
 
 Prompt only for missing required inputs:
-- [ ] Do not prompt for any value; all inputs have safe defaults (all CPUs at 100% + 12 GPU workers, run until stopped). Only ask if the user's request is ambiguous about whether GPU stress is wanted.
+- [ ] Do not prompt for any value; all inputs have safe defaults (all CPUs at 100% + 12 GPU workers, 3 m duration). Only ask if the user's request is ambiguous about whether GPU stress is wanted.
 
 Input validation (fail closed before launch):
 - [ ] `cpus` is an integer in `[1, NCPU_MAX]`.
@@ -85,7 +85,7 @@ Input validation (fail closed before launch):
 
 1. Resolve the effective parameters and build the command (no launch yet):
    - Base: `<enib_home>/tools/power-tuning/stress_gen.sh --cpus <cpus> --load <load> --gpu <gpu>`
-   - Append `--duration <duration>` only when supplied.
+  - Resolve `duration` to the user-supplied value or the default `3m`, then append `--duration <duration>`.
    - Note: no `sudo` is required; stress-ng runs as the current user.
 2. Capture a brief pre-stress snapshot for the report (read-only, best-effort; **skip entirely when `dry_run=true`**):
    - load average: `cat /proc/loadavg`
@@ -98,16 +98,15 @@ Input validation (fail closed before launch):
    | CPU workers | `<cpus>` of `<nproc>` |
    | Load per CPU | `<load>%` |
    | GPU workers | `<gpu>` (0 = off) |
-   | Duration | `<duration or 'until stopped'>` |
+  | Duration | `<duration>` |
    | GPU render node | `<path or 'not found (software fallback)'>` |
 
 4. **Confirmation gate** — pause before launching:
    - If `dry_run=true`: stop here and record `CONFIRMATION=dry_run_only`. Do not launch.
    - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: present the tabulated Planned Load and ask "Launch stress (<cpus> CPUs @ <load>%, <gpu> GPU workers, duration=<duration or 'until stopped'>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Else: present the tabulated Planned Load and ask "Launch stress (<cpus> CPUs @ <load>%, <gpu> GPU workers, duration=<duration>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
 5. Launch (only after confirmation):
-   - If `duration` is set: run **synchronously** and let it complete; capture exit code.
-   - If `duration` is NOT set (runs until stopped): run in the **background** so the run does not block; record the PID(s) via `pgrep -x stress-ng` and tell the user how to stop it (`sudo pkill -x stress-ng`, or Ctrl-C if launched in their own foreground terminal).
+  - Run **synchronously** and let it complete; capture exit code.
 6. Confirm the stressor is active shortly after launch:
    - `pgrep -x stress-ng` returns at least one PID (for bounded runs, this is checked before completion).
 7. **Verify GPU load is real (only when `gpu > 0`)** — a running GPU worker does
@@ -137,17 +136,15 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
 - Launch only occurred when the outcome is `confirmed` or `auto_confirm`.
 - After launch, `pgrep -x stress-ng` shows the expected activity (one or more workers).
-- For bounded runs (`duration` set), the script exited with code `0` at completion.
-- For open-ended runs, the PID(s) and stop instructions were reported to the user.
+- The script exited with code `0` at completion.
 
 ## Rollback
-- Stop an open-ended run at any time: `sudo pkill -x stress-ng` (or Ctrl-C in the launching terminal).
 - Stress load is transient and leaves no persistent state; stopping the process fully restores idle behaviour.
 - If a power profile was applied via `set-power-profile` before stressing, the profile persists (runtime-only) until reboot regardless of the stress run.
 
 ## Safety Rules
 - Do not launch if another stress-ng instance is already running (respect the script's own guard) — stacking stressors skews load and any power measurements.
-- Warn before an **open-ended** (no `duration`) high-load run on thermally constrained or fanless enclosures; recommend a bounded `duration` and monitoring temperature (see `pt_mon.sh`).
+- Warn before a high-load run on thermally constrained or fanless enclosures; recommend monitoring temperature (see `pt_mon.sh`).
 - Do not run with `sudo` (stress-ng needs no root here); only use `sudo` for the documented `pkill` stop command.
 - Do not launch GPU workers (`gpu > 0`) as a way to interfere with a live display/compositor workload without the user's awareness.
 - Never mask a failing precondition (missing stress-ng, existing instance) as success.
