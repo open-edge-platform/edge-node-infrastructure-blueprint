@@ -153,9 +153,7 @@ RUN echo "i915" >> /etc/initramfs-tools/modules && \
     echo "uas" >> /etc/initramfs-tools/modules
 
 ARG USERNAME
-ARG PASSWORD
-ENV USERNAME=${USERNAME} \
-    PASSWORD=${PASSWORD}
+ENV USERNAME=${USERNAME}
 
 RUN truncate -s 0 /etc/machine-id && rm -f /var/lib/dbus/machine-id
 
@@ -163,10 +161,13 @@ RUN truncate -s 0 /etc/machine-id && rm -f /var/lib/dbus/machine-id
 RUN echo "minimal-server-ubuntu" > /etc/hostname
 
 # User setup (aligned with template users section)
-RUN test -n "${USERNAME}" && test -n "${PASSWORD}" || \
-    { echo "ERROR: USERNAME and PASSWORD build-args are required"; exit 1; } && \
+# PASSWORD is passed via BuildKit secret (not ARG/ENV) so it never persists
+# in the image layers, history, or config (Trivy DS-0031).
+RUN --mount=type=secret,id=password \
+    test -n "${USERNAME}" && test -s /run/secrets/password || \
+    { echo "ERROR: USERNAME and PASSWORD secret are required"; exit 1; } && \
     useradd -m -s /bin/bash "${USERNAME}" && \
-    usermod -p "${PASSWORD}" "${USERNAME}" && \
+    usermod -p "$(cat /run/secrets/password)" "${USERNAME}" && \
     usermod -aG sudo,video,render,audio "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
