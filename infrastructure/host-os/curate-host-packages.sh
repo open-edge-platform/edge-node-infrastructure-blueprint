@@ -170,45 +170,21 @@ configure_eci_apt_preferences() {
 	
 	# Pin camera packages to ECI with priority 600 (higher than default 500)
 	cat > /etc/apt/preferences.d/intel-eci << EOF
-Package: libcamhal-ipu75xa0 libcamhal-ipu75xa libcamera-tools libcamhal-common libcamhal0 libia-*-ipu75xa0 gstreamer1.0-icamera libgsticamerainterface-1.0-1 intel-mipi-gmsl-dkms
+Package: libcamhal-ipu75xa0 libcamhal-ipu75xa libcamhal-ipu75xa-common libcamera-tools libcamhal-common libcamhal0 libia-*-ipu75xa0 gstreamer1.0-icamera libgsticamerainterface-1.0-1 intel-mipi-gmsl-dkms v4l-utils libv4l-0t64 libv4l2rds0t64 libv4lconvert0t64
 Pin: origin ${eci_host}
 Pin-Priority: 600
 EOF
-	
-	# Block systemd and related packages from ECI (priority -1 = never install from this source)
-	# Force these critical system packages to come from canonical Ubuntu repos only
-	local -a blocked_packages=(
-		"libnss-myhostname" "libnss-mymachines" "libnss-resolve"
-		"libpam-systemd" "libsystemd-dev" "libsystemd0"
-		"libudev-dev" "libudev1"
-		"systemd-boot-efi" "systemd-boot" "systemd-container" "systemd-coredump"
-		"systemd-dev" "systemd-homed" "systemd-journal-remote" "systemd-oomd"
-		"systemd-resolved" "systemd-standalone-sysusers" "systemd-standalone-tmpfiles"
-		"systemd-sysv" "systemd-tests" "systemd-timesyncd" "systemd-ukify"
-		"systemd-userdbd" "systemd" "udev"
-	)
-	
-	cat > /etc/apt/preferences.d/isar << 'EOFSTART'
-# Default priority for all ECI packages (set to 500, same as Ubuntu default)
+    
+    # Block all other packages from ECI to protect native Ubuntu/ROS 2 libraries
+    cat > /etc/apt/preferences.d/isar << 'EOFSTART'
+# Block the rest of the ECI catalog from shadowing Ubuntu
 Package: *
 Pin: origin eci.intel.com
-Pin-Priority: 500
-
-EOFSTART
-	
-	# Append blocked package rules
-	for pkg in "${blocked_packages[@]}"; do
-		cat >> /etc/apt/preferences.d/isar << EOF
-Package: ${pkg}
-Pin: origin eci.intel.com
 Pin-Priority: -1
-
-EOF
-	done
-	
-	echo "APT preferences configured: camera packages pinned to ECI, systemd packages blocked."
+EOFSTART
+    
+    echo "APT preferences configured: camera packages pinned to ECI, remaining ECI catalog safely blacklisted."
 }
-
 install_camera_packages() {
 	echo "Setting up Intel ECI repository and installing camera packages..."
 	install -d -m 0755 "${APT_KEYRINGS_DIR}"
