@@ -20,7 +20,7 @@ MIRROR="https://dl-cdn.alpinelinux.org/alpine"
 # Unset by default; if set, verifies downloaded tarball against this value.
 # Get the real hash from https://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/releases/${ARCH}/SHA256SUMS
 # Pin it for reproducibility: ALPINE_MINIROOTFS_SHA256=<hash> ./build-alpine-os.sh
-ALPINE_MINIROOTFS_SHA256="${ALPINE_MINIROOTFS_SHA256:-}"
+ALPINE_MINIROOTFS_SHA256="${ALPINE_MINIROOTFS_SHA256:-55ea3e5a7c2c35e6268c5dcbb8e45a9cd5b0e372e7b4e798499a526834f7ed90}"
 
 # Directory paths
 WORKDIR="${WORKDIR:-$SCRIPT_DIR/build}"

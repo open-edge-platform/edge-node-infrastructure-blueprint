@@ -34,10 +34,10 @@ INTEL_DEVICE_PLUGINS_VERSION="${INTEL_DEVICE_PLUGINS_VERSION:-v0.36.0}"
 # Optional: Pin checksums for independent verification (unset by default).
 # When set, verifies artifacts against pinned values instead of co-downloaded manifests.
 # Unset warnings note that manifests are same-origin and not independently authenticated.
-K3S_BINARY_SHA256="${K3S_BINARY_SHA256:-}"
-DOCKER_SHA256="${DOCKER_SHA256:-}"
-COMPOSE_SHA256="${COMPOSE_SHA256:-}"
-HELM_SHA256="${HELM_SHA256:-}"
+K3S_BINARY_SHA256="${K3S_BINARY_SHA256:-b19216803650b567bf980888dec39035edaf664339c55bc4462f7a003edbef83}"
+DOCKER_SHA256="${DOCKER_SHA256:-4f798b3ee1e0140eab5bf30b0edc4e84f4cdb53255a429dc3bbae9524845d640}"
+COMPOSE_SHA256="${COMPOSE_SHA256:-3efda1ad6caed49dedd5644cadbf7e0c9cc3d74d8844ca5237b6a43ac1ef1a46}"
+HELM_SHA256="${HELM_SHA256:-90c28792a1eb5fb0b50028e39ebf826531ebfcf73f599050dbd79bab2f277241}"
 
 # ------------------------------------------------------------------------------
 # Architecture detection
