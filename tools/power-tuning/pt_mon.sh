@@ -12,7 +12,7 @@
 # power-monitoring tool instead (e.g. turbostat directly, powertop,
 # intel_gpu_top, a BMC/OEM utility, or reading /sys/class/powercap/intel-rapl*).
 #
-# Usage: ./pt_mon.sh          # sample every 2 s until Ctrl-C
+# Usage: ./pt_mon.sh          # sample every 2 s for 3 minutes by default
 #
 # Columns shown (all powers in watts, temp in degrees C):
 #   PkgTmp   - package temperature
@@ -43,6 +43,10 @@
 
 set -x
 
+INTERVAL_S=2
+DEFAULT_DURATION_S=180
+NUM_ITERATIONS=$((DEFAULT_DURATION_S / INTERVAL_S))
+
 # check_psys - warn if the platform (psys) energy counter is frozen/unavailable,
 # which is why SysWatt would print 0.00. Best-effort; never aborts monitoring.
 check_psys() {
@@ -65,4 +69,4 @@ check_psys() {
 check_psys
 # --interval 2  : refresh every 2 seconds
 # --show ...    : restrict output to the temperature + power columns of interest
-sudo turbostat -S --interval 2 --show PkgTmp,PkgWatt,CorWatt,GFXWatt,RAMWatt,SysWatt | tee pt_mon.txt
+sudo turbostat -S --interval "$INTERVAL_S" --num_iterations "$NUM_ITERATIONS" --show PkgTmp,PkgWatt,CorWatt,GFXWatt,RAMWatt,SysWatt | tee pt_mon.txt

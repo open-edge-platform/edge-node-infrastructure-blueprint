@@ -43,7 +43,7 @@ Acronyms and terms used throughout this skill.
 
 ## Required Inputs
 - enib_home: absolute path to this repository root (default: current workspace root). On a host provisioned with Infrastructure Blueprint, the developer source tree lives at `/opt/edge/developer`, so `enib_home` is `/opt/edge/developer` on the target system.
-- duration: optional monitoring window, e.g. `30s`, `2m` (default: run until stopped / Ctrl-C). Implemented by the skill (the script itself samples until interrupted).
+- duration: optional monitoring window, e.g. `30s`, `2m` (default: `3m`). Implemented by the skill (the script itself samples until interrupted).
 - interval: sampling interval in seconds (default: `2`, matching the script). Only applied when the skill is allowed to pass it through; otherwise the script default is used.
 - log_path: where to tee the output (default: `<enib_home>/tools/power-tuning/pt_mon.txt`, the script's built-in location when run from that directory).
 - dry_run: `true` | `false` (default: `false`). When `true`, only the resolved command is shown; the monitor is not started.
@@ -68,7 +68,7 @@ Run silently without user prompts:
   - else read MSR `0x65C` twice ~1 s apart; if unchanged, note the psys counter is frozen (firmware limitation) → `SysWatt` will read `0.00`.
 
 Prompt only for missing required inputs:
-- [ ] Do not prompt; all inputs have safe defaults (2 s interval, run until stopped, tee to `pt_mon.txt`). Only ask if the user's request is ambiguous about `duration`.
+- [ ] Do not prompt; all inputs have safe defaults (2 s interval, 3 m duration, tee to `pt_mon.txt`). Only ask if the user's request is ambiguous about `duration`.
 
 Input validation (fail closed before starting):
 - [ ] `duration` (if supplied) matches `^[0-9]+(s|m|h)?$`.
@@ -84,22 +84,21 @@ Input validation (fail closed before starting):
 1. Resolve the command (no start yet):
    - Default: `<enib_home>/tools/power-tuning/pt_mon.sh` run from its directory (tees to `pt_mon.txt`). Invoke by absolute path — do NOT use `cd ... && sudo ./pt_mon.sh` (combines `cd` with the implicit `tee` redirection inside the script).
    - The script hard-codes `turbostat -S --interval 2 --show PkgTmp,PkgWatt,CorWatt,GFXWatt,RAMWatt,SysWatt | tee pt_mon.txt`.
-   - If a non-default `interval`, `log_path`, or `duration` is requested, do NOT edit the script; instead run turbostat directly with the same columns, e.g.:
+  - Resolve `duration` to the user-supplied value or the default `3m`.
+  - If a non-default `interval`, `log_path`, or resolved `duration` is requested, do NOT edit the script; instead run turbostat directly with the same columns, e.g.:
      - `sudo turbostat -S --interval <interval> --show PkgTmp,PkgWatt,CorWatt,GFXWatt,RAMWatt,SysWatt --num_iterations <N>`
      - where `<N> = ceil(duration_seconds / interval)` when a `duration` is given. Pipe to `tee <log_path>` as a separate step if capturing to a file.
-2. **Render the Planned Monitor summary** to the user: command, interval, duration (or "until stopped"), log path, and the psys/SysWatt annotation from preconditions.
+2. **Render the Planned Monitor summary** to the user: command, interval, resolved duration, log path, and the psys/SysWatt annotation from preconditions.
 3. **Confirmation gate** — pause before starting:
    - If `dry_run=true`: report "dry-run only — monitor not started" and stop.
    - Else if `auto_confirm=true`: log `AUTO_CONFIRM=true` and continue.
-   - Else: ask "Start power monitor (interval <interval>s, duration <duration or 'until stopped'>, log <log_path>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
+  - Else: ask "Start power monitor (interval <interval>s, duration <duration>, log <log_path>)? (yes/no)". On anything other than `yes`/`y` (case-insensitive), stop and record `CONFIRMATION=declined`.
 4. Start the monitor (only after confirmation):
-   - **Bounded** (`duration` set): run synchronously with `--num_iterations <N>` (or the default script under `timeout <duration>`); capture exit code and the tee'd log.
-   - **Open-ended** (no `duration`): run in the **background** so it does not block; record the turbostat/tee PID and tell the user how to stop it (`sudo pkill -x turbostat`, or Ctrl-C if launched in their own foreground terminal).
+  - Run synchronously with `--num_iterations <N>` (or the default script under `timeout <duration>`); capture exit code and the tee'd log.
 5. Confirm sampling started:
    - `test -s <log_path>` and/or `pgrep -x turbostat` returns a PID.
 6. Summarize the capture:
-   - For bounded runs: report row count and the min/mean/max of `PkgTmp`, `PkgWatt`, and `GFXWatt` parsed from `<log_path>`.
-   - For open-ended runs: report the first sampled row and the running PID.
+  - Report row count and the min/mean/max of `PkgTmp`, `PkgWatt`, and `GFXWatt` parsed from `<log_path>`.
 
 ## Validation
 Validation section is criteria-only. Do not render the pass/fail results table here.
@@ -109,11 +108,10 @@ Validation section is criteria-only. Do not render the pass/fail results table h
 - Confirmation gate outcome recorded as one of: `confirmed`, `auto_confirm`, `declined`, `dry_run_only`.
 - Start only occurred when the outcome is `confirmed` or `auto_confirm`.
 - After start, the log file is non-empty (`test -s`) and/or `turbostat` is running.
-- For bounded runs, the process exited with code `0` and the log has at least one data row.
+- The process exited with code `0` and the log has at least one data row.
 - `SysWatt=0.00` is reported as a known firmware limitation (per the psys detection), NOT a monitor failure.
 
 ## Rollback
-- Stop an open-ended monitor at any time: `sudo pkill -x turbostat` (or Ctrl-C in the launching terminal).
 - Monitoring is read-only; it changes no system state. The only artifact is the log file at `<log_path>` (default `tools/power-tuning/pt_mon.txt`), which the user may delete.
 
 ## Safety Rules
