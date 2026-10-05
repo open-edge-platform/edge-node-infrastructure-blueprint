@@ -46,9 +46,9 @@ Run all checks silently — report failures only, no prompts:
   - Flow A (`build_mode=standard-image`): no extra inputs; proceed directly to build.
   - Flow B (`build_mode=server-image`): no extra inputs; proceed directly to build.
   - Flow C (`build_mode=image-from-tool`):
-    - If `ict_img` was already provided by the user: use it directly without any reuse/rebuild prompt.
+    - If `ict_img` was already provided by the user: use it directly without any reuse or rebuild prompt.
     - If `ict_img` was NOT provided: probe expected ICT output path, show found image(s) with timestamps, ask one question to reuse or rebuild.
-    - If rebuilding or no image found and `create_image_first=yes`: run `create-image` skill, then collect artifact path.
+    - If rebuilding or no image found, and `create_image_first=yes`: run `create-image` skill, then collect artifact path.
   - Flow D (`build_mode=reuse-image`): no additional inputs; proceed directly to build.
 2. If Flow C requires image creation, run `create-image` skill to generate a host image and collect artifact path.
 3. Set build command arguments:
