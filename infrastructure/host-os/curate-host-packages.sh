@@ -105,7 +105,7 @@ install_depended_packages() {
 }
 
 create_ppa_sources_list() {
-    local SNAPSHOT_NAME="2026_S_REL3-meta-data-fix"
+    local SNAPSHOT_NAME="2026_A_REL4"
     echo "Creating Intel overlay repository sources list from snapshot ${SNAPSHOT_NAME}..."
     mkdir -p /etc/apt/sources.list.d
     cat > /etc/apt/sources.list.d/intel-ptl.list << EOF
@@ -286,7 +286,7 @@ install_essential_tools() {
 		libnl-3-200 libnl-genl-3-200 iproute2 net-tools iputils-ping tcpdump curl linuxptp dnsmasq-base network-manager \
 		bluez \
 		libtpms0 libtpms-dev \
-		intel-gpu-tools thermald rpc-go lms metee stress-ng \
+		intel-gpu-tools thermald rpc-go lms stress-ng \
 		pahole libbabeltrace1 libdebuginfod1t64 libopencsd1 libtracefs1 libtraceevent1 libpci3 pciutils \
 		vim nano mc less file mawk grep diffutils findutils debianutils ncurses-base ncurses-bin cron msr-tools i2c-tools \
 		lsscsi sg3-utils dosfstools gdisk pigz rpm \
@@ -856,7 +856,7 @@ install_linux_tools() {
 	echo "Installing Linux tools..."
 	apt update
 	apt install -y \
-		linux-kbuild-6.18.38 \
+		linux-kbuild-6.18.49 \
 		linux-config-6.18 \
 		linux-bpf-dev \
 		linux-intel-bpftool \
@@ -906,7 +906,7 @@ install_linux_tools() {
 	# Rename cpupower systemd service to canonical name
 	if [ -f /usr/lib/systemd/system/cpupower-intel.service ]; then mv /usr/lib/systemd/system/cpupower-intel.service /usr/lib/systemd/system/cpupower.service || true; fi
 	# out-of-tree builds look for /lib/modules/$(uname -r)/build
-	if [ -d /usr/lib/linux-kbuild-6.18.38 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.38 "$k" || true; done; fi
+	if [ -d /usr/lib/linux-kbuild-6.18.49 ]; then for k in /lib/modules/*-intel/build; do [ -e "$k" ] || ln -sf /usr/lib/linux-kbuild-6.18.49 "$k" || true; done; fi
 	# Report what resolved, so a missing tool is visible in the build log.
 	for t in bpftool perf cpupower rtla hwnoise osnoise timerlat usbip usbipd turbostat intel-speed-select x86_energy_perf_policy intel_pstate_tracer tmon thermometer bootconfig intel_sdsi hv_kvp_daemon; do p=$(command -v "$t" 2>/dev/null || true); echo "kernel-tool: $t -> ${p:-MISSING}"; done
 	
