@@ -6,14 +6,24 @@ INTEL_LPMD_COMMIT ?= 956df747e56aca1739b39bff8cff77e81758af9a
 .PHONY: power-tuning system-info lpmd
 
 power-tuning: lpmd
-	sudo apt-get update
-	sudo apt-get install -y turbostat msr-tools "linux-tools-$$(uname -r)" stress-ng # docker/k3s/openvino
-	sudo mkdir -p /opt/edge/developer/tools/
-	sudo cp -r power-tuning /opt/edge/developer/tools/power-tuning
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the lpmd target must be run as root (e.g. sudo make lpmd)." >&2
+		exit 1
+	fi
+	apt-get update
+	apt-get install -y msr-tools "linux-tools-$$(uname -r)" stress-ng # needs docker
+	mkdir -p /opt/edge/developer/tools/
+	cp -r power-tuning /opt/edge/developer/tools/power-tuning
+	echo "power-tuning installed"
 
 system-info:
-	sudo mkdir -p /opt/edge/developer/tools/
-	sudo cp -r system-info /opt/edge/developer/tools/system-info
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the system-info target must be run as root (e.g. sudo make system-info)." >&2
+		exit 1
+	fi
+	mkdir -p /opt/edge/developer/tools/
+	cp -r system-info /opt/edge/developer/tools/system-info
+	echo "system-info installed"
 
 lpmd:
 	if [[ $$EUID -ne 0 ]]; then

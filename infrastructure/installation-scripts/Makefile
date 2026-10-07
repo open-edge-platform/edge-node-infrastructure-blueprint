@@ -7,7 +7,11 @@ SHELL := bash
 # Installs the Intel RealSense SDK from librealsense.intel.com (librealsense2,
 # librealsense2-dkms, librealsense2-utils, librealsense2-dev, librealsense2-gl).
 realsense:
-	sudo mkdir -p /etc/apt/keyrings
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the realsense target must be run as root (e.g. sudo make realsense)." >&2
+		exit 1
+	fi
+	mkdir -p /etc/apt/keyrings
 	# gpg --verify is expected to fail here (no pubkey yet); disable pipefail
 	# so that expected failure doesn't short-circuit the NO_PUBKEY parse below.
 	set +o pipefail
@@ -26,28 +30,32 @@ realsense:
 		exit 1
 	fi
 	gpg --dearmor -o /tmp/librealsense-keyring.gpg /tmp/librealsense.gpg
-	sudo install -m 644 /tmp/librealsense-keyring.gpg /etc/apt/keyrings/librealsense.gpg
+	install -m 644 /tmp/librealsense-keyring.gpg /etc/apt/keyrings/librealsense.gpg
 	rm -f /tmp/librealsense.gpg /tmp/librealsense-keyring.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/librealsense.gpg] https://librealsense.intel.com/Debian/apt-repo $$(lsb_release -cs) main" \
-		| sudo tee /etc/apt/sources.list.d/librealsense.list > /dev/null
-	sudo apt-get update
-	sudo apt-get install -y \
+		| tee /etc/apt/sources.list.d/librealsense.list > /dev/null
+	apt-get update
+	apt-get install -y \
 		librealsense2 librealsense2-dkms librealsense2-utils librealsense2-dev librealsense2-gl
 	echo "Intel RealSense packages installed."
 
 cdi-sriov:
-	sudo apt update && sudo apt install -y golang
-	sudo mkdir -p /opt/edge/scripts/cdi
-	sudo install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
-	sudo install -m 644 systemd/intel-sriov-vf.service /etc/systemd/system/intel-sriov-vf.service
-	sudo systemctl daemon-reload
-	sudo systemctl enable intel-sriov-vf.service
-	sudo bash /opt/edge/scripts/container_setup_sriov.sh
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the cdi-sriov target must be run as root (e.g. sudo make cdi-sriov)." >&2
+		exit 1
+	fi
+	apt update && apt install -y golang
+	mkdir -p /opt/edge/scripts/cdi
+	install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
+	install -m 644 systemd/intel-sriov-vf.service /etc/systemd/system/intel-sriov-vf.service
+	systemctl daemon-reload
+	systemctl enable intel-sriov-vf.service
+	bash /opt/edge/scripts/container_setup_sriov.sh
 	if [[ ! -x cdi/intel-cdi-specs-generator-gpu ]]; then
 		echo "Building Intel CDI GPU spec generator..."
 		cdi/build-gpu-generator.sh	
 	fi
-	sudo install -m 755 cdi/intel-cdi-specs-generator-gpu /opt/edge/scripts/cdi/intel-cdi-specs-generator-gpu
-	sudo install -m 755 cdi/intel-cdi-npu-generator.sh /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh
-	sudo cdi/systemd/install-systemd.sh
+	install -m 755 cdi/intel-cdi-specs-generator-gpu /opt/edge/scripts/cdi/intel-cdi-specs-generator-gpu
+	install -m 755 cdi/intel-cdi-npu-generator.sh /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh
+	cdi/systemd/install-systemd.sh
 	echo "CDI and SR-IOV services installed."
