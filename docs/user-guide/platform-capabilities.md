@@ -64,7 +64,7 @@ The following tables describe what is expected to be present on a system that ha
 | ISA extensions | SSE4.2, AVX, AVX2, AVX-VNNI, AES-NI, SHA-NI, VAES, VPCLMULQDQ, GFNI, MOVDIRI, MOVDIR64B (no AVX-512 / AMX) |
 | CPU governor | `intel_pstate` / `powersave`; HWP active, turbo enabled; |
 | OS | Ubuntu OS Version 24.04 LTS (`minimal-desktop-ubuntu`) |
-| Kernel | `linux-image-6.18-intel 260717T053932Z-r2`; command line: `xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192` |
+| Kernel | `linux-image-6.18-intel 260903T031657Z-r2`; command line: `xe.max_vfs=7 xe.force_probe=* modprobe.blacklist=i915 udmabuf.list_limit=8192` |
 | iGPU | `xe` driver 1.1.0; device `8086:b08f`; 8 Physical Functions (PFs), 7 SR-IOV Virtual Functions (VFs); persisted via `intel-sriov-vf.service` |
 | iGPU firmware | `ptl_guc_70.bin.zst`, `ptl_huc.bin.zst`, `ptl_gsc_1.bin.zst` |
 | NPU (NPU 5) | `intel_vpu` 1.0.0 (in-kernel); firmware `vpu_50xx_v1.bin` (Jun 30, 2026); `intel-level-zero-npu 1.35.0.20260722-29947505341~ubuntu24.04` |
