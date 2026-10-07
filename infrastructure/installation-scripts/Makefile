@@ -2,7 +2,7 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 
-.PHONY: realsense
+.PHONY: realsense cdi-sriov
 
 # Installs the Intel RealSense SDK from librealsense.intel.com (librealsense2,
 # librealsense2-dkms, librealsense2-utils, librealsense2-dev, librealsense2-gl).
@@ -36,4 +36,18 @@ realsense:
 	echo "Intel RealSense packages installed."
 
 cdi-sriov:
-	
+	sudo apt update && sudo apt install -y golang
+	sudo mkdir -p /opt/edge/scripts/cdi
+	sudo install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
+	sudo install -m 644 systemd/intel-sriov-vf.service /etc/systemd/system/intel-sriov-vf.service
+	sudo systemctl daemon-reload
+	sudo systemctl enable intel-sriov-vf.service
+	sudo bash /opt/edge/scripts/container_setup_sriov.sh
+	if [[ ! -x cdi/intel-cdi-specs-generator-gpu ]]; then
+		echo "Building Intel CDI GPU spec generator..."
+		cdi/build-gpu-generator.sh	
+	fi
+	sudo install -m 755 cdi/intel-cdi-specs-generator-gpu /opt/edge/scripts/cdi/intel-cdi-specs-generator-gpu
+	sudo install -m 755 cdi/intel-cdi-npu-generator.sh /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh
+	sudo cdi/systemd/install-systemd.sh
+	echo "CDI and SR-IOV services installed."
