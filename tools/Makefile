@@ -16,8 +16,12 @@ system-info:
 	sudo cp -r system-info /opt/edge/developer/tools/system-info
 
 lpmd:
-	sudo apt-get update
-	sudo apt-get install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the lpmd target must be run as root (e.g. sudo make lpmd)." >&2
+		exit 1
+	fi
+	apt-get update
+	apt-get install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
 		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
 	cd /tmp
 	rm -rf lpmd
@@ -31,11 +35,11 @@ lpmd:
 	fi
 	./autogen.sh
 	make
-	sudo make install
+	make install
 	# Remove restrictive hardware conditions so the service attempts to start
 	# on all platforms. The daemon itself will exit gracefully if unsupported.
-	sudo mkdir -p /etc/systemd/system/intel_lpmd.service.d
-	sudo tee /etc/systemd/system/intel_lpmd.service.d/override.conf > /dev/null <<-EOF
+	mkdir -p /etc/systemd/system/intel_lpmd.service.d
+	tee /etc/systemd/system/intel_lpmd.service.d/override.conf > /dev/null <<-EOF
 		[Unit]
 		# Clear all Condition* directives from the upstream unit
 		ConditionPathExists=
@@ -43,9 +47,9 @@ lpmd:
 	EOF
 	# NOTE: Not purging build dependencies — they are shared with dkms,
 	# build-essential, intel-mipi-gmsl-dkms, and librealsense2-dkms.
-	sudo apt-get clean
+	apt-get clean
 	# Enable service
-	sudo systemctl --root=/ enable intel_lpmd.service
+	systemctl --root=/ enable intel_lpmd.service
 	cd /tmp
 	rm -rf lpmd
 	echo "Installed intel-lpmd"
