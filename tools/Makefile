@@ -13,7 +13,7 @@ power-tuning: lpmd
 		exit 1
 	fi
 	apt-get update
-	apt-get install -y msr-tools "linux-tools-$$(uname -r)" stress-ng # needs docker
+	apt-get install -y msr-tools lm-sensors "linux-tools-$$(uname -r)" stress-ng # needs docker
 	mkdir -p /opt/edge/developer/tools/
 	cp -r power-tuning /opt/edge/developer/tools/power-tuning
 	echo "power-tuning installed"
