@@ -34,7 +34,7 @@ lpmd:
 	fi
 	apt-get update
 	apt-get install -y autoconf autoconf-archive gcc libglib2.0-dev libdbus-1-dev libxml2-dev libnl-3-dev \
-		libnl-genl-3-dev libsystemd-dev gtk-doc-tools libupower-glib-dev automake
+		libnl-genl-3-dev libsystemd-dev systemd-dev gtk-doc-tools libupower-glib-dev automake
 	cd /tmp
 	rm -rf lpmd
 	git clone https://github.com/intel/intel-lpmd.git lpmd
@@ -46,6 +46,13 @@ lpmd:
 		exit 1
 	fi
 	./autogen.sh
+	# configure skips installing the systemd unit (HAVE_SYSTEMD) when it
+	# can't resolve systemdsystemunitdir via pkg-config; fail fast instead
+	# of hitting a cryptic "systemctl enable" error later.
+	if [[ -z "$$(pkg-config --variable=systemdsystemunitdir systemd 2>/dev/null)" ]]; then
+		echo "ERROR: pkg-config could not resolve systemd's systemdsystemunitdir (is the systemd-dev package installed?)." >&2
+		exit 1
+	fi
 	make
 	make install
 	# Remove restrictive hardware conditions so the service attempts to start
