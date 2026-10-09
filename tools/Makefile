@@ -4,16 +4,17 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
 INTEL_LPMD_COMMIT ?= 956df747e56aca1739b39bff8cff77e81758af9a
+PCM_COMMIT ?= abb6bce87cc2ed23d6677541ebcfc47ca769d1ed
 
-.PHONY: power-tuning system-info lpmd
+.PHONY: power-tuning system-info lpmd pcm
 
-power-tuning: lpmd
+power-tuning: lpmd pcm
 	if [[ $$EUID -ne 0 ]]; then
 		echo "ERROR: the lpmd target must be run as root (e.g. sudo make lpmd)." >&2
 		exit 1
 	fi
 	apt-get update
-	apt-get install -y sysbench pcm msr-tools lm-sensors "linux-tools-$$(uname -r)" stress-ng # needs docker
+	apt-get install -y sysbench msr-tools lm-sensors "linux-tools-$$(uname -r)" stress-ng # needs docker
 	mkdir -p /opt/edge/developer/tools/
 	cp -r power-tuning /opt/edge/developer/tools/power-tuning
 	echo "power-tuning installed"
@@ -72,3 +73,31 @@ lpmd:
 	cd /tmp
 	rm -rf lpmd
 	echo "Installed intel-lpmd"
+
+pcm:
+	if [[ $$EUID -ne 0 ]]; then
+		echo "ERROR: the pcm target must be run as root (e.g. sudo make pcm)." >&2
+		exit 1
+	fi
+	apt-get update
+	apt-get install -y build-essential cmake make git
+	cd /tmp
+	rm -rf pcm
+	git clone https://github.com/intel/pcm.git
+	cd pcm
+	git checkout "$(PCM_COMMIT)" || { echo "ERROR: Failed to checkout PCM commit $(PCM_COMMIT)"; exit 1; }
+	ACTUAL_COMMIT=$$(git rev-parse HEAD)
+	if [[ "$$ACTUAL_COMMIT" != "$(PCM_COMMIT)" ]]; then
+		echo "ERROR: PCM commit verification failed: expected $(PCM_COMMIT), got $$ACTUAL_COMMIT"
+		exit 1
+	fi
+	git submodule update --init --recursive
+	mkdir build
+	cd build
+	cmake ..
+	make -j"$$(nproc)"
+	cp -r bin/* /usr/local/bin/
+	echo 'msr' | tee /etc/modules-load.d/intel-pcm.conf > /dev/null
+	cd /tmp
+	rm -rf pcm
+	echo "Installed pcm"
