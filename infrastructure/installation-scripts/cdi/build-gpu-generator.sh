@@ -26,7 +26,7 @@ CLEANUP_SOURCE=false
 # Pin the current default tag to its immutable commit SHA for security.
 # Only enforced when TAG matches the default and COMMIT is not explicitly provided.
 DEFAULT_TAG="gpu-v0.10.1"
-DEFAULT_COMMIT="5ed70dac2c31c020bdf82fc5b913e807e7127436"
+DEFAULT_COMMIT="cbc201e750eb2eb32b65a69b94d36ead18e2018a"
 EXPECTED_COMMIT=""
 
 usage() {
