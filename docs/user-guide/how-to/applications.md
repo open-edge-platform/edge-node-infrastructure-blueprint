@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Standalone applications installation
 
 This repo allows you to install applications, such as Docker, K3s, power-tuning, system-info and others. To install them on a supported machine, run the following commands as a prerequisite for installation.
@@ -27,3 +32,5 @@ To install system-info, power-tuning, realsense, CDI and SR-IOV packages (which 
 ```shell
 sudo make common
 ```
+
+If you want to install a specific application, navigate to [tools makefile](../../../tools/Makefile) or [scripts makefile](../../../infrastructure/installation-scripts/Makefile) and run the target for the application that you are interested in.
