@@ -1,3 +1,5 @@
+# SPDX-FileCopyrightText: (C) 2026 Intel Corporation
+# SPDX-License-Identifier: LicenseRef-Intel
 # Makefile — Edge Node Infrastructure Blueprint (ENIB) installer
 #
 # Usage:
