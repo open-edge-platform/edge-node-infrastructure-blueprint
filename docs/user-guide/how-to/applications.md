@@ -15,7 +15,7 @@ cd edge-node-infrastructure-blueprint
 
 After that, the system is ready for installation of packages. It will download additional dependencies from the APT repo or will build them during installation, which might take some time depending on the bandwidth of the system.
 
-To install Docker, run
+To install software that enable deployment of docker-based applications, run:
 
 ```shell
 sudo make docker
