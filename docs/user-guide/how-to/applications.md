@@ -8,7 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 This repo allows you to install applications, such as Docker, K3s, power-tuning, system-info and others. To install them on a supported machine, run the following commands as a prerequisite for installation.
 
 ```shell
-sudo apt install make git curl
+sudo apt install -y make git curl
 git clone https://github.com/open-edge-platform/edge-node-infrastructure-blueprint.git
 cd edge-node-infrastructure-blueprint
 ```
