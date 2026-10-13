@@ -21,7 +21,7 @@ To install software that enable deployment of docker-based applications, run:
 sudo make docker
 ```
 
-To install K3s, run
+To install software that enable deployment of k3s-based applications, run:
 
 ```shell
 sudo make k3s
