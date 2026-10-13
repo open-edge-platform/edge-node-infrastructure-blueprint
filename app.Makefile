@@ -16,6 +16,7 @@ docker: prereqs resources
 
 k3s: prereqs resources
 	$(SCRIPTS)/install-k3s.sh
+	systemctl start k3s
 	$(SCRIPTS)/install-helm.sh
 	$(SCRIPTS)/install-intel-device-plugins.sh
 	$(MAKE) common

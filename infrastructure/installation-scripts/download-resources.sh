@@ -244,6 +244,8 @@ success "${HELM_TARBALL} saved"
 if [[ -n "${HELM_SHA256:-}" ]]; then
     # Verify against independently pinned checksum (primary trust source)
     verify_sha256_hex "${RESOURCES_DIR}/helm/${HELM_TARBALL}" "${HELM_SHA256}"
+    # Persist the sidecar so install-helm.sh can re-verify on the air-gapped target
+    echo "${HELM_SHA256}  ${HELM_TARBALL}" > "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum"
 else
     # Fall back to co-downloaded manifest (same-origin, not independently verified)
     warn "HELM_SHA256 not set — helm checksum is not independently verified."
