@@ -150,6 +150,12 @@ INSTALL_K3S_SKIP_DOWNLOAD=true \
 INSTALL_K3S_BIN_DIR="${K3S_INSTALL_DIR}" \
 bash "${RESOURCES_DIR}/install.sh" "${INSTALL_ARGS[@]}"
 
+mkdir -p /etc/kubernetes
+cp /etc/rancher/k3s/k3s.yaml /etc/kubernetes/config
+chmod 0600 /etc/kubernetes/config
+chown "${SUDO_USER:-$USER}" /etc/kubernetes/config
+grep -qxF 'export KUBECONFIG=/etc/kubernetes/config' "/home/${SUDO_USER:-$USER}/.bashrc" || \
+    echo 'export KUBECONFIG=/etc/kubernetes/config' >> "/home/${SUDO_USER:-$USER}/.bashrc"
 # ==============================================================================
 # 5. Post-install guidance
 # ==============================================================================
