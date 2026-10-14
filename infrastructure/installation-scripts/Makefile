@@ -55,6 +55,11 @@ cdi-sriov:
 		echo "ERROR: the cdi-sriov target must be run as root (e.g. sudo make cdi-sriov)." >&2
 		exit 1
 	fi
+	. /etc/os-release
+	if [[ "$${ID}" != "ubuntu" || "$${VERSION_ID}" != 24.* ]]; then
+		echo "ERROR: the cdi-sriov target is only supported on Ubuntu 24 (detected: $${ID:-unknown} $${VERSION_ID:-unknown})." >&2
+		exit 1
+	fi
 	apt update && apt install -y golang
 	mkdir -p /opt/edge/scripts/cdi
 	install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
