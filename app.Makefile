@@ -15,7 +15,7 @@ SHELL := bash
 docker: prereqs resources
 	$(SCRIPTS)/install-docker.sh
 	$(MAKE) common
-	echo "Docker installed. Exit and login again to ensure that `docker` binary is working correctly.
+	echo "Docker installed. Exit and log in again to ensure that the 'docker' command works correctly."
 
 k3s: prereqs resources
 	$(SCRIPTS)/install-k3s.sh
