@@ -23,6 +23,7 @@ k3s: prereqs resources
 	$(SCRIPTS)/install-helm.sh
 	$(SCRIPTS)/install-intel-device-plugins.sh
 	$(MAKE) common
+	@echo "K3s installed. Run 'source ~/.bashrc' or 'export KUBECONFIG=/etc/kubernetes/config' to export kubeconfig"
 
 prereqs:
 	@if [[ $$EUID -ne 0 ]]; then \
