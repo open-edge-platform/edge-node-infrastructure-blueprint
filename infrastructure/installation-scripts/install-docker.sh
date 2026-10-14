@@ -248,8 +248,6 @@ success "/etc/systemd/system/docker.service.d/http-proxy.conf written"
 
 groupadd docker || true
 usermod -aG docker "${SUDO_USER:-$USER}"
-apt update && apt install -y util-linux-extra
-newgrp docker
 # ==============================================================================
 # 7. Enable and (optionally) start services
 # ==============================================================================
