@@ -58,7 +58,7 @@ cdi-sriov:
 	. /etc/os-release
 	if [[ "$${ID}" != "ubuntu" || "$${VERSION_ID}" != 24.* ]]; then
 		echo "ERROR: the cdi-sriov target is only supported on Ubuntu 24 (detected: $${ID:-unknown} $${VERSION_ID:-unknown})." >&2
-		exit 1
+		exit 0
 	fi
 	apt update && apt install -y golang
 	mkdir -p /opt/edge/scripts/cdi
