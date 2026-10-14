@@ -250,6 +250,8 @@ if [[ "${SKIP_SERVICE_START}" != "1" ]]; then
     success "Services started"
 fi
 
+groupadd docker || true
+usermod -aG docker $USER
 # ==============================================================================
 # 7. Verify
 # ==============================================================================
