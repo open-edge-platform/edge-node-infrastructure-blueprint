@@ -60,7 +60,7 @@ cdi-sriov:
 		echo "ERROR: the cdi-sriov target is only supported on Ubuntu 24 (detected: $${ID:-unknown} $${VERSION_ID:-unknown})." >&2
 		exit 0
 	fi
-	apt update && apt install -y golang
+	apt update && apt install -y golang python3
 	mkdir -p /opt/edge/scripts/cdi
 	install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
 	install -m 644 systemd/intel-sriov-vf.service /etc/systemd/system/intel-sriov-vf.service
@@ -73,5 +73,22 @@ cdi-sriov:
 	fi
 	install -m 755 cdi/intel-cdi-specs-generator-gpu /opt/edge/scripts/cdi/intel-cdi-specs-generator-gpu
 	install -m 755 cdi/intel-cdi-npu-generator.sh /opt/edge/scripts/cdi/intel-cdi-npu-generator.sh
+	DAEMON_JSON="/etc/docker/daemon.json"
+	if [ -f "$$DAEMON_JSON" ] && ! grep -q '"cdi"' "$$DAEMON_JSON" 2>/dev/null; then
+		cp "$$DAEMON_JSON" "$${DAEMON_JSON}.bak"
+		python3 -c "
+	import json
+	f = open('$$DAEMON_JSON')
+	config = json.load(f)
+	f.close()
+	config.setdefault('features', {})['cdi'] = True
+	config.setdefault('cdi-spec-dirs', [])
+	if '/etc/cdi' not in config['cdi-spec-dirs']: config['cdi-spec-dirs'].append('/etc/cdi')
+	f = open('$$DAEMON_JSON', 'w')
+	json.dump(config, f, indent=2)
+	f.close()
+	" 2>/dev/null || { echo "WARNING: Could not configure Docker for CDI (python3 unavailable)"; exit 1; }
+		systemctl restart docker || true
+	fi
 	cdi/systemd/install-systemd.sh
 	echo "CDI and SR-IOV services installed."
