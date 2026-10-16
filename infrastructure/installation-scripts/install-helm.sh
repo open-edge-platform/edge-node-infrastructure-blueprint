@@ -30,7 +30,7 @@ HELM_INSTALL_DIR="${HELM_INSTALL_DIR:-/usr/local/bin}"
 # ------------------------------------------------------------------------------
 info()    { echo "[INFO]  $*"; }
 success() { echo "[OK]    $*"; }
-die()     { echo "[ERROR] $*" >&2; exit 1; }
+die()     { echo -e "[ERROR] $*" >&2; exit 1; }
 
 # ------------------------------------------------------------------------------
 # Preflight checks
