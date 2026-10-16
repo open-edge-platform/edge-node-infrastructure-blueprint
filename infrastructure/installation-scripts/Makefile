@@ -50,23 +50,14 @@ realsense:
 		librealsense2 librealsense2-dkms librealsense2-utils librealsense2-dev librealsense2-gl
 	echo "Intel RealSense packages installed from the Intel ECI and librealsense repositories."
 
-cdi-sriov:
+cdi:
 	if [[ $$EUID -ne 0 ]]; then
 		echo "ERROR: the cdi-sriov target must be run as root (e.g. sudo make cdi-sriov)." >&2
 		exit 1
 	fi
 	. /etc/os-release
-	if [[ "$${ID}" != "ubuntu" || "$${VERSION_ID}" != 24.* ]]; then
-		echo "ERROR: the cdi-sriov target is only supported on Ubuntu 24 (detected: $${ID:-unknown} $${VERSION_ID:-unknown})." >&2
-		exit 0
-	fi
 	apt update && apt install -y golang python3
 	mkdir -p /opt/edge/scripts/cdi
-	install -m 755 container_setup_sriov.sh /opt/edge/scripts/container_setup_sriov.sh
-	install -m 644 systemd/intel-sriov-vf.service /etc/systemd/system/intel-sriov-vf.service
-	systemctl daemon-reload
-	systemctl enable intel-sriov-vf.service
-	bash /opt/edge/scripts/container_setup_sriov.sh
 	if [[ ! -x cdi/intel-cdi-specs-generator-gpu ]]; then
 		echo "Building Intel CDI GPU spec generator..."
 		cdi/build-gpu-generator.sh	
@@ -91,4 +82,4 @@ cdi-sriov:
 		systemctl restart docker || true
 	fi
 	cdi/systemd/install-systemd.sh
-	echo "CDI and SR-IOV services installed."
+	echo "CDI services installed."

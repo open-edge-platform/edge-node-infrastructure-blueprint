@@ -36,6 +36,6 @@ resources:
 
 common:
 	apt update && apt install -y chrony 
-	$(MAKE) -C $(SCRIPTS) realsense cdi-sriov
+	$(MAKE) -C $(SCRIPTS) realsense cdi
 	$(MAKE) -C tools power-tuning system-info
  
