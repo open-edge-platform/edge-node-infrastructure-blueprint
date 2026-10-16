@@ -10,7 +10,7 @@ INTEL_ECI_KEY_FINGERPRINT := B1CDAB5E8EE9205CBD8A7500EF16D1B6C97E2FC9
 LIBREALSENSE_KEY_ID := FB0B24895113F120
 LIBREALSENSE_KEY_ID_LC := fb0b24895113f120
 
-.PHONY: realsense cdi-sriov
+.PHONY: realsense cdi
 
 realsense:
 	if [[ $$EUID -ne 0 ]]; then
@@ -52,7 +52,7 @@ realsense:
 
 cdi:
 	if [[ $$EUID -ne 0 ]]; then
-		echo "ERROR: the cdi-sriov target must be run as root (e.g. sudo make cdi-sriov)." >&2
+		echo "ERROR: the cdi target must be run as root (e.g. sudo make cdi)." >&2
 		exit 1
 	fi
 	. /etc/os-release
