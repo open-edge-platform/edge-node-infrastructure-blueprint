@@ -112,13 +112,16 @@ RUN mkdir -p /lib/systemd/system/gdm.service.d && \
     printf "[Service]\nExecStartPre=/bin/sleep 1\n" > /lib/systemd/system/gdm.service.d/override.conf
 
 ARG USERNAME
-ARG PASSWORD
-ENV USERNAME=${USERNAME} \
-    PASSWORD=${PASSWORD}
+ENV USERNAME=${USERNAME}
 
 # User setup
-RUN useradd -m -s /bin/bash "${USERNAME}" && \
-    usermod -p "${PASSWORD}" "${USERNAME}" && \
+# PASSWORD is passed via BuildKit secret (not ARG/ENV) so it never persists
+# in the image layers, history, or config (Trivy DS-0031).
+RUN --mount=type=secret,id=password \
+    test -n "${USERNAME}" && test -s /run/secrets/password || \
+    { echo "ERROR: USERNAME and PASSWORD secret are required"; exit 1; } && \
+    useradd -m -s /bin/bash "${USERNAME}" && \
+    usermod -p "$(cat /run/secrets/password)" "${USERNAME}" && \
     usermod -aG sudo,audio,video,render,plugdev,netdev,input "${USERNAME}" && \
     echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 

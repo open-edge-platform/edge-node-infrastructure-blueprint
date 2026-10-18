@@ -111,7 +111,7 @@ if [[ "${IMAGE_REBUILD}" == "true" || "${IMAGE_TAG_MISSING}" == "true" ]]; then
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
-        --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
+        --secret id=password,env=PASSWORD \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
@@ -122,7 +122,7 @@ else
         --build-arg https_proxy="${https_proxy:-}" \
         --build-arg no_proxy="${no_proxy:-}" \
         --build-arg USERNAME="${IMAGE_USERNAME}" \
-        --build-arg PASSWORD="${IMAGE_USER_PASSWORD}" \
+        --secret id=password,env=PASSWORD \
         -f "${DOCKERFILE}" \
         -t "${IMAGE_NAME}:latest" \
         "${DOCKERFILE_DIR}"
