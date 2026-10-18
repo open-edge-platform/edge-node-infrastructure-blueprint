@@ -1,0 +1,19 @@
+{
+  "skill_name": "update-install-packages",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a no-write plan to add stress-ng and linux-tools-generic to both package configuration targets. Use the update-install-packages skill, verify Ubuntu 24.04 availability conceptually with apt-cache show, and do not edit files, run apt, or use sudo. Show validation, backup, YAML-check, and rollback steps.",
+      "expected_output": "Provide normalized inputs, fail-closed package/repository checks, target and backup paths, planned per-file changes, YAML validation, and rollback without claiming files were modified.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves add, stress-ng plus linux-tools-generic, and target_config_file=both",
+        "Lists repository/target-file checks, package-name validation, and mandatory Ubuntu 24.04 apt-cache availability checks",
+        "Plans backups before changes and names curate-host-packages.sh plus ubuntu24-x86_64-minimal-ptl.yml as the targets",
+        "Includes per-file add/already-present/not-found outcomes, YAML validation, image-size/kernel-dependency considerations, and no-write behavior",
+        "Provides backup restore rollback and alternative-package guidance when apt metadata cannot validate a package"
+      ]
+    }
+  ]
+}
