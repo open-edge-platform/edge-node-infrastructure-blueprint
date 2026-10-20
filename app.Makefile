@@ -3,8 +3,8 @@
 # Makefile — Edge Node Infrastructure Blueprint (ENIB) installer
 #
 # Usage:
-#   sudo make -f Makefile.enib docker   # Docker-based system
-#   sudo make -f Makefile.enib k3s      # k3s-based system
+#   sudo make -f app.Makefile docker   # Docker-based system
+#   sudo make -f app.Makefile k3s      # k3s-based system
 #
 
 SCRIPTS := infrastructure/installation-scripts
