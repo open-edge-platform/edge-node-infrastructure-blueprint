@@ -4,10 +4,12 @@
 [Unit]
 Description=Intel iGPU SR-IOV VF setup (oneshot, boot-time)
 DefaultDependencies=no
-After=systemd-modules-load.service local-fs.target dev-dri-card0.device
-Wants=dev-dri-card0.device
+# card number varies by platform (e.g. card0 on PTL, card1 on ARL); wait for udev to settle
+# instead of pinning to one card's device unit, so the condition below isn't checked too early.
+After=systemd-modules-load.service local-fs.target systemd-udev-settle.service
+Wants=systemd-udev-settle.service
 Before=docker.service containerd.service k3s.service kubelet.service basic.target display-manager.service
-ConditionPathExists=/sys/class/drm/card0/device/sriov_totalvfs
+ConditionPathExistsGlob=/sys/class/drm/card[0-9]*/device/sriov_totalvfs
 ConditionPathExists=/opt/edge/scripts/container_setup_sriov.sh
 
 [Service]

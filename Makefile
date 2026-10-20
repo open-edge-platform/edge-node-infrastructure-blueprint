@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: LicenseRef-Intel
 
-.PHONY: all build check-build-credentials build-cdi-generator lint shellcheck clean coverage license list help
+.PHONY: all build check-build-credentials build-cdi-generator lint shellcheck clean coverage license list help docker k3s prereqs resources common
 SHELL := bash -eu -o pipefail
+
+include app.Makefile
 
 # Find all shell scripts, excluding ./ci
 SH_FILES := $(shell find . -type f -name '*.sh' ! -path './ci/*' -print 2>/dev/null)

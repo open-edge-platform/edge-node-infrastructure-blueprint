@@ -16,13 +16,17 @@ DOORBELL_SPARE_PF=32
 # set the default value for VF scheduling parameters
 VFSCHED_EXECQ=25
 VFSCHED_TIMEOUT=500000
-NUMVFS=$(cat /sys/class/drm/card0/device/sriov_totalvfs)
+# resolve the lowest-numbered cardX directory under the iGPU's drm sysfs path
+# ARL usually has card1, PTL has card0.
+DRM_BASE="/sys/devices/pci0000:00/0000:00:02.0/drm"
+CARD=$(find "$DRM_BASE" -maxdepth 1 -name 'card[0-9]*' -printf '%f\n' | sort -V | head -n1)
+NUMVFS=$(cat /sys/class/drm/"$CARD"/device/sriov_totalvfs)
 VENDOR=$(cat /sys/bus/pci/devices/0000:00:02.0/vendor)
 DEVICE=$(cat /sys/bus/pci/devices/0000:00:02.0/device)
 
 function remove_sriov_vf() {
   echo -e "Remove provisioning dev-id: $DEVICE\n"
-  echo '0' | tee -a /sys/class/drm/card0/device/sriov_numvfs
+  echo '0' | tee -a /sys/class/drm/"$CARD"/device/sriov_numvfs
   echo "$VENDOR" "$DEVICE" | tee -a /sys/bus/pci/drivers/vfio-pci/remove_id
 #  rmmod vfio-pci
 }
@@ -32,7 +36,7 @@ function validate_sriov_vf(){
   if [[ $TotalVFs != "$NUMVFS" ]]; then
     echo -e "SRIOV enumeration failed."
     # Remove SRIOV VFs
-    echo '0' | tee -a /sys/class/drm/card0/device/sriov_numvfs
+    echo '0' | tee -a /sys/class/drm/"$CARD"/device/sriov_numvfs
     exit 1
   else
     echo -e "[$TotalVFs] VFs enumerated successfully."
@@ -65,7 +69,7 @@ function setup_sriov_vf() {
   echo "Starting SR-IOV VF setup"
   local sriov_vfs
   # get the number of VFs
-  sriov_vfs=$(cat /sys/class/drm/card0/device/sriov_numvfs)
+  sriov_vfs=$(cat /sys/class/drm/"$CARD"/device/sriov_numvfs)
   echo "Number of VFs: $sriov_vfs"
   if [[ "$sriov_vfs" -eq 0 ]]; then
       # VFs are not yet configured
@@ -89,9 +93,9 @@ function setup_sriov_vf() {
       sudo modprobe video || echo "Error: Failed to load video module"
 
       # set the numvfs and bind the VFs to vfio_pci driver
-      echo '1' | sudo tee -a /sys/devices/pci0000:00/0000:00:02.0/drm/card0/prelim_iov/pf/auto_provisioning
+      echo '1' | sudo tee -a /sys/devices/pci0000:00/0000:00:02.0/drm/"$CARD"/prelim_iov/pf/auto_provisioning
       echo "Setting numvfs and binding VFs to vfio_pci driver"
-      echo "$NUMVFS" | sudo tee /sys/class/drm/card0/device/sriov_numvfs
+      echo "$NUMVFS" | sudo tee /sys/class/drm/"$CARD"/device/sriov_numvfs
 
       #sudo modprobe vfio-pci || echo "Error: Failed to load vfio-pci module"
 
@@ -100,8 +104,8 @@ function setup_sriov_vf() {
       # configure for “i915” driver
       local iov_path
       if [[ "$drm_drv" == "i915" ]]; then
-          iov_path="/sys/class/drm/card0/iov"
-          [[ -d "/sys/class/drm/card0/prelim_iov" ]] && iov_path="/sys/class/drm/card0/prelim_iov"
+          iov_path="/sys/class/drm/$CARD/iov"
+          [[ -d "/sys/class/drm/$CARD/prelim_iov" ]] && iov_path="/sys/class/drm/$CARD/prelim_iov"
       elif [[ "$drm_drv" == "xe" ]]; then
           iov_path="/sys/kernel/debug/dri/0000:00:02.0/gt0"
       fi

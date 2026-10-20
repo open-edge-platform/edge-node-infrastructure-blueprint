@@ -130,6 +130,12 @@ info "Downloading K3s binary..."
 curl -fL "${K3S_BASE_URL}/${K3S_BINARY}" \
     -o "${RESOURCES_DIR}/k3s/k3s"
 
+info "Downloading K3s checksums..."
+curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
+    -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+K3S_SUMS="${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
+success "sha256sum-${K3S_ARCH}.txt saved"
+
 if [[ -n "${K3S_BINARY_SHA256:-}" ]]; then
     # Verify against independently pinned checksum (primary trust source)
     verify_sha256_hex "${RESOURCES_DIR}/k3s/k3s" "${K3S_BINARY_SHA256}"
@@ -138,14 +144,6 @@ else
     warn "K3S_BINARY_SHA256 not set — k3s binary checksum is not independently verified."
     warn "  The checksum manifest is fetched from the same origin as the binary."
     warn "  Pin it for reproducibility: K3S_BINARY_SHA256=<sha> ./download-resources.sh"
-    echo ""
-
-    info "Downloading K3s checksums..."
-    curl -fL "${K3S_BASE_URL}/sha256sum-${K3S_ARCH}.txt" \
-        -o "${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
-    K3S_SUMS="${RESOURCES_DIR}/k3s/sha256sum-${K3S_ARCH}.txt"
-    success "sha256sum-${K3S_ARCH}.txt saved"
-
     verify_sha256_from_sumfile "${RESOURCES_DIR}/k3s/k3s" "${K3S_SUMS}" "${K3S_BINARY}"
 fi
 
@@ -246,6 +244,8 @@ success "${HELM_TARBALL} saved"
 if [[ -n "${HELM_SHA256:-}" ]]; then
     # Verify against independently pinned checksum (primary trust source)
     verify_sha256_hex "${RESOURCES_DIR}/helm/${HELM_TARBALL}" "${HELM_SHA256}"
+    # Persist the sidecar so install-helm.sh can re-verify on the air-gapped target
+    echo "${HELM_SHA256}  ${HELM_TARBALL}" > "${RESOURCES_DIR}/helm/${HELM_TARBALL}.sha256sum"
 else
     # Fall back to co-downloaded manifest (same-origin, not independently verified)
     warn "HELM_SHA256 not set — helm checksum is not independently verified."

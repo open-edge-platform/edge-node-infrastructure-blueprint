@@ -227,7 +227,29 @@ EOF
 success "docker.service written"
 
 # ==============================================================================
-# 6. Enable and (optionally) start services
+# 6. Configure Docker daemon proxy (systemd drop-in)
+# ==============================================================================
+HTTP_PROXY_VAL="${HTTP_PROXY:-${http_proxy:-}}"
+HTTPS_PROXY_VAL="${HTTPS_PROXY:-${https_proxy:-}}"
+NO_PROXY_VAL="${NO_PROXY:-${no_proxy:-}}"
+
+info "Configuring Docker daemon proxy from environment ..."
+mkdir -p /etc/systemd/system/docker.service.d
+{
+    echo "[Service]"
+    echo "Environment=\"HTTP_PROXY=${HTTP_PROXY_VAL}\""
+    echo "Environment=\"http_proxy=${HTTP_PROXY_VAL}\""
+    echo "Environment=\"HTTPS_PROXY=${HTTPS_PROXY_VAL}\""
+    echo "Environment=\"https_proxy=${HTTPS_PROXY_VAL}\""
+    echo "Environment=\"NO_PROXY=${NO_PROXY_VAL}\""
+    echo "Environment=\"no_proxy=${NO_PROXY_VAL}\""
+} > /etc/systemd/system/docker.service.d/http-proxy.conf
+success "/etc/systemd/system/docker.service.d/http-proxy.conf written"
+
+groupadd docker || true
+usermod -aG docker "${SUDO_USER:-$USER}"
+# ==============================================================================
+# 7. Enable and (optionally) start services
 # ==============================================================================
 info "Reloading systemd daemon ..."
 systemctl daemon-reload
@@ -251,7 +273,7 @@ if [[ "${SKIP_SERVICE_START}" != "1" ]]; then
 fi
 
 # ==============================================================================
-# 7. Verify
+# 8. Verify
 # ==============================================================================
 echo ""
 echo "======================================================================"
