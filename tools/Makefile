@@ -69,6 +69,7 @@ lpmd:
 	# build-essential, intel-mipi-gmsl-dkms, and librealsense2-dkms.
 	apt-get clean
 	# Enable service
+	systemctl daemon-reload
 	systemctl --root=/ enable intel_lpmd.service
 	systemctl start intel_lpmd.service
 	cd /tmp
