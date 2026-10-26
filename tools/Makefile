@@ -3,7 +3,7 @@
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 .ONESHELL:
-INTEL_LPMD_COMMIT ?= 956df747e56aca1739b39bff8cff77e81758af9a
+INTEL_LPMD_COMMIT ?= 9bf8b8de3ed11c301817814fef79b3161e6294b6
 PCM_COMMIT ?= e534201d0fe6d6e3bc5fee54b229f215b976efbc
 
 .PHONY: power-tuning system-info lpmd pcm
