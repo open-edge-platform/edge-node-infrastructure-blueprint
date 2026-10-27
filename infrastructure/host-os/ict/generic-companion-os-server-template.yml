@@ -961,8 +961,8 @@ systemConfig:
     - cmd: "test -x /usr/sbin/intel_lpmd && test -f /usr/lib/systemd/system/intel_lpmd.service"
     # Step 5: Enable intel_lpmd service for multi-user target
     - cmd: "mkdir -p /etc/systemd/system/multi-user.target.wants && ln -sf /usr/lib/systemd/system/intel_lpmd.service /etc/systemd/system/multi-user.target.wants/intel_lpmd.service"
-    # Step 6: Clean up source and purge build-only dependencies (no network needed)
-    - cmd: "rm -rf /tmp/intel-lpmd && dpkg --purge --force-depends autoconf automake autoconf-archive libtool gtk-doc-tools libdbus-1-dev libxml2-dev libnl-3-dev libnl-genl-3-dev libsystemd-dev libupower-glib-dev 2>/dev/null || true"
+    # Step 6: Clean up source
+    - cmd: "rm -rf /tmp/intel-lpmd"
 
     # --- intel-pcm v202604 (source build in chroot) ---
     # Build from source to use the latest security patches and Panther Lake/PCIe metric updates.
