@@ -36,7 +36,7 @@ resources:
 
 common:
 	apt update && apt install -y chrony 
-	adduser $$(SUDO_USER) audio video render
+	adduser "$$SUDO_USER" audio video render
 	$(MAKE) -C $(SCRIPTS) realsense cdi
 	$(MAKE) -C tools power-tuning system-info
  
