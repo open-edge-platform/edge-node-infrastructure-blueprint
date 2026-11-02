@@ -1,0 +1,19 @@
+{
+  "skill_name": "generate-openvino-stress",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run OpenVINO inference stress plan for a 30-second CPU run using the default model and automatic runtime detection. Do not launch a pod/container or download a model. Show the resolved command, preconditions, confirmation gate, and what would be verified after launch.",
+      "expected_output": "Provide a Planned Load table, validated parameters, fail-closed runtime/model prerequisites, dry-run confirmation outcome, and post-launch verification/cleanup commands without claiming a workload is running.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves CPU, duration=30, niter=0, sync API, the default model, and automatic runtime detection",
+        "Lists runtime, script, Intel/x86, model, and input validation, including the documented model auto-download dependency",
+        "Renders the Planned Load table before confirmation and builds the absolute command with duration rather than niter",
+        "States that dry-run/declined confirmation prevents launch and names pod/container status, logs, and stop commands as post-launch checks",
+        "Includes ephemeral workload cleanup and does not claim a pod/container or model download exists"
+      ]
+    }
+  ]
+}

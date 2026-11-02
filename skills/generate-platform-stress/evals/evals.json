@@ -1,0 +1,19 @@
+{
+  "skill_name": "generate-platform-stress",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run synthetic platform stress plan for 4 CPU workers at 75% load, 2 GPU workers, and 20 seconds. Do not launch stress-ng. Show the exact planned command, safety checks, confirmation gate, and how real GPU activity would be verified.",
+      "expected_output": "Provide a Planned Load table with validated parameters, fail-closed preconditions, dry-run confirmation outcome, GPU verification methods, and transient cleanup guidance without claiming stress-ng ran.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Uses an absolute stress_gen.sh command with cpus=4, load=75, gpu=2, and duration=20s",
+        "Lists script, stress-ng, CPU ceiling, input, existing-process, render-node, and Intel-host checks",
+        "Renders the Planned Load table before confirmation and says dry-run/declined outcomes do not launch",
+        "Explains that GPU worker presence is insufficient and names intel_gpu_top, GFXWatt, or render-node holders as verification signals",
+        "Includes bounded synchronous execution, exit-code/activity evidence, and transient stop guidance as post-launch behavior without claiming it occurred"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "SPDX-FileCopyrightText": "(C) 2026 Intel Corporation",
+  "SPDX-License-Identifier": "Apache-2.0",
+  "skill_name": "combined-power-thermal-profiling",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a dry-run plan for qualifying an Intel enclosure with the combined power and thermal profiling skill. Use BalancedHigh, leave thermal_profile=none, and use a bounded 60s CPU+iGPU stress window. Do not apply settings, start turbostat/stress-ng, or claim a trace exists; show the planned orchestration, safety gates, and report structure.",
+      "expected_output": "Provide a fail-closed staged plan with one Planned Session table, sub-skill dry-runs, a dry-run confirmation outcome, required report fields, and reverse-order rollback guidance without claiming execution evidence.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Identifies the orchestrator and sequences power, optional thermal, monitor, bounded stress, and summary stages",
+        "Resolves BalancedHigh, thermal_profile=none, and a required bounded duration of 60s",
+        "Includes sub-skill dry-runs, one Planned Session table, and a single dry-run confirmation outcome before any mutation",
+        "Lists pre-existing stressor/monitor, required tools/scripts, and sudo probe checks for a real run without claiming they passed here",
+        "Defines the consolidated PkgTmp/PkgWatt/GFXWatt report, SysWatt annotation, verdicts, and reverse-order rollback"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "skill_name": "validate-platform-config",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Prepare a read-only validation plan for edge-node.example.test as user edge on SSH port 2222 using the default kubeconfig path. Do not connect. Show the SSH/key-safety checks, host_type branch, cloud-init/network/proxy checks, device/VF inventory, conditional SR-IOV check, and report structure.",
+      "expected_output": "Provide a complete validation plan that clearly marks remote observations as pending, protects private-key data, covers both host_type branches, and defines failure classification without claiming the node is healthy.",
+      "should_trigger": true,
+      "files": [],
+      "expectations": [
+        "Resolves edge-node.example.test, user edge, port 2222, and the default kubeconfig path",
+        "Defines BatchMode reachability/login and safe default-key discovery without requesting or revealing private-key contents",
+        "Branches on host_type to Kubernetes pod/binary checks or container Docker/Compose/CDI checks",
+        "Covers cloud-init, IP/route, internet/DNS/HTTPS proxy classification, CPU/GPU/NPU and VF inventory, with codename verification rules",
+        "Makes SR-IOV service validation conditional on enable_sriov=true, continues after read-only failures, and marks unobserved results pending"
+      ]
+    }
+  ]
+}
