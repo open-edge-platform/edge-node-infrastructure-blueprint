@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git build-base linux-headers
